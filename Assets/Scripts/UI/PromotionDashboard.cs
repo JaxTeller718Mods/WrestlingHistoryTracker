@@ -57,7 +57,11 @@ public class PromotionDashboard : MonoBehaviour
     // ===== Histories =====
     private VisualElement historyPanel;
     private ScrollView matchHistoryList;
-    private ScrollView titleLineageList;    
+    private ScrollView titleLineageList;
+
+    private VisualElement root;
+    private readonly List<VisualElement> mainPanels = new();
+    private readonly List<VisualElement> focusablePanels = new();
 
     private void OnEnable()
     {
@@ -72,7 +76,9 @@ public class PromotionDashboard : MonoBehaviour
         currentPromotion = PromotionSession.Instance.CurrentPromotion;
         Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
 
-        var root = GetComponent<UIDocument>().rootVisualElement;
+        root = GetComponent<UIDocument>().rootVisualElement;
+        mainPanels.Clear();
+        focusablePanels.Clear();
 
         // ===== Navigation =====
         promotionButton = root.Q<Button>("promotionButton");
@@ -167,6 +173,17 @@ public class PromotionDashboard : MonoBehaviour
         matchHistoryList = root.Q<ScrollView>("matchHistoryList");
         titleLineageList = root.Q<ScrollView>("titleLineageList");
 
+        RegisterMainPanel(promotionInfoPanel);
+        RegisterMainPanel(wrestlersPanel);
+        RegisterMainPanel(titlesPanel);
+        RegisterMainPanel(showsPanel);
+        RegisterMainPanel(historyPanel);
+
+        RegisterFocusablePanel(editPanel, wrestlerDetails, wrestlerAddPanel, titleDetails, titleAddPanel,
+            titleHistoryList, showDetails, showAddPanel, matchEditor, showsPanel, historyPanel,
+            promotionInfoPanel, wrestlersPanel, titlesPanel);
+
+
         // ===== Navigation wiring =====
         if (promotionButton != null)
             promotionButton.clicked += ShowPromotionPanel;
@@ -226,36 +243,40 @@ public class PromotionDashboard : MonoBehaviour
         // ===== Shows logic =====
         addShowButton.clicked += () =>
         {
+            SetActivePanel(showsPanel);
             var show = new ShowData(newShowField.value, newShowDateField.value);
             currentPromotion.shows.Add(show);
             RefreshShowList();
             newShowField.value = "";
             newShowDateField.value = "";
+            FocusPanel(showAddPanel ?? showsPanel);
         };
 
         saveShowsButton.clicked += () =>
         {
+            SetActivePanel(showsPanel);
             DataManager.SavePromotion(currentPromotion);
             RefreshHistoryPanel();
             statusLabel.text = "💾 Shows saved & history refreshed.";
+            FocusPanel(showsPanel);
         };
 
-saveShowsButton.clicked += () =>
-{
-    if (currentPromotion == null)
-        return;
+        saveShowButton.clicked += () =>
+        {
+            if (currentPromotion == null)
+                return;
 
-    TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
-    foreach (ShowData showData in currentPromotion.shows)
-    {
-        TitleHistoryManager.UpdateShowResults(currentPromotion, showData);
-    }
+            SetActivePanel(showsPanel);
+            TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
+            foreach (ShowData showData in currentPromotion.shows)
+            {
+                TitleHistoryManager.UpdateShowResults(currentPromotion, showData);
+            }
 
             currentEditingShow.showName = showNameField.value;
             currentEditingShow.date = showDateField.value;
 
-            // ✅ Update title histories for all matches
-            foreach (var match in currentEditingShow.matches)
+            if (currentEditingShow == null)
             {
                 statusLabel.text = "⚠️ No active show selected.";
                 return;
@@ -270,18 +291,21 @@ saveShowsButton.clicked += () =>
             TitleHistoryManager.UpdateShowResults(currentPromotion, currentEditingShow, previousName, previousDate);
 
             DataManager.SavePromotion(currentPromotion);
-            RefreshHistoryPanel();           
+            RefreshHistoryPanel();
 
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
             RefreshShowList();
             statusLabel.text = $"✅ Show '{currentEditingShow.showName}' saved & history updated.";
+            FocusPanel(showAddPanel ?? showsPanel);
         };
 
         cancelShowButton.clicked += () =>
         {
+            SetActivePanel(showsPanel);
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
+            FocusPanel(showAddPanel ?? showsPanel);
         };
 
         deleteShowButton.clicked += () =>
@@ -299,12 +323,20 @@ saveShowsButton.clicked += () =>
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
             statusLabel.text = "🗑️ Show deleted and history cleaned.";
+            SetActivePanel(showsPanel);
+            FocusPanel(showAddPanel ?? showsPanel);
         };
 
-        addMatchButton.clicked += () => matchEditor.RemoveFromClassList("hidden");
+        addMatchButton.clicked += () =>
+        {
+            SetActivePanel(showsPanel);
+            matchEditor.RemoveFromClassList("hidden");
+            FocusPanel(matchEditor);
+        };
 
         saveMatchButton.clicked += () =>
         {
+            SetActivePanel(showsPanel);
             var match = new MatchData
             {
                 matchName = matchNameField.value,
@@ -330,12 +362,19 @@ saveShowsButton.clicked += () =>
             wrestlerBField.value = "";
             isTitleMatchToggle.value = false;
             titleInvolvedField.value = "";
-            winnerField.value = "";           
+            winnerField.value = "";
+            FocusPanel(showDetails ?? showsPanel);
         };
 
-        cancelMatchButton.clicked += () => matchEditor.AddToClassList("hidden");
+        cancelMatchButton.clicked += () =>
+        {
+            SetActivePanel(showsPanel);
+            matchEditor.AddToClassList("hidden");
+            FocusPanel(showDetails ?? showsPanel);
+        };
 
         LoadPromotionData();
+        SetActivePanel(promotionInfoPanel);
     }
 
     // ---------------- Promotion Info ----------------
@@ -365,6 +404,8 @@ saveShowsButton.clicked += () =>
 
     private void SetEditMode(bool enable)
     {
+        SetActivePanel(promotionInfoPanel);
+
         if (enable)
         {
             nameField.value = currentPromotion.promotionName;
@@ -377,6 +418,7 @@ saveShowsButton.clicked += () =>
             descriptionLabel.AddToClassList("hidden");
             editPromotionButton?.AddToClassList("hidden");
             editPanel?.RemoveFromClassList("hidden");
+            FocusPanel(editPanel ?? promotionInfoPanel);
         }
         else
         {
@@ -405,48 +447,127 @@ saveShowsButton.clicked += () =>
     // ---------------- Navigation ----------------
     private void ShowPromotionPanel()
     {
-        promotionInfoPanel.RemoveFromClassList("hidden");
-        wrestlersPanel.AddToClassList("hidden");
-        titlesPanel.AddToClassList("hidden");
-        showsPanel.AddToClassList("hidden");
-        historyPanel?.AddToClassList("hidden");
+        SetActivePanel(promotionInfoPanel);
+        SetEditMode(false);
     }
 
     private void ShowWrestlersPanel()
     {
-        promotionInfoPanel.AddToClassList("hidden");
-        wrestlersPanel.RemoveFromClassList("hidden");
-        titlesPanel.AddToClassList("hidden");
-        showsPanel.AddToClassList("hidden");
-        historyPanel?.AddToClassList("hidden");
+        SetActivePanel(wrestlersPanel);
+        if (wrestlerDetails != null && !wrestlerDetails.ClassListContains("hidden"))
+            FocusPanel(wrestlerDetails);
     }
 
     private void ShowTitlesPanel()
     {
-        promotionInfoPanel.AddToClassList("hidden");
-        wrestlersPanel.AddToClassList("hidden");
-        titlesPanel.RemoveFromClassList("hidden");
-        showsPanel.AddToClassList("hidden");
-        historyPanel?.AddToClassList("hidden");
+        SetActivePanel(titlesPanel);
+        if (titleHistoryList != null)
+        {
+            titleHistoryList.AddToClassList("hidden");
+            titleHistoryList.Clear();
+        }
+
+        if (selectedTitleIndex < 0)
+            titleAddPanel?.RemoveFromClassList("hidden");
+
+        if (titleDetails != null && !titleDetails.ClassListContains("hidden"))
+            FocusPanel(titleDetails);
+        else if (titleAddPanel != null)
+            FocusPanel(titleAddPanel);
     }
 
     private void ShowShowsPanel()
     {
-        promotionInfoPanel.AddToClassList("hidden");
-        wrestlersPanel.AddToClassList("hidden");
-        titlesPanel.AddToClassList("hidden");
-        showsPanel.RemoveFromClassList("hidden");
-        historyPanel?.AddToClassList("hidden");
+        SetActivePanel(showsPanel);
+        matchEditor?.AddToClassList("hidden");
+
+        if (currentEditingShow == null)
+        {
+            showDetails?.AddToClassList("hidden");
+            showAddPanel?.RemoveFromClassList("hidden");
+            FocusPanel(showAddPanel ?? showsPanel);
+        }
+        else if (showDetails != null)
+        {
+            FocusPanel(showDetails);
+        }
     }
 
     private void ShowHistoryPanel()
     {
-        promotionInfoPanel.AddToClassList("hidden");
-        wrestlersPanel.AddToClassList("hidden");
-        titlesPanel.AddToClassList("hidden");
-        showsPanel.AddToClassList("hidden");
-        historyPanel?.RemoveFromClassList("hidden");
+        SetActivePanel(historyPanel);
         RefreshHistoryPanel();
+    }
+
+    private void RegisterMainPanel(VisualElement panel)
+    {
+        if (panel == null)
+            return;
+
+        if (!mainPanels.Contains(panel))
+            mainPanels.Add(panel);
+
+        RegisterFocusablePanel(panel);
+    }
+
+    private void RegisterFocusablePanel(params VisualElement[] panels)
+    {
+        if (panels == null)
+            return;
+
+        foreach (var panel in panels)
+        {
+            if (panel == null)
+                continue;
+
+            if (!focusablePanels.Contains(panel))
+                focusablePanels.Add(panel);
+        }
+    }
+
+    private void SetActivePanel(VisualElement panel)
+    {
+        if (panel == null)
+            return;
+
+        foreach (var mainPanel in mainPanels)
+        {
+            if (mainPanel == null)
+                continue;
+
+            if (mainPanel == panel)
+                mainPanel.RemoveFromClassList("hidden");
+            else
+                mainPanel.AddToClassList("hidden");
+        }
+
+        FocusPanel(panel);
+    }
+
+    private void FocusPanel(VisualElement panel)
+    {
+        if (panel == null)
+            return;
+
+        if (!focusablePanels.Contains(panel))
+            focusablePanels.Add(panel);
+
+        foreach (var element in focusablePanels)
+            element?.RemoveFromClassList("focused-panel");
+
+        panel.AddToClassList("focused-panel");
+
+        if (root == null)
+            return;
+
+        root.schedule.Execute(() =>
+        {
+            var scrollParent = panel.GetFirstAncestorOfType<ScrollView>();
+            if (scrollParent != null)
+                scrollParent.ScrollTo(panel);
+
+            panel.Focus();
+        });
     }
 
     // ---------------- Wrestlers Logic ----------------
@@ -481,6 +602,7 @@ saveShowsButton.clicked += () =>
         wrestlerCollection.wrestlers.Add(new WrestlerData { name = name });
         newWrestlerField.value = "";
         RefreshWrestlerList();
+        FocusPanel(wrestlerAddPanel ?? wrestlersPanel);
     }
 
     private void SelectWrestler(int index)
@@ -488,6 +610,7 @@ saveShowsButton.clicked += () =>
         if (wrestlerCollection == null || index < 0 || index >= wrestlerCollection.wrestlers.Count)
             return;
         selectedIndex = index;
+        SetActivePanel(wrestlersPanel);
         var w = wrestlerCollection.wrestlers[index];
         promotionInfoPanel.AddToClassList("hidden");
         titlesPanel.AddToClassList("hidden");
@@ -499,15 +622,16 @@ saveShowsButton.clicked += () =>
         wrestlerWeightField.value = w.weight;
         wrestlerAddPanel.AddToClassList("hidden");
         wrestlerDetails.RemoveFromClassList("hidden");
+        FocusPanel(wrestlerDetails);
     }
 
     private void HideWrestlerDetails()
     {
         wrestlerDetails.AddToClassList("hidden");
         wrestlerAddPanel.RemoveFromClassList("hidden");
-        promotionInfoPanel.RemoveFromClassList("hidden");
-        titlesPanel.RemoveFromClassList("hidden");
         selectedIndex = -1;
+        SetActivePanel(wrestlersPanel);
+        FocusPanel(wrestlerAddPanel ?? wrestlersPanel);
     }
 
     private void SaveSelectedWrestler()
@@ -579,6 +703,7 @@ saveShowsButton.clicked += () =>
         titleCollection.titles.Add(new TitleData { titleName = name });
         newTitleField.value = "";
         RefreshTitleList();
+        FocusPanel(titleAddPanel ?? titlesPanel);
     }
 
     private void SelectTitle(int index)
@@ -586,6 +711,7 @@ saveShowsButton.clicked += () =>
         if (titleCollection == null || index < 0 || index >= titleCollection.titles.Count)
             return;
         selectedTitleIndex = index;
+        SetActivePanel(titlesPanel);
         var t = titleCollection.titles[index];
         promotionInfoPanel.AddToClassList("hidden");
         wrestlersPanel.AddToClassList("hidden");
@@ -598,17 +724,18 @@ saveShowsButton.clicked += () =>
         titleDetails.RemoveFromClassList("hidden");
         titleHistoryList?.AddToClassList("hidden");
         titleHistoryList?.Clear();
+        FocusPanel(titleDetails);
     }
 
     private void HideTitleDetails()
     {
         titleDetails.AddToClassList("hidden");
-        promotionInfoPanel.RemoveFromClassList("hidden");
-        wrestlersPanel.RemoveFromClassList("hidden");
         titleAddPanel.RemoveFromClassList("hidden");
         selectedTitleIndex = -1;
         titleHistoryList?.AddToClassList("hidden");
         titleHistoryList?.Clear();
+        SetActivePanel(titlesPanel);
+        FocusPanel(titleAddPanel ?? titlesPanel);
     }
 
     private void SaveSelectedTitle()
@@ -652,6 +779,8 @@ saveShowsButton.clicked += () =>
         if (titleHistoryList == null)
             return;
 
+        SetActivePanel(titlesPanel);
+
         if (currentPromotion == null)
         {
             statusLabel.text = "❌ No promotion loaded!";
@@ -686,7 +815,10 @@ saveShowsButton.clicked += () =>
             }
         }
 
+        titleDetails?.AddToClassList("hidden");
+        titleAddPanel?.AddToClassList("hidden");
         titleHistoryList.RemoveFromClassList("hidden");
+        FocusPanel(titleHistoryList);
         statusLabel.text = $"📜 Showing history for {selectedTitle.titleName}.";
     }
 
@@ -710,11 +842,13 @@ saveShowsButton.clicked += () =>
         currentEditingShow = show;
         originalShowName = show.showName;
         originalShowDate = show.date;
+        SetActivePanel(showsPanel);
         showAddPanel.AddToClassList("hidden");
         showDetails.RemoveFromClassList("hidden");
         showNameField.value = show.showName;
         showDateField.value = show.date;
         RefreshMatchList();
+        FocusPanel(showDetails);
     }
 
     private void RefreshMatchList()
