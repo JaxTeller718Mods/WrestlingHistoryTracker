@@ -240,10 +240,16 @@ public class PromotionDashboard : MonoBehaviour
             statusLabel.text = "💾 Shows saved & history refreshed.";
         };
 
-        saveShowButton.clicked += () =>
-        {
-            if (currentEditingShow == null)
-                TitleHistoryManager.UpdateShowResults(currentPromotion, show);
+saveShowsButton.clicked += () =>
+{
+    if (currentPromotion == null)
+        return;
+
+    TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
+    foreach (ShowData showData in currentPromotion.shows)
+    {
+        TitleHistoryManager.UpdateShowResults(currentPromotion, showData);
+    }
 
             currentEditingShow.showName = showNameField.value;
             currentEditingShow.date = showDateField.value;
