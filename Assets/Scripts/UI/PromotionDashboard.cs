@@ -149,9 +149,12 @@ public class PromotionDashboard : MonoBehaviour
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
 
         // ===== Navigation wiring =====
-        promotionButton?.clicked += ShowPromotionPanel;
-        wrestlersButton?.clicked += ShowWrestlersPanel;
-        titlesButton?.clicked += ShowTitlesPanel;
+        if (promotionButton != null)
+            promotionButton.clicked += ShowPromotionPanel;
+        if (wrestlersButton != null)
+            wrestlersButton.clicked += ShowWrestlersPanel;
+        if (titlesButton != null)
+            titlesButton.clicked += ShowTitlesPanel;
         if (returnButton != null)
         {
             returnButton.clicked += () =>
@@ -164,23 +167,36 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         // ===== Promotion actions =====
-        editPromotionButton?.clicked += () => SetEditMode(true);
-        savePromotionButton?.clicked += SavePromotionChanges;
-        cancelPromotionButton?.clicked += () => SetEditMode(false);
+        if (editPromotionButton != null)
+            editPromotionButton.clicked += () => SetEditMode(true);
+        if (savePromotionButton != null)
+            savePromotionButton.clicked += SavePromotionChanges;
+        if (cancelPromotionButton != null)
+            cancelPromotionButton.clicked += () => SetEditMode(false);
 
         // ===== Wrestler actions =====
-        addWrestlerButton?.clicked += AddWrestler;
-        saveWrestlersButton?.clicked += SaveWrestlers;
-        saveWrestlerButton?.clicked += SaveSelectedWrestler;
-        deleteWrestlerButton?.clicked += DeleteSelectedWrestler;
-        cancelEditButton?.clicked += HideWrestlerDetails;
+        if (addWrestlerButton != null)
+            addWrestlerButton.clicked += AddWrestler;
+        if (saveWrestlersButton != null)
+            saveWrestlersButton.clicked += SaveWrestlers;
+        if (saveWrestlerButton != null)
+            saveWrestlerButton.clicked += SaveSelectedWrestler;
+        if (deleteWrestlerButton != null)
+            deleteWrestlerButton.clicked += DeleteSelectedWrestler;
+        if (cancelEditButton != null)
+            cancelEditButton.clicked += HideWrestlerDetails;
 
         // ===== Title actions =====
-        addTitleButton?.clicked += AddTitle;
-        saveTitlesButton?.clicked += SaveTitles;
-        saveTitleButton?.clicked += SaveSelectedTitle;
-        deleteTitleButton?.clicked += DeleteSelectedTitle;
-        cancelTitleButton?.clicked += HideTitleDetails;
+        if (addTitleButton != null)
+            addTitleButton.clicked += AddTitle;
+        if (saveTitlesButton != null)
+            saveTitlesButton.clicked += SaveTitles;
+        if (saveTitleButton != null)
+            saveTitleButton.clicked += SaveSelectedTitle;
+        if (deleteTitleButton != null)
+            deleteTitleButton.clicked += DeleteSelectedTitle;
+        if (cancelTitleButton != null)
+            cancelTitleButton.clicked += HideTitleDetails;
 
         // ===== Shows logic =====
         addShowButton.clicked += () =>
