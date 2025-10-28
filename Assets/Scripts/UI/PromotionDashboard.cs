@@ -37,8 +37,7 @@ public class PromotionDashboard : MonoBehaviour
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
 
-    // Shows tab
-    // ---- Shows ----
+    // ===== Shows =====
     private VisualElement showsPanel, showDetails, showAddPanel;
     private ScrollView showsList, matchesList;
     private TextField showNameField, showDateField, newShowField, newShowDateField;
@@ -47,52 +46,32 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement matchEditor;
     private TextField matchNameField, wrestlerAField, wrestlerBField, titleInvolvedField, winnerField;
     private Toggle isTitleMatchToggle;
-
-    // runtime variables
     private ShowData currentEditingShow;
 
-
-private void OnEnable()
-{
-    // ✅ Get promotion from persistent session
-    if (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
+    private void OnEnable()
     {
-        Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
-        SceneLoader.Instance.LoadScene("MainMenu");
-        return;
-    }
+        // ✅ Load active promotion from persistent session
+        if (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
+        {
+            Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
+            SceneLoader.Instance.LoadScene("MainMenu");
+            return;
+        }
 
-    currentPromotion = PromotionSession.Instance.CurrentPromotion;
-    Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
-
-
+        currentPromotion = PromotionSession.Instance.CurrentPromotion;
+        Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
 
         var root = GetComponent<UIDocument>().rootVisualElement;
 
-        // Navigation
+        // ===== Navigation =====
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
-// Example: Hooking up the "Return to Main Menu" button
-Button returnButton = root.Q<Button>("returnButton");
-if (returnButton != null)
-{
-    returnButton.clicked += () =>
-    {
-        Debug.Log("Returning to Main Menu...");
-
-        // ✅ Clear active promotion data
-        if (PromotionSession.Instance != null)
-            PromotionSession.Instance.CurrentPromotion = null;
-
-        // ✅ Load Main Menu scene
-        SceneLoader.Instance.LoadScene("MainMenu");
-    };
-}
+        returnButton = root.Q<Button>("returnButton");
 
         statusLabel = root.Q<Label>("statusLabel");
 
-        // Promotion info
+        // ===== Promotion Info =====
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
         nameLabel = root.Q<Label>("nameLabel");
         locationLabel = root.Q<Label>("locationLabel");
@@ -106,7 +85,7 @@ if (returnButton != null)
         savePromotionButton = root.Q<Button>("savePromotionButton");
         cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
 
-        // Wrestlers
+        // ===== Wrestlers =====
         wrestlersPanel = root.Q<VisualElement>("wrestlersPanel");
         wrestlerList = root.Q<ScrollView>("wrestlerList");
         wrestlerDetails = root.Q<VisualElement>("wrestlerDetails");
@@ -124,7 +103,7 @@ if (returnButton != null)
         newWrestlerField = root.Q<TextField>("newWrestlerField");
         wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
 
-        // Titles
+        // ===== Titles =====
         titlesPanel = root.Q<VisualElement>("titlesPanel");
         titleList = root.Q<ScrollView>("titleList");
         titleDetails = root.Q<VisualElement>("titleDetails");
@@ -141,22 +120,20 @@ if (returnButton != null)
         newTitleField = root.Q<TextField>("newTitleField");
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
 
+        // ===== Shows =====
         showsPanel = root.Q<VisualElement>("showsPanel");
         showsList = root.Q<ScrollView>("showsList");
         showDetails = root.Q<VisualElement>("showDetails");
         showAddPanel = root.Q<VisualElement>("showAddPanel");
-
         showNameField = root.Q<TextField>("showNameField");
         showDateField = root.Q<TextField>("showDateField");
         newShowField = root.Q<TextField>("newShowField");
         newShowDateField = root.Q<TextField>("newShowDateField");
-
         addShowButton = root.Q<Button>("addShowButton");
         saveShowsButton = root.Q<Button>("saveShowsButton");
         saveShowButton = root.Q<Button>("saveShowButton");
         deleteShowButton = root.Q<Button>("deleteShowButton");
         cancelShowButton = root.Q<Button>("cancelShowButton");
-
         matchesList = root.Q<ScrollView>("matchesList");
         matchEditor = root.Q<VisualElement>("matchEditor");
         matchNameField = root.Q<TextField>("matchNameField");
@@ -169,32 +146,41 @@ if (returnButton != null)
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
 
-        // Navigation wiring
+        // ===== Navigation wiring =====
         promotionButton.clicked += ShowPromotionPanel;
         wrestlersButton.clicked += ShowWrestlersPanel;
         titlesButton.clicked += ShowTitlesPanel;
-        returnButton.clicked += () => SceneLoader.Instance.LoadScene("MainMenu");
+        if (returnButton != null)
+        {
+            returnButton.clicked += () =>
+            {
+                Debug.Log("Returning to Main Menu...");
+                if (PromotionSession.Instance != null)
+                    PromotionSession.Instance.CurrentPromotion = null;
+                SceneLoader.Instance.LoadScene("MainMenu");
+            };
+        }
 
-        // Promotion actions
+        // ===== Promotion actions =====
         editPromotionButton.clicked += () => SetEditMode(true);
         savePromotionButton.clicked += SavePromotionChanges;
         cancelPromotionButton.clicked += () => SetEditMode(false);
 
-        // Wrestler actions
+        // ===== Wrestler actions =====
         addWrestlerButton.clicked += AddWrestler;
         saveWrestlersButton.clicked += SaveWrestlers;
         saveWrestlerButton.clicked += SaveSelectedWrestler;
         deleteWrestlerButton.clicked += DeleteSelectedWrestler;
         cancelEditButton.clicked += HideWrestlerDetails;
 
-        // Title actions
+        // ===== Title actions =====
         addTitleButton.clicked += AddTitle;
         saveTitlesButton.clicked += SaveTitles;
         saveTitleButton.clicked += SaveSelectedTitle;
         deleteTitleButton.clicked += DeleteSelectedTitle;
         cancelTitleButton.clicked += HideTitleDetails;
 
-
+        // ===== Shows logic =====
         addShowButton.clicked += () =>
         {
             var show = new ShowData(newShowField.value, newShowDateField.value);
@@ -207,16 +193,26 @@ if (returnButton != null)
         saveShowsButton.clicked += () =>
         {
             DataManager.SavePromotion(currentPromotion);
-
+            statusLabel.text = "💾 Shows saved.";
         };
 
         saveShowButton.clicked += () =>
         {
             currentEditingShow.showName = showNameField.value;
             currentEditingShow.date = showDateField.value;
+
+            // ✅ Update title histories for all matches
+            foreach (var match in currentEditingShow.matches)
+            {
+                TitleHistoryManager.RegisterMatchResult(currentPromotion, match);
+            }
+
+            DataManager.SavePromotion(currentPromotion);
+
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
             RefreshShowList();
+            statusLabel.text = $"✅ Show '{currentEditingShow.showName}' saved & history updated.";
         };
 
         cancelShowButton.clicked += () =>
@@ -234,60 +230,60 @@ if (returnButton != null)
             showAddPanel.RemoveFromClassList("hidden");
         };
 
-        addMatchButton.clicked += () =>
-        {
-            matchEditor.RemoveFromClassList("hidden");
-        };
+        addMatchButton.clicked += () => matchEditor.RemoveFromClassList("hidden");
 
         saveMatchButton.clicked += () =>
         {
-            var match = new MatchData(matchNameField.value, wrestlerAField.value, wrestlerBField.value)
+            var match = new MatchData
             {
+                matchName = matchNameField.value,
+                wrestlerA = wrestlerAField.value,
+                wrestlerB = wrestlerBField.value,
                 isTitleMatch = isTitleMatchToggle.value,
-                titleInvolved = titleInvolvedField.value,
+                titleName = titleInvolvedField.value,
                 winner = winnerField.value
             };
+
+            if (currentEditingShow == null)
+            {
+                statusLabel.text = "⚠️ No active show selected.";
+                return;
+            }
 
             currentEditingShow.matches.Add(match);
             matchEditor.AddToClassList("hidden");
             RefreshMatchList();
+            statusLabel.text = $"✅ Match '{match.matchName}' added.";
         };
 
-        cancelMatchButton.clicked += () =>
-        {
-            matchEditor.AddToClassList("hidden");
-        };
+        cancelMatchButton.clicked += () => matchEditor.AddToClassList("hidden");
 
         LoadPromotionData();
     }
 
-private void LoadPromotionData()
-{
-    // ✅ Use PromotionSession instead of PromotionManager
-    currentPromotion = PromotionSession.Instance?.CurrentPromotion;
-
-    if (currentPromotion == null)
+    // ---------------- Promotion Info ----------------
+    private void LoadPromotionData()
     {
-        statusLabel.text = "❌ No promotion loaded!";
-        Debug.LogError("❌ LoadPromotionData: currentPromotion is null");
-        return;
+        currentPromotion = PromotionSession.Instance?.CurrentPromotion;
+        if (currentPromotion == null)
+        {
+            statusLabel.text = "❌ No promotion loaded!";
+            Debug.LogError("❌ LoadPromotionData: currentPromotion is null");
+            return;
+        }
+
+        nameLabel.text = $"Name: {currentPromotion.promotionName}";
+        locationLabel.text = $"Location: {currentPromotion.location}";
+        foundedLabel.text = $"Founded: {currentPromotion.foundedYear}";
+        descriptionLabel.text = $"Description: {currentPromotion.description}";
+
+        wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
+        titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
+        RefreshWrestlerList();
+        RefreshTitleList();
+        RefreshShowList();
     }
 
-    nameLabel.text = $"Name: {currentPromotion.promotionName}";
-    locationLabel.text = $"Location: {currentPromotion.location}";
-    foundedLabel.text = $"Founded: {currentPromotion.foundedYear}";
-    descriptionLabel.text = $"Description: {currentPromotion.description}";
-
-    // Load associated wrestler and title data
-    wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
-    titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
-
-    RefreshWrestlerList();
-    RefreshTitleList();
-}
-
-
-    // ---------------- Promotion Editing ----------------
     private void SetEditMode(bool enable)
     {
         if (enable)
@@ -296,7 +292,6 @@ private void LoadPromotionData()
             locationField.value = currentPromotion.location;
             foundedField.value = currentPromotion.foundedYear;
             descriptionField.value = currentPromotion.description;
-
             nameLabel.AddToClassList("hidden");
             locationLabel.AddToClassList("hidden");
             foundedLabel.AddToClassList("hidden");
@@ -326,12 +321,13 @@ private void LoadPromotionData()
         statusLabel.text = "💾 Promotion saved!";
     }
 
-    // ---------------- Navigation Between Panels ----------------
+    // ---------------- Navigation ----------------
     private void ShowPromotionPanel()
     {
         promotionInfoPanel.RemoveFromClassList("hidden");
         wrestlersPanel.AddToClassList("hidden");
         titlesPanel.AddToClassList("hidden");
+        showsPanel.AddToClassList("hidden");
     }
 
     private void ShowWrestlersPanel()
@@ -339,6 +335,7 @@ private void LoadPromotionData()
         promotionInfoPanel.AddToClassList("hidden");
         wrestlersPanel.RemoveFromClassList("hidden");
         titlesPanel.AddToClassList("hidden");
+        showsPanel.AddToClassList("hidden");
     }
 
     private void ShowTitlesPanel()
@@ -346,29 +343,24 @@ private void LoadPromotionData()
         promotionInfoPanel.AddToClassList("hidden");
         wrestlersPanel.AddToClassList("hidden");
         titlesPanel.RemoveFromClassList("hidden");
+        showsPanel.AddToClassList("hidden");
     }
 
     // ---------------- Wrestlers Logic ----------------
     private void RefreshWrestlerList()
     {
         wrestlerList.Clear();
-
         if (wrestlerCollection == null || wrestlerCollection.wrestlers.Count == 0)
         {
-            Label empty = new Label("No wrestlers added yet.");
-            empty.style.color = Color.gray;
+            var empty = new Label("No wrestlers added yet.") { style = { color = Color.gray } };
             wrestlerList.Add(empty);
             return;
         }
-
         for (int i = 0; i < wrestlerCollection.wrestlers.Count; i++)
         {
             int index = i;
-            var wrestler = wrestlerCollection.wrestlers[i];
-            Button button = new Button(() => SelectWrestler(index))
-            {
-                text = $"• {wrestler.name}"
-            };
+            var w = wrestlerCollection.wrestlers[i];
+            Button button = new(() => SelectWrestler(index)) { text = $"• {w.name}" };
             wrestlerList.Add(button);
         }
     }
@@ -381,10 +373,8 @@ private void LoadPromotionData()
             statusLabel.text = "Enter a name first.";
             return;
         }
-
         if (wrestlerCollection == null)
             wrestlerCollection = new WrestlerCollection { promotionName = currentPromotion.promotionName };
-
         wrestlerCollection.wrestlers.Add(new WrestlerData { name = name });
         newWrestlerField.value = "";
         RefreshWrestlerList();
@@ -394,28 +384,24 @@ private void LoadPromotionData()
     {
         if (wrestlerCollection == null || index < 0 || index >= wrestlerCollection.wrestlers.Count)
             return;
-
         selectedIndex = index;
         var w = wrestlerCollection.wrestlers[index];
-
-        // Hide unrelated UI
         promotionInfoPanel.AddToClassList("hidden");
         titlesPanel.AddToClassList("hidden");
-
         wrestlerNameField.value = w.name;
         wrestlerNicknameField.value = w.nickname;
         wrestlerHometownField.value = w.hometown;
         wrestlerDebutField.value = w.debutYear;
         wrestlerHeightField.value = w.height;
         wrestlerWeightField.value = w.weight;
-        wrestlerAddPanel.AddToClassList("hidden"); // hide add section when editing
+        wrestlerAddPanel.AddToClassList("hidden");
         wrestlerDetails.RemoveFromClassList("hidden");
     }
 
     private void HideWrestlerDetails()
     {
         wrestlerDetails.AddToClassList("hidden");
-        wrestlerAddPanel.RemoveFromClassList("hidden"); // show add section again
+        wrestlerAddPanel.RemoveFromClassList("hidden");
         promotionInfoPanel.RemoveFromClassList("hidden");
         titlesPanel.RemoveFromClassList("hidden");
         selectedIndex = -1;
@@ -425,7 +411,6 @@ private void LoadPromotionData()
     {
         if (selectedIndex < 0 || wrestlerCollection == null)
             return;
-
         var w = wrestlerCollection.wrestlers[selectedIndex];
         w.name = wrestlerNameField.value.Trim();
         w.nickname = wrestlerNicknameField.value.Trim();
@@ -433,7 +418,6 @@ private void LoadPromotionData()
         w.debutYear = wrestlerDebutField.value.Trim();
         w.height = wrestlerHeightField.value;
         w.weight = wrestlerWeightField.value;
-
         DataManager.SaveWrestlers(wrestlerCollection);
         RefreshWrestlerList();
         HideWrestlerDetails();
@@ -444,11 +428,9 @@ private void LoadPromotionData()
     {
         if (selectedIndex < 0 || wrestlerCollection == null)
             return;
-
         string name = wrestlerCollection.wrestlers[selectedIndex].name;
         wrestlerCollection.wrestlers.RemoveAt(selectedIndex);
         selectedIndex = -1;
-
         DataManager.SaveWrestlers(wrestlerCollection);
         RefreshWrestlerList();
         HideWrestlerDetails();
@@ -466,20 +448,17 @@ private void LoadPromotionData()
     private void RefreshTitleList()
     {
         titleList.Clear();
-
         if (titleCollection == null || titleCollection.titles.Count == 0)
         {
-            Label empty = new Label("No titles created yet.");
-            empty.style.color = Color.gray;
+            var empty = new Label("No titles created yet.") { style = { color = Color.gray } };
             titleList.Add(empty);
             return;
         }
-
         for (int i = 0; i < titleCollection.titles.Count; i++)
         {
             int index = i;
-            var title = titleCollection.titles[i];
-            Button btn = new Button(() => SelectTitle(index)) { text = $"• {title.titleName}" };
+            var t = titleCollection.titles[i];
+            Button btn = new(() => SelectTitle(index)) { text = $"• {t.titleName}" };
             titleList.Add(btn);
         }
     }
@@ -492,10 +471,8 @@ private void LoadPromotionData()
             statusLabel.text = "Enter a title name first.";
             return;
         }
-
         if (titleCollection == null)
             titleCollection = new TitleCollection { promotionName = currentPromotion.promotionName };
-
         titleCollection.titles.Add(new TitleData { titleName = name });
         newTitleField.value = "";
         RefreshTitleList();
@@ -505,13 +482,10 @@ private void LoadPromotionData()
     {
         if (titleCollection == null || index < 0 || index >= titleCollection.titles.Count)
             return;
-
         selectedTitleIndex = index;
         var t = titleCollection.titles[index];
-
         promotionInfoPanel.AddToClassList("hidden");
         wrestlersPanel.AddToClassList("hidden");
-
         titleNameField.value = t.titleName;
         titleDivisionField.value = t.division;
         titleEstablishedField.value = t.establishedYear;
@@ -534,14 +508,12 @@ private void LoadPromotionData()
     {
         if (selectedTitleIndex < 0 || titleCollection == null)
             return;
-
         var t = titleCollection.titles[selectedTitleIndex];
         t.titleName = titleNameField.value.Trim();
         t.division = titleDivisionField.value.Trim();
         t.establishedYear = titleEstablishedField.value.Trim();
         t.currentChampion = titleChampionField.value.Trim();
         t.notes = titleNotesField.value.Trim();
-
         DataManager.SaveTitles(titleCollection);
         RefreshTitleList();
         HideTitleDetails();
@@ -552,11 +524,9 @@ private void LoadPromotionData()
     {
         if (selectedTitleIndex < 0 || titleCollection == null)
             return;
-
         string name = titleCollection.titles[selectedTitleIndex].titleName;
         titleCollection.titles.RemoveAt(selectedTitleIndex);
         selectedTitleIndex = -1;
-
         DataManager.SaveTitles(titleCollection);
         RefreshTitleList();
         HideTitleDetails();
@@ -570,13 +540,12 @@ private void LoadPromotionData()
         statusLabel.text = "💾 All titles saved.";
     }
 
+    // ---------------- Shows & Matches ----------------
     private void RefreshShowList()
     {
         showsList.Clear();
-
         if (currentPromotion == null || currentPromotion.shows == null)
             return;
-
         foreach (var show in currentPromotion.shows)
         {
             var label = new Label($"{show.showName} ({show.date})");
@@ -590,7 +559,6 @@ private void LoadPromotionData()
         currentEditingShow = show;
         showAddPanel.AddToClassList("hidden");
         showDetails.RemoveFromClassList("hidden");
-
         showNameField.value = show.showName;
         showDateField.value = show.date;
         RefreshMatchList();
@@ -599,16 +567,12 @@ private void LoadPromotionData()
     private void RefreshMatchList()
     {
         matchesList.Clear();
-
         if (currentEditingShow == null)
             return;
-
         foreach (var match in currentEditingShow.matches)
         {
             var label = new Label($"{match.matchName} - {match.wrestlerA} vs {match.wrestlerB}");
             matchesList.Add(label);
         }
     }
-
-
 }
