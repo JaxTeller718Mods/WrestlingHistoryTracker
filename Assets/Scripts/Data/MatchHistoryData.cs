@@ -3,6 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+public class MatchHistoryData
+{
+    public string promotionName;
+    public List<MatchResultData> matchResults = new();
+    public List<TitleLineageData> titleLineages = new();
+}
+
+[Serializable]
 public class MatchResultData
 {
     public string showName;

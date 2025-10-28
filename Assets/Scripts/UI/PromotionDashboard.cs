@@ -13,7 +13,7 @@ public class PromotionDashboard : MonoBehaviour
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
 
     // ===== Navigation Buttons =====
-    private Button promotionButton, wrestlersButton, titlesButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, returnButton;
 
     // ===== Wrestlers =====
     private VisualElement wrestlersPanel;
@@ -51,6 +51,14 @@ public class PromotionDashboard : MonoBehaviour
     private Toggle isTitleMatchToggle;
     private ShowData currentEditingShow;
 
+    private string originalShowName;
+    private string originalShowDate;
+
+    // ===== Histories =====
+    private VisualElement historyPanel;
+    private ScrollView matchHistoryList;
+    private ScrollView titleLineageList;    
+
     private void OnEnable()
     {
         // ✅ Load active promotion from persistent session
@@ -70,6 +78,8 @@ public class PromotionDashboard : MonoBehaviour
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
+        showsButton = root.Q<Button>("showsButton");
+        historyButton = root.Q<Button>("historyButton");
         returnButton = root.Q<Button>("returnButton");
 
         statusLabel = root.Q<Label>("statusLabel");
@@ -152,6 +162,11 @@ public class PromotionDashboard : MonoBehaviour
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
 
+        // ===== Histories =====
+        historyPanel = root.Q<VisualElement>("historyPanel");
+        matchHistoryList = root.Q<ScrollView>("matchHistoryList");
+        titleLineageList = root.Q<ScrollView>("titleLineageList");
+
         // ===== Navigation wiring =====
         if (promotionButton != null)
             promotionButton.clicked += ShowPromotionPanel;
@@ -159,6 +174,10 @@ public class PromotionDashboard : MonoBehaviour
             wrestlersButton.clicked += ShowWrestlersPanel;
         if (titlesButton != null)
             titlesButton.clicked += ShowTitlesPanel;
+        if (showsButton != null)
+            showsButton.clicked += ShowShowsPanel;
+        if (historyButton != null)
+            historyButton.clicked += ShowHistoryPanel;
         if (returnButton != null)
         {
             returnButton.clicked += () =>
@@ -217,21 +236,35 @@ public class PromotionDashboard : MonoBehaviour
         saveShowsButton.clicked += () =>
         {
             DataManager.SavePromotion(currentPromotion);
-            statusLabel.text = "💾 Shows saved.";
+            RefreshHistoryPanel();
+            statusLabel.text = "💾 Shows saved & history refreshed.";
         };
 
         saveShowButton.clicked += () =>
         {
+            if (currentEditingShow == null)
+                TitleHistoryManager.UpdateShowResults(currentPromotion, show);
+
             currentEditingShow.showName = showNameField.value;
             currentEditingShow.date = showDateField.value;
 
             // ✅ Update title histories for all matches
             foreach (var match in currentEditingShow.matches)
             {
-                TitleHistoryManager.RegisterMatchResult(currentPromotion, match);
+                statusLabel.text = "⚠️ No active show selected.";
+                return;
             }
 
+            string previousName = originalShowName;
+            string previousDate = originalShowDate;
+
+            currentEditingShow.showName = showNameField.value;
+            currentEditingShow.date = showDateField.value;
+
+            TitleHistoryManager.UpdateShowResults(currentPromotion, currentEditingShow, previousName, previousDate);
+
             DataManager.SavePromotion(currentPromotion);
+            RefreshHistoryPanel();           
 
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
@@ -247,11 +280,19 @@ public class PromotionDashboard : MonoBehaviour
 
         deleteShowButton.clicked += () =>
         {
+            if (currentEditingShow == null)
+                return;
+
+            var deletedShow = currentEditingShow;
             currentPromotion.shows.Remove(currentEditingShow);
+            TitleHistoryManager.RemoveShow(currentPromotion, deletedShow);
+            DataManager.SavePromotion(currentPromotion);
+            RefreshHistoryPanel();
             currentEditingShow = null;
             RefreshShowList();
             showDetails.AddToClassList("hidden");
             showAddPanel.RemoveFromClassList("hidden");
+            statusLabel.text = "🗑️ Show deleted and history cleaned.";
         };
 
         addMatchButton.clicked += () => matchEditor.RemoveFromClassList("hidden");
@@ -278,6 +319,12 @@ public class PromotionDashboard : MonoBehaviour
             matchEditor.AddToClassList("hidden");
             RefreshMatchList();
             statusLabel.text = $"✅ Match '{match.matchName}' added.";
+            matchNameField.value = "";
+            wrestlerAField.value = "";
+            wrestlerBField.value = "";
+            isTitleMatchToggle.value = false;
+            titleInvolvedField.value = "";
+            winnerField.value = "";           
         };
 
         cancelMatchButton.clicked += () => matchEditor.AddToClassList("hidden");
@@ -303,9 +350,11 @@ public class PromotionDashboard : MonoBehaviour
 
         wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
         titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
+        TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
         RefreshWrestlerList();
         RefreshTitleList();
         RefreshShowList();
+        RefreshHistoryPanel();
     }
 
     private void SetEditMode(bool enable)
@@ -354,6 +403,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersPanel.AddToClassList("hidden");
         titlesPanel.AddToClassList("hidden");
         showsPanel.AddToClassList("hidden");
+        historyPanel?.AddToClassList("hidden");
     }
 
     private void ShowWrestlersPanel()
@@ -362,6 +412,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersPanel.RemoveFromClassList("hidden");
         titlesPanel.AddToClassList("hidden");
         showsPanel.AddToClassList("hidden");
+        historyPanel?.AddToClassList("hidden");
     }
 
     private void ShowTitlesPanel()
@@ -370,6 +421,26 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersPanel.AddToClassList("hidden");
         titlesPanel.RemoveFromClassList("hidden");
         showsPanel.AddToClassList("hidden");
+        historyPanel?.AddToClassList("hidden");
+    }
+
+    private void ShowShowsPanel()
+    {
+        promotionInfoPanel.AddToClassList("hidden");
+        wrestlersPanel.AddToClassList("hidden");
+        titlesPanel.AddToClassList("hidden");
+        showsPanel.RemoveFromClassList("hidden");
+        historyPanel?.AddToClassList("hidden");
+    }
+
+    private void ShowHistoryPanel()
+    {
+        promotionInfoPanel.AddToClassList("hidden");
+        wrestlersPanel.AddToClassList("hidden");
+        titlesPanel.AddToClassList("hidden");
+        showsPanel.AddToClassList("hidden");
+        historyPanel?.RemoveFromClassList("hidden");
+        RefreshHistoryPanel();
     }
 
     // ---------------- Wrestlers Logic ----------------
@@ -631,6 +702,8 @@ public class PromotionDashboard : MonoBehaviour
     private void EditShow(ShowData show)
     {
         currentEditingShow = show;
+        originalShowName = show.showName;
+        originalShowDate = show.date;
         showAddPanel.AddToClassList("hidden");
         showDetails.RemoveFromClassList("hidden");
         showNameField.value = show.showName;
@@ -647,6 +720,72 @@ public class PromotionDashboard : MonoBehaviour
         {
             var label = new Label($"{match.matchName} - {match.wrestlerA} vs {match.wrestlerB}");
             matchesList.Add(label);
+        }
+    }
+
+    private void RefreshHistoryPanel()
+    {
+        RefreshMatchHistoryList();
+        RefreshTitleLineageList();
+    }
+
+    private void RefreshMatchHistoryList()
+    {
+        if (matchHistoryList == null || currentPromotion == null)
+            return;
+
+        matchHistoryList.Clear();
+
+        var results = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName);
+        if (results == null || results.Count == 0)
+        {
+            matchHistoryList.Add(new Label("No match results recorded yet.") { style = { color = Color.gray } });
+            return;
+        }
+
+        foreach (var result in results)
+        {
+            var entry = new VisualElement();
+            entry.style.marginBottom = 6;
+            entry.Add(new Label(string.IsNullOrEmpty(result.date) ? result.showName : $"{result.date} - {result.showName}"));
+            entry.Add(new Label($"{result.matchName}: {result.wrestlerA} vs {result.wrestlerB}"));
+            if (!string.IsNullOrEmpty(result.winner))
+                entry.Add(new Label($"Winner: {result.winner}"));
+            if (result.isTitleMatch && !string.IsNullOrEmpty(result.titleInvolved))
+                entry.Add(new Label($"Title: {result.titleInvolved}"));
+            matchHistoryList.Add(entry);
+        }
+    }
+
+    private void RefreshTitleLineageList()
+    {
+        if (titleLineageList == null || currentPromotion == null)
+            return;
+
+        titleLineageList.Clear();
+
+        var lineages = TitleHistoryManager.GetTitleLineages(currentPromotion.promotionName);
+        if (lineages == null || lineages.Count == 0)
+        {
+            titleLineageList.Add(new Label("No title reigns recorded yet.") { style = { color = Color.gray } });
+            return;
+        }
+
+        foreach (var lineage in lineages)
+        {
+            var titleHeader = new Label(lineage.titleName) { style = { unityFontStyleAndWeight = FontStyle.Bold } };
+            titleLineageList.Add(titleHeader);
+
+            if (lineage.reigns == null || lineage.reigns.Count == 0)
+                continue;
+
+            foreach (var reign in lineage.reigns)
+            {
+                string reignRange = string.IsNullOrEmpty(reign.dateLost) ? $"{reign.dateWon} - Present" : $"{reign.dateWon} - {reign.dateLost}";
+                var reignLabel = new Label($"{reignRange}: {reign.championName} ({reign.eventName})");
+                reignLabel.style.marginLeft = 10;
+                titleLineageList.Add(reignLabel);
+            }
         }
     }
 }

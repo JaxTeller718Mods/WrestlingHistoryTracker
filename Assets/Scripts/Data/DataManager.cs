@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -13,7 +14,8 @@ public static class DataManager
     private static readonly string baseFolder      = Application.persistentDataPath;
     private static readonly string promotionFolder = Path.Combine(baseFolder, "Promotions");
     private static readonly string wrestlerFolder  = Path.Combine(baseFolder, "Wrestlers");
-    private static readonly string titleFolder     = Path.Combine(baseFolder, "Titles");
+    private static readonly string titleFolder = Path.Combine(baseFolder, "Titles");
+    private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
 
     // ------------------------
     // PROMOTION MANAGEMENT (includes shows)
@@ -222,6 +224,65 @@ public static class DataManager
         {
             Debug.LogError($"❌ Error loading titles: {ex.Message}");
             return new TitleCollection { promotionName = promotionName };
+        }
+    }
+    
+    // ------------------------
+    // MATCH & TITLE HISTORY MANAGEMENT
+    // ------------------------
+    public static void SaveMatchHistory(MatchHistoryData history)
+    {
+        if (history == null || string.IsNullOrEmpty(history.promotionName))
+        {
+            Debug.LogError("Cannot save history: data or promotion name is null.");
+            return;
+        }
+
+        if (!Directory.Exists(historyFolder))
+            Directory.CreateDirectory(historyFolder);
+
+        string safeName = MakeSafeFileName(history.promotionName);
+        string filePath = Path.Combine(historyFolder, $"{safeName}_History.json");
+
+        try
+        {
+            string json = JsonUtility.ToJson(history, true);
+            File.WriteAllText(filePath, json);
+            Debug.Log($"💾 History saved for {history.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"❌ Error saving history: {ex.Message}");
+        }
+    }
+
+    public static MatchHistoryData LoadMatchHistory(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName))
+            return null;
+
+        string safeName = MakeSafeFileName(promotionName);
+        string filePath = Path.Combine(historyFolder, $"{safeName}_History.json");
+
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"⚠️ No history found for {promotionName}");
+            return null;
+        }
+
+        try
+        {
+            string json = File.ReadAllText(filePath);
+            MatchHistoryData data = JsonUtility.FromJson<MatchHistoryData>(json);
+            data.matchResults ??= new List<MatchResultData>();
+            data.titleLineages ??= new List<TitleLineageData>();
+            Debug.Log($"✅ History loaded for {promotionName}");
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"❌ Error loading history: {ex.Message}");
+            return null;
         }
     }
 

@@ -12,6 +12,8 @@
       <ui:Button name="promotionButton" text="Promotion Info" />
       <ui:Button name="wrestlersButton" text="Wrestlers" />
       <ui:Button name="titlesButton" text="Titles" />
+      <ui:Button name="showsButton" text="Shows" />
+      <ui:Button name="historyButton" text="History" />
       <ui:Button name="returnButton" text="Return to Main Menu" />
     </ui:VisualElement>
 
@@ -137,6 +139,15 @@
           <ui:Button name="saveShowsButton" text="Save All" />
         </ui:VisualElement>
       </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== HISTORY PANEL ===== -->
+    <ui:VisualElement name="historyPanel" class="hidden">
+      <ui:Label text="Promotion History" class="section-title" />
+      <ui:Label text="Match Results" class="subsection-title" />
+      <ui:ScrollView name="matchHistoryList" class="list" />
+      <ui:Label text="Title Lineages" class="subsection-title" />
+      <ui:ScrollView name="titleLineageList" class="list" />
     </ui:VisualElement>
 
   </ui:VisualElement>
