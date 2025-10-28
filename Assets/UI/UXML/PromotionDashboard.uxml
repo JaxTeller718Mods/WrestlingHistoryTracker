@@ -1,0 +1,138 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+  <Style src="project://database/Assets/UI/USS/PromotionDashboard.uss?fileID=7433441132597879392&amp;guid=bf2945deace4a314b9886ff9bf93fa97&amp;type=3#PromotionDashboard" />
+
+  <ui:VisualElement name="root" class="root">
+
+    <!-- ===== HEADER ===== -->
+    <ui:Label text="Promotion Dashboard" class="title" />
+    <ui:Label name="statusLabel" text="Ready." class="status-label" />
+
+    <!-- ===== NAV BUTTONS ===== -->
+    <ui:VisualElement class="nav-buttons">
+      <ui:Button name="promotionButton" text="Promotion Info" />
+      <ui:Button name="wrestlersButton" text="Wrestlers" />
+      <ui:Button name="titlesButton" text="Titles" />
+      <ui:Button name="returnButton" text="Return to Main Menu" />
+    </ui:VisualElement>
+
+    <!-- ===== PROMOTION INFO PANEL ===== -->
+    <ui:VisualElement name="promotionInfoPanel">
+      <ui:Label name="promotionTitle" text="Promotion Information" class="section-title" />
+      <ui:Label name="nameLabel" text="Name: [None]" />
+      <ui:Label name="locationLabel" text="Location: [None]" />
+      <ui:Label name="foundedLabel" text="Founded: [None]" />
+      <ui:Label name="descriptionLabel" text="Description: [None]" />
+
+      <ui:VisualElement class="row">
+        <ui:Button name="editPromotionButton" text="Edit Promotion" />
+      </ui:VisualElement>
+
+      <ui:VisualElement name="editPanel" class="hidden">
+        <ui:TextField name="nameField" label="Promotion Name" />
+        <ui:TextField name="locationField" label="Location" />
+        <ui:TextField name="foundedField" label="Founded Year" />
+        <ui:TextField name="descriptionField" label="Description" multiline="true" />
+        <ui:VisualElement class="row">
+          <ui:Button name="savePromotionButton" text="Save" />
+          <ui:Button name="cancelPromotionButton" text="Cancel" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== WRESTLERS PANEL ===== -->
+    <ui:VisualElement name="wrestlersPanel" class="hidden">
+      <ui:Label text="Wrestlers" class="section-title" />
+      <ui:ScrollView name="wrestlerList" class="list" />
+      <ui:VisualElement name="wrestlerDetails" class="hidden">
+        <ui:Label text="Wrestler Details" class="subsection-title" />
+        <ui:TextField name="wrestlerNameField" label="Name" />
+        <ui:TextField name="wrestlerNicknameField" label="Nickname" />
+        <ui:TextField name="wrestlerHometownField" label="Hometown" />
+        <ui:TextField name="wrestlerDebutField" label="Debut Year" />
+        <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
+        <ui:FloatField name="wrestlerWeightField" label="Weight (lbs)" />
+        <ui:VisualElement class="row">
+          <ui:Button name="saveWrestlerButton" text="Save Changes" />
+          <ui:Button name="deleteWrestlerButton" text="Delete" />
+          <ui:Button name="cancelEditButton" text="Cancel" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <ui:VisualElement name="wrestlerAddPanel">
+        <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
+        <ui:VisualElement class="row">
+          <ui:Button name="addWrestlerButton" text="Add Wrestler" />
+          <ui:Button name="saveWrestlersButton" text="Save All" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== TITLES PANEL ===== -->
+    <ui:VisualElement name="titlesPanel" class="hidden">
+      <ui:Label text="Titles" class="section-title" />
+      <ui:ScrollView name="titlesList" class="list" />
+
+      <ui:VisualElement name="titleDetails" class="hidden">
+        <ui:Label text="Title Details" class="subsection-title" />
+        <ui:TextField name="titleNameField" label="Title Name" />
+        <ui:TextField name="titleAbbreviationField" label="Abbreviation" />
+        <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
+        <ui:VisualElement class="row">
+          <ui:Button name="saveTitleButton" text="Save Changes" />
+          <ui:Button name="deleteTitleButton" text="Delete" />
+          <ui:Button name="cancelTitleEditButton" text="Cancel" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <ui:VisualElement name="titleAddPanel">
+        <ui:TextField name="newTitleField" label="New Title Name" />
+        <ui:VisualElement class="row">
+          <ui:Button name="addTitleButton" text="Add Title" />
+          <ui:Button name="saveTitlesButton" text="Save All" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== SHOWS PANEL ===== -->
+    <ui:VisualElement name="showsPanel" class="hidden">
+      <ui:Label text="Shows &amp; Events" class="section-title" />
+      <ui:ScrollView name="showsList" class="list" />
+
+      <ui:VisualElement name="showDetails" class="hidden">
+        <ui:Label text="Show Details" class="subsection-title" />
+        <ui:TextField name="showNameField" label="Show Name" />
+        <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
+        <ui:Label text="Matches" class="subsection-title" />
+        <ui:ScrollView name="matchesList" class="list" />
+        <ui:Button name="addMatchButton" text="Add Match" />
+        <ui:VisualElement name="matchEditor" class="hidden">
+          <ui:TextField name="matchNameField" label="Match Name" />
+          <ui:TextField name="wrestlerAField" label="Wrestler A" />
+          <ui:TextField name="wrestlerBField" label="Wrestler B" />
+          <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
+          <ui:TextField name="titleInvolvedField" label="Title (optional)" />
+          <ui:TextField name="winnerField" label="Winner" />
+          <ui:VisualElement class="row">
+            <ui:Button name="saveMatchButton" text="Save Match" />
+            <ui:Button name="cancelMatchButton" text="Cancel" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="row">
+          <ui:Button name="saveShowButton" text="Save Show" />
+          <ui:Button name="deleteShowButton" text="Delete" />
+          <ui:Button name="cancelShowButton" text="Cancel" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <ui:VisualElement name="showAddPanel">
+        <ui:TextField name="newShowField" label="New Show Name" />
+        <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
+        <ui:VisualElement class="row">
+          <ui:Button name="addShowButton" text="Add Show" />
+          <ui:Button name="saveShowsButton" text="Save All" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+  </ui:VisualElement>
+</ui:UXML>

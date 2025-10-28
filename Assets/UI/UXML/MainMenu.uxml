@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/USS/MainMenu.uss?fileID=7433441132597879392&amp;guid=9d4407f9baf55ab4d8c6cf68f264de25&amp;type=3#MainMenu" />
+    <ui:VisualElement name="root" class="root">
+        <ui:Label name="title" text="Wrestling History Tracker" class="title" style="color: rgb(224, 0, 0);" />
+        <ui:VisualElement class="button-column">
+            <ui:Button name="newButton" text="Create New Promotion" />
+            <ui:Button name="loadButton" text="Load Promotion" />
+            <ui:Button name="exitButton" text="Exit" />
+        </ui:VisualElement>
+        <ui:VisualElement name="createPanel" class="panel hidden">
+            <ui:Label text="Create a New Promotion" class="panel-title" />
+            <ui:TextField name="promotionName" label="Promotion Name" />
+            <ui:Button name="createConfirmButton" text="Create" />
+            <ui:Button name="createCancelButton" text="Cancel" />
+        </ui:VisualElement>
+        <ui:VisualElement name="loadPanel" class="panel hidden">
+            <ui:Label text="Load Promotion" class="panel-title" />
+            <ui:TextField name="loadPathField" label="File Path (placeholder)" />
+            <ui:Button name="loadConfirmButton" text="Load" />
+            <ui:Button name="loadCancelButton" text="Cancel" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

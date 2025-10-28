@@ -1,0 +1,49 @@
+.root {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  height: 100%;
+}
+
+.title {
+  unity-text-align: upper-center;
+  font-size: 28px;
+  margin-bottom: 18px;
+  margin-top: 8px;
+}
+
+.button-column {
+  width: 320px;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.button-column > Button {
+  height: 44px;
+  unity-font-style: Bold;
+  font-size: 16px;
+}
+
+.panel {
+  width: 420px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #888;
+  background-color: #222;
+  margin-top: 18px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* hidden helper */
+.hidden {
+  display: none;
+}
+
+.panel-title {
+  font-size: 18px;
+  unity-font-style: Bold;
+  margin-bottom: 6px;
+}

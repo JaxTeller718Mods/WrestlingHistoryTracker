@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:VisualElement name="root" style="flex-grow: 1; padding: 20px; align-items: center; justify-content: flex-start;">
+
+    <!-- Title -->
+    <ui:Label text="Load Existing Promotion"
+              style="-unity-font-style: bold; font-size: 24px; margin-bottom: 20px; -unity-text-align: middle-center;" />
+
+    <!-- Scrollable list for saved promotions -->
+    <ui:ScrollView name="promotionList"
+                   style="width: 400px; height: 300px; margin-bottom: 20px;" />
+
+    <!-- Status Label -->
+    <ui:Label name="statusLabel" text="" style="font-size: 14px; color: #ccc; margin-bottom: 10px;" />
+
+    <!-- Back button -->
+    <ui:Button name="backButton" text="Back to Menu"
+               style="width: 200px; height: 35px;" />
+
+  </ui:VisualElement>
+</ui:UXML>
+

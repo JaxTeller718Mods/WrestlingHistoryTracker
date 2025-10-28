@@ -1,0 +1,22 @@
+#root {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+}
+
+Label {
+    color: white;
+}
+
+Button {
+    width: 200px;
+    height: 35px;
+    margin-top: 5px;
+}
+
+ScrollView {
+    width: 400px;
+    height: 300px;
+    margin-bottom: 20px;
+}
