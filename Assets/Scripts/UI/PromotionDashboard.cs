@@ -34,7 +34,9 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement titleDetails;
     private TextField titleNameField, titleDivisionField, titleEstablishedField, titleChampionField, titleNotesField;
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
+    private Button viewHistoryButton;
     private TextField newTitleField;
+    private ScrollView titleHistoryList;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
 
@@ -121,6 +123,8 @@ public class PromotionDashboard : MonoBehaviour
         cancelTitleButton = root.Q<Button>("cancelTitleButton");
         newTitleField = root.Q<TextField>("newTitleField");
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
+        titleHistoryList = root.Q<ScrollView>("titleHistoryList");
+        viewHistoryButton = root.Q<Button>("viewHistoryButton");
 
         // ===== Shows =====
         showsPanel = root.Q<VisualElement>("showsPanel");
@@ -197,6 +201,8 @@ public class PromotionDashboard : MonoBehaviour
             deleteTitleButton.clicked += DeleteSelectedTitle;
         if (cancelTitleButton != null)
             cancelTitleButton.clicked += HideTitleDetails;
+        if (viewHistoryButton != null)
+            viewHistoryButton.clicked += ShowSelectedTitleHistory;
 
         // ===== Shows logic =====
         addShowButton.clicked += () =>
@@ -513,6 +519,8 @@ public class PromotionDashboard : MonoBehaviour
         titleNotesField.value = t.notes;
         titleAddPanel.AddToClassList("hidden");
         titleDetails.RemoveFromClassList("hidden");
+        titleHistoryList?.AddToClassList("hidden");
+        titleHistoryList?.Clear();
     }
 
     private void HideTitleDetails()
@@ -522,6 +530,8 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersPanel.RemoveFromClassList("hidden");
         titleAddPanel.RemoveFromClassList("hidden");
         selectedTitleIndex = -1;
+        titleHistoryList?.AddToClassList("hidden");
+        titleHistoryList?.Clear();
     }
 
     private void SaveSelectedTitle()
@@ -559,6 +569,50 @@ public class PromotionDashboard : MonoBehaviour
             DataManager.SaveTitles(titleCollection);
         statusLabel.text = "💾 All titles saved.";
     }
+
+    private void ShowSelectedTitleHistory()
+    {
+        if (titleHistoryList == null)
+            return;
+
+        if (currentPromotion == null)
+        {
+            statusLabel.text = "❌ No promotion loaded!";
+            return;
+        }
+
+        if (selectedTitleIndex < 0 || titleCollection == null || selectedTitleIndex >= titleCollection.titles.Count)
+        {
+            statusLabel.text = "Select a title to view its history.";
+            return;
+        }
+
+        var selectedTitle = titleCollection.titles[selectedTitleIndex];
+        var history = TitleHistoryManager.GetHistory(currentPromotion.promotionName, selectedTitle.titleName);
+
+        titleHistoryList.Clear();
+
+        if (history == null || history.Count == 0)
+        {
+            var emptyLabel = new Label("No title history recorded yet.") { style = { color = Color.gray } };
+            titleHistoryList.Add(emptyLabel);
+        }
+        else
+        {
+            foreach (var entry in history)
+            {
+                var entryElement = new VisualElement();
+                entryElement.style.marginBottom = 6;
+                entryElement.Add(new Label($"{entry.date} - {entry.matchName}"));
+                entryElement.Add(new Label($"Winner: {entry.winner}"));
+                titleHistoryList.Add(entryElement);
+            }
+        }
+
+        titleHistoryList.RemoveFromClassList("hidden");
+        statusLabel.text = $"📜 Showing history for {selectedTitle.titleName}.";
+    }
+
 
     // ---------------- Shows & Matches ----------------
     private void RefreshShowList()
