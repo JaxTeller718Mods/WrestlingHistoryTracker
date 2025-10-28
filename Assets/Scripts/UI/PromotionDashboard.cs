@@ -7,6 +7,7 @@ public class PromotionDashboard : MonoBehaviour
     // ===== Promotion Info =====
     private PromotionData currentPromotion;
     private VisualElement promotionInfoPanel;
+    private VisualElement editPanel;
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel, statusLabel;
     private TextField nameField, locationField, foundedField, descriptionField;
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
@@ -73,6 +74,7 @@ public class PromotionDashboard : MonoBehaviour
 
         // ===== Promotion Info =====
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
+        editPanel = root.Q<VisualElement>("editPanel");
         nameLabel = root.Q<Label>("nameLabel");
         locationLabel = root.Q<Label>("locationLabel");
         foundedLabel = root.Q<Label>("foundedLabel");
@@ -147,9 +149,9 @@ public class PromotionDashboard : MonoBehaviour
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
 
         // ===== Navigation wiring =====
-        promotionButton.clicked += ShowPromotionPanel;
-        wrestlersButton.clicked += ShowWrestlersPanel;
-        titlesButton.clicked += ShowTitlesPanel;
+        promotionButton?.clicked += ShowPromotionPanel;
+        wrestlersButton?.clicked += ShowWrestlersPanel;
+        titlesButton?.clicked += ShowTitlesPanel;
         if (returnButton != null)
         {
             returnButton.clicked += () =>
@@ -162,23 +164,23 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         // ===== Promotion actions =====
-        editPromotionButton.clicked += () => SetEditMode(true);
-        savePromotionButton.clicked += SavePromotionChanges;
-        cancelPromotionButton.clicked += () => SetEditMode(false);
+        editPromotionButton?.clicked += () => SetEditMode(true);
+        savePromotionButton?.clicked += SavePromotionChanges;
+        cancelPromotionButton?.clicked += () => SetEditMode(false);
 
         // ===== Wrestler actions =====
-        addWrestlerButton.clicked += AddWrestler;
-        saveWrestlersButton.clicked += SaveWrestlers;
-        saveWrestlerButton.clicked += SaveSelectedWrestler;
-        deleteWrestlerButton.clicked += DeleteSelectedWrestler;
-        cancelEditButton.clicked += HideWrestlerDetails;
+        addWrestlerButton?.clicked += AddWrestler;
+        saveWrestlersButton?.clicked += SaveWrestlers;
+        saveWrestlerButton?.clicked += SaveSelectedWrestler;
+        deleteWrestlerButton?.clicked += DeleteSelectedWrestler;
+        cancelEditButton?.clicked += HideWrestlerDetails;
 
         // ===== Title actions =====
-        addTitleButton.clicked += AddTitle;
-        saveTitlesButton.clicked += SaveTitles;
-        saveTitleButton.clicked += SaveSelectedTitle;
-        deleteTitleButton.clicked += DeleteSelectedTitle;
-        cancelTitleButton.clicked += HideTitleDetails;
+        addTitleButton?.clicked += AddTitle;
+        saveTitlesButton?.clicked += SaveTitles;
+        saveTitleButton?.clicked += SaveSelectedTitle;
+        deleteTitleButton?.clicked += DeleteSelectedTitle;
+        cancelTitleButton?.clicked += HideTitleDetails;
 
         // ===== Shows logic =====
         addShowButton.clicked += () =>
@@ -296,7 +298,8 @@ public class PromotionDashboard : MonoBehaviour
             locationLabel.AddToClassList("hidden");
             foundedLabel.AddToClassList("hidden");
             descriptionLabel.AddToClassList("hidden");
-            editPromotionButton.AddToClassList("hidden");
+            editPromotionButton?.AddToClassList("hidden");
+            editPanel?.RemoveFromClassList("hidden");
         }
         else
         {
@@ -304,7 +307,8 @@ public class PromotionDashboard : MonoBehaviour
             locationLabel.RemoveFromClassList("hidden");
             foundedLabel.RemoveFromClassList("hidden");
             descriptionLabel.RemoveFromClassList("hidden");
-            editPromotionButton.RemoveFromClassList("hidden");
+            editPromotionButton?.RemoveFromClassList("hidden");
+            editPanel?.AddToClassList("hidden");
         }
     }
 

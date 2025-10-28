@@ -70,17 +70,19 @@
     <!-- ===== TITLES PANEL ===== -->
     <ui:VisualElement name="titlesPanel" class="hidden">
       <ui:Label text="Titles" class="section-title" />
-      <ui:ScrollView name="titlesList" class="list" />
+      <ui:ScrollView name="titleList" class="list" />
 
       <ui:VisualElement name="titleDetails" class="hidden">
         <ui:Label text="Title Details" class="subsection-title" />
         <ui:TextField name="titleNameField" label="Title Name" />
-        <ui:TextField name="titleAbbreviationField" label="Abbreviation" />
+        <ui:TextField name="titleDivisionField" label="Division" />
+        <ui:TextField name="titleEstablishedField" label="Established Year" />
+        <ui:TextField name="titleChampionField" label="Current Champion" />
         <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
         <ui:VisualElement class="row">
           <ui:Button name="saveTitleButton" text="Save Changes" />
           <ui:Button name="deleteTitleButton" text="Delete" />
-          <ui:Button name="cancelTitleEditButton" text="Cancel" />
+          <ui:Button name="cancelTitleButton" text="Cancel" />
         </ui:VisualElement>
       </ui:VisualElement>
 
