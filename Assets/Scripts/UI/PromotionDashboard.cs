@@ -15,7 +15,8 @@ using UnityEngine;
         private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, rankingsButton, returnButton;
         // ===== Wrestlers =====
         private VisualElement wrestlersPanel;
-        private ScrollView wrestlerList;
+    private ScrollView wrestlerList;
+    private ListView wrestlerListView;
         private VisualElement wrestlerDetails;
         private TextField wrestlerNameField, wrestlerHometownField;
         private Toggle wrestlerIsFemaleToggle, wrestlerIsTagTeamToggle;
@@ -31,6 +32,7 @@ using UnityEngine;
         private VisualElement titlesPanel;
         private VisualElement titleAddPanel;
         private ScrollView titleList;
+        private ListView titleListView;
         private VisualElement titleDetails;
         private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
         private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
@@ -42,6 +44,7 @@ using UnityEngine;
         // ===== Shows =====
         private VisualElement showsPanel, showDetails, showAddPanel;
         private ScrollView showsList, matchesList;
+        private ListView showsListView;
         private TextField showNameField, showDateField, newShowField, newShowDateField;
         private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton;
         private Button addMatchButton, saveMatchButton, cancelMatchButton;
@@ -63,6 +66,7 @@ using UnityEngine;
         private ScrollView titleLineageList;
         private VisualElement historyShowsPanel, historyResultsPanel;
         private ScrollView historyShowsList, historyShowMatchesList;
+        private ListView historyShowsListView;
         private Button historyCloseResultsButton;
         private Label historyResultsHeader;
         // ===== Rankings =====
@@ -172,6 +176,7 @@ using UnityEngine;
         newWrestlerIsFemaleToggle = root.Q<Toggle>("newWrestlerIsFemaleToggle");
         newWrestlerIsTagTeamToggle = root.Q<Toggle>("newWrestlerIsTagTeamToggle");
         wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
+        EnsureWrestlerListView();
         // ===== Titles =====
         titlesPanel = root.Q<VisualElement>("titlesPanel");
         titleList = root.Q<ScrollView>("titleList");
@@ -1018,23 +1023,63 @@ using UnityEngine;
         });
         }
         // ---------------- Wrestlers Logic ----------------
-        private void RefreshWrestlerList()
+    private void RefreshWrestlerList()
+    {
+        EnsureWrestlerListView();
+        if (wrestlerCollection == null || wrestlerCollection.wrestlers == null)
         {
-        wrestlerList.Clear();
-        if (wrestlerCollection == null || wrestlerCollection.wrestlers.Count == 0)
+            if (wrestlerListView != null)
+            {
+                wrestlerListView.itemsSource = System.Array.Empty<WrestlerData>();
+                wrestlerListView.Rebuild();
+            }
+            return;
+        }
+        wrestlerListView.itemsSource = wrestlerCollection.wrestlers;
+        wrestlerListView.Rebuild();
+    }
+
+    private void EnsureWrestlerListView()
+    {
+        if (wrestlerListView != null)
+            return;
+
+        var parent = wrestlerList != null ? wrestlerList.parent : wrestlersPanel;
+        wrestlerListView = new ListView
         {
-        var empty = new Label("No wrestlers added yet.") { style = { color = Color.gray } };
-        wrestlerList.Add(empty);
-        return;
-        }
-        for (int i = 0; i < wrestlerCollection.wrestlers.Count; i++)
+            name = "wrestlerListView",
+            selectionType = SelectionType.None
+        };
+        wrestlerListView.style.flexGrow = 1;
+        wrestlerListView.makeItem = () =>
         {
-        int index = i;
-        var w = wrestlerCollection.wrestlers[i];
-        Button button = new(() => SelectWrestler(index)) { text = $"• {w.name}" };
-        wrestlerList.Add(button);
-        }
-        }
+            var b = new Button();
+            b.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (b.userData is int idx)
+                    SelectWrestler(idx);
+            });
+            return b;
+        };
+        wrestlerListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            if (wrestlerCollection != null && wrestlerCollection.wrestlers != null && i >= 0 && i < wrestlerCollection.wrestlers.Count)
+            {
+                b.text = $"• {wrestlerCollection.wrestlers[i].name}";
+                b.userData = i;
+            }
+            else
+            {
+                b.text = string.Empty;
+                b.userData = -1;
+            }
+        };
+
+        parent?.Add(wrestlerListView);
+        if (wrestlerList != null)
+            wrestlerList.style.display = DisplayStyle.None;
+    }
         private void AddWrestler()
         {
         string name = newWrestlerField.value.Trim();
