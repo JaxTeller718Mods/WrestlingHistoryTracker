@@ -281,7 +281,8 @@ FloatField > .unity-float-field__input {
 .show-detail-card,
 .show-add-card,
 .match-editor-card,
-.segment-editor-card {
+.segment-editor-card,
+.matches-view-card {
     width: 100%;
     background-color: rgba(30, 30, 30, 0.95);
     border-radius: 8px;
@@ -290,7 +291,8 @@ FloatField > .unity-float-field__input {
 
 .show-edit-columns > .show-detail-card,
 .show-edit-columns > .match-editor-card,
-.show-edit-columns > .segment-editor-card {
+.show-edit-columns > .segment-editor-card,
+.show-edit-columns > .matches-view-card {
     flex: 1 1 380px;
     min-width: 360px;
     width: auto;

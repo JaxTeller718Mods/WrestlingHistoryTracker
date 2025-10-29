@@ -140,11 +140,10 @@
               <ui:Label text="Show Details" class="subsection-title" />
               <ui:TextField name="showNameField" label="Show Name" />
               <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-              <ui:Label text="Matches" class="subsection-title" />
-              <ui:ScrollView name="matchesList" class="list" />
               <ui:VisualElement class="row">
                 <ui:Button name="addMatchButton" text="Add Match" />
                 <ui:Button name="addSegmentButton" text="Add Segment" />
+                <ui:Button name="viewMatchesButton" text="View Matches" />
               </ui:VisualElement>
               <ui:VisualElement class="row">
                 <ui:Button name="saveShowButton" text="Save Show" />
@@ -156,7 +155,7 @@
             <!-- Match editor appears alongside show details -->
             <ui:VisualElement name="matchEditor" class="hidden match-editor-card">
               <ui:Label text="Add Match" class="subsection-title" />
-              <ui:TextField name="matchNameField" label="Match Name" />
+              <ui:DropdownField name="matchTypeDropdown" label="Match Type" />
               <ui:DropdownField name="wrestlerADropdown" label="Wrestler A" />
               <ui:DropdownField name="wrestlerBDropdown" label="Wrestler B" />
               <ui:DropdownField name="wrestlerCDropdown" label="Wrestler C (optional)" />
@@ -178,6 +177,12 @@
                 <ui:Button name="saveSegmentButton" text="Save Segment" />
                 <ui:Button name="cancelSegmentButton" text="Cancel" />
               </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Matches view appears alongside editors -->
+            <ui:VisualElement name="matchesView" class="hidden matches-view-card">
+              <ui:Label text="Matches" class="subsection-title" />
+              <ui:ScrollView name="matchesList" class="list" />
             </ui:VisualElement>
           </ui:VisualElement>
 
