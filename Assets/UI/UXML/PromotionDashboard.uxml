@@ -15,7 +15,21 @@
         <ui:Button name="titlesButton" text="Titles" />
         <ui:Button name="showsButton" text="Shows" />
         <ui:Button name="historyButton" text="History" />
+        <ui:Button name="rankingsButton" text="Rankings" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== RANKINGS PANEL ===== -->
+    <ui:VisualElement name="rankingsPanel" class="hidden">
+      <ui:Label text="Rankings" class="section-title" />
+      <ui:VisualElement class="rankings-layout">
+        <ui:VisualElement name="rankingsNav" class="rankings-nav">
+          <ui:Button name="rankingsMenButton" text="Men's" />
+          <ui:Button name="rankingsWomenButton" text="Women's" />
+          <ui:Button name="rankingsTagButton" text="Tag Team" />
+        </ui:VisualElement>
+        <ui:ScrollView name="rankingsList" class="list rankings-list" />
       </ui:VisualElement>
     </ui:VisualElement>
 
@@ -128,7 +142,10 @@
               <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
               <ui:Label text="Matches" class="subsection-title" />
               <ui:ScrollView name="matchesList" class="list" />
-              <ui:Button name="addMatchButton" text="Add Match" />
+              <ui:VisualElement class="row">
+                <ui:Button name="addMatchButton" text="Add Match" />
+                <ui:Button name="addSegmentButton" text="Add Segment" />
+              </ui:VisualElement>
               <ui:VisualElement class="row">
                 <ui:Button name="saveShowButton" text="Save Show" />
                 <ui:Button name="deleteShowButton" text="Delete" />
@@ -140,16 +157,26 @@
             <ui:VisualElement name="matchEditor" class="hidden match-editor-card">
               <ui:Label text="Add Match" class="subsection-title" />
               <ui:TextField name="matchNameField" label="Match Name" />
-              <ui:TextField name="wrestlerAField" label="Wrestler A" />
-              <ui:TextField name="wrestlerBField" label="Wrestler B" />
-              <ui:TextField name="wrestlerCField" label="Wrestler C (optional)" />
-              <ui:TextField name="wrestlerDField" label="Wrestler D (optional)" />
+              <ui:DropdownField name="wrestlerADropdown" label="Wrestler A" />
+              <ui:DropdownField name="wrestlerBDropdown" label="Wrestler B" />
+              <ui:DropdownField name="wrestlerCDropdown" label="Wrestler C (optional)" />
+              <ui:DropdownField name="wrestlerDDropdown" label="Wrestler D (optional)" />
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
               <ui:DropdownField name="titleDropdown" label="Title (optional)" />
-              <ui:TextField name="winnerField" label="Winner" />
+              <ui:DropdownField name="winnerDropdown" label="Winner" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveMatchButton" text="Save Match" />
                 <ui:Button name="cancelMatchButton" text="Cancel" />
+              </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Segment editor appears alongside show details -->
+            <ui:VisualElement name="segmentEditor" class="hidden segment-editor-card">
+              <ui:Label text="Add Segment" class="subsection-title" />
+              <ui:TextField name="segmentTextField" label="Segment / Promo" multiline="true" />
+              <ui:VisualElement class="row">
+                <ui:Button name="saveSegmentButton" text="Save Segment" />
+                <ui:Button name="cancelSegmentButton" text="Cancel" />
               </ui:VisualElement>
             </ui:VisualElement>
           </ui:VisualElement>

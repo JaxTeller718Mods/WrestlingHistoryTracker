@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PromotionDashboard : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class PromotionDashboard : MonoBehaviour
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
 
     // ===== Navigation Buttons =====
-    private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, rankingsButton, returnButton;
 
     // ===== Wrestlers =====
     private VisualElement wrestlersPanel;
@@ -49,8 +50,11 @@ public class PromotionDashboard : MonoBehaviour
     private TextField showNameField, showDateField, newShowField, newShowDateField;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton;
     private Button addMatchButton, saveMatchButton, cancelMatchButton;
-    private VisualElement matchEditor;
-    private TextField matchNameField, wrestlerAField, wrestlerBField, wrestlerCField, wrestlerDField, winnerField;
+    private Button addSegmentButton, saveSegmentButton, cancelSegmentButton;
+    private VisualElement matchEditor, segmentEditor;
+    private TextField matchNameField;
+    private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, winnerDropdown;
+    private TextField segmentTextField;
     private DropdownField titleDropdown;
     private Toggle isTitleMatchToggle;
     private ShowData currentEditingShow;
@@ -66,6 +70,11 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView historyShowsList, historyShowMatchesList;
     private Button historyCloseResultsButton;
     private Label historyResultsHeader;
+
+    // ===== Rankings =====
+    private VisualElement rankingsPanel;
+    private ScrollView rankingsList;
+    private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton;
 
     private VisualElement root;
     private VisualElement dashboardChrome;
@@ -147,6 +156,7 @@ public class PromotionDashboard : MonoBehaviour
         titlesButton = root.Q<Button>("titlesButton");
         showsButton = root.Q<Button>("showsButton");
         historyButton = root.Q<Button>("historyButton");
+        rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
 
         statusLabel = root.Q<Label>("statusLabel");
@@ -221,17 +231,22 @@ public class PromotionDashboard : MonoBehaviour
         cancelShowButton = root.Q<Button>("cancelShowButton");
         matchesList = root.Q<ScrollView>("matchesList");
         matchEditor = root.Q<VisualElement>("matchEditor");
+        segmentEditor = root.Q<VisualElement>("segmentEditor");
         matchNameField = root.Q<TextField>("matchNameField");
-        wrestlerAField = root.Q<TextField>("wrestlerAField");
-        wrestlerBField = root.Q<TextField>("wrestlerBField");
-        wrestlerCField = root.Q<TextField>("wrestlerCField");
-        wrestlerDField = root.Q<TextField>("wrestlerDField");
+        wrestlerADropdown = root.Q<DropdownField>("wrestlerADropdown");
+        wrestlerBDropdown = root.Q<DropdownField>("wrestlerBDropdown");
+        wrestlerCDropdown = root.Q<DropdownField>("wrestlerCDropdown");
+        wrestlerDDropdown = root.Q<DropdownField>("wrestlerDDropdown");
         isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
         titleDropdown = root.Q<DropdownField>("titleDropdown");
-        winnerField = root.Q<TextField>("winnerField");
+        winnerDropdown = root.Q<DropdownField>("winnerDropdown");
+        segmentTextField = root.Q<TextField>("segmentTextField");
         addMatchButton = root.Q<Button>("addMatchButton");
+        addSegmentButton = root.Q<Button>("addSegmentButton");
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
+        saveSegmentButton = root.Q<Button>("saveSegmentButton");
+        cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
 
         // ===== Histories =====
         historyPanel = root.Q<VisualElement>("historyPanel");
@@ -244,15 +259,23 @@ public class PromotionDashboard : MonoBehaviour
         historyCloseResultsButton = root.Q<Button>("historyCloseResultsButton");
         historyResultsHeader = root.Q<Label>("historyResultsHeader");
 
+        // ===== Rankings =====
+        rankingsPanel = root.Q<VisualElement>("rankingsPanel");
+        rankingsList = root.Q<ScrollView>("rankingsList");
+        rankingsMenButton = root.Q<Button>("rankingsMenButton");
+        rankingsWomenButton = root.Q<Button>("rankingsWomenButton");
+        rankingsTagButton = root.Q<Button>("rankingsTagButton");
+
         RegisterMainPanel(promotionInfoPanel);
         RegisterMainPanel(wrestlersPanel);
         RegisterMainPanel(titlesPanel);
         RegisterMainPanel(showsPanel);
         RegisterMainPanel(historyPanel);
+        RegisterMainPanel(rankingsPanel);
 
         RegisterFocusablePanel(editPanel, wrestlerDetails, wrestlerAddPanel, titleDetails, titleAddPanel,
             titleHistoryList, showDetails, showAddPanel, matchEditor, showsPanel, historyPanel,
-            promotionInfoPanel, wrestlersPanel, titlesPanel);
+            rankingsPanel, promotionInfoPanel, wrestlersPanel, titlesPanel);
 
 
         // ===== Navigation wiring =====
@@ -266,6 +289,14 @@ public class PromotionDashboard : MonoBehaviour
             showsButton.clicked += ShowShowsPanel;
         if (historyButton != null)
             historyButton.clicked += ShowHistoryPanel;
+        if (rankingsButton != null)
+            rankingsButton.clicked += ShowRankingsPanel;
+        if (rankingsMenButton != null)
+            rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
+        if (rankingsWomenButton != null)
+            rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
+        if (rankingsTagButton != null)
+            rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
         if (historyCloseResultsButton != null)
         {
             historyCloseResultsButton.clicked += () =>
@@ -421,9 +452,22 @@ public class PromotionDashboard : MonoBehaviour
         {
             SetActivePanel(showsPanel);
             PopulateTitleDropdown();
+            PopulateWrestlerDropdowns();
+            UpdateWinnerChoices();
             matchEditor.RemoveFromClassList("hidden");
+            segmentEditor?.AddToClassList("hidden");
             FocusPanel(matchEditor);
         };
+        if (addSegmentButton != null)
+        {
+            addSegmentButton.clicked += () =>
+            {
+                SetActivePanel(showsPanel);
+                segmentEditor?.RemoveFromClassList("hidden");
+                matchEditor?.AddToClassList("hidden");
+                FocusPanel(segmentEditor);
+            };
+        }
 
         if (isTitleMatchToggle != null)
         {
@@ -447,10 +491,10 @@ public class PromotionDashboard : MonoBehaviour
             // Validate participants (need at least two unique names)
             var rawNames = new List<string>
             {
-                wrestlerAField?.value?.Trim(),
-                wrestlerBField?.value?.Trim(),
-                wrestlerCField != null ? wrestlerCField.value?.Trim() : null,
-                wrestlerDField != null ? wrestlerDField.value?.Trim() : null
+                wrestlerADropdown?.value?.Trim(),
+                wrestlerBDropdown?.value?.Trim(),
+                wrestlerCDropdown != null ? wrestlerCDropdown.value?.Trim() : null,
+                wrestlerDDropdown != null ? wrestlerDDropdown.value?.Trim() : null
             };
             var participants = new List<string>();
             var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
@@ -478,7 +522,7 @@ public class PromotionDashboard : MonoBehaviour
             }
 
             // Validate winner (if provided) must be one of the participants
-            string winnerInput = winnerField != null ? winnerField.value?.Trim() : string.Empty;
+            string winnerInput = winnerDropdown != null ? winnerDropdown.value?.Trim() : string.Empty;
             if (!string.IsNullOrEmpty(winnerInput))
             {
                 bool winnerValid = false;
@@ -498,20 +542,20 @@ public class PromotionDashboard : MonoBehaviour
                 }
             }
             // Write validated names back to fields so MatchData uses them
-            wrestlerAField.value = participants[0];
-            wrestlerBField.value = participants[1];
-            if (wrestlerCField != null) wrestlerCField.value = participants.Count > 2 ? participants[2] : "";
-            if (wrestlerDField != null) wrestlerDField.value = participants.Count > 3 ? participants[3] : "";
+            if (wrestlerADropdown != null) wrestlerADropdown.value = participants[0];
+            if (wrestlerBDropdown != null) wrestlerBDropdown.value = participants[1];
+            if (wrestlerCDropdown != null) wrestlerCDropdown.value = participants.Count > 2 ? participants[2] : "";
+            if (wrestlerDDropdown != null) wrestlerDDropdown.value = participants.Count > 3 ? participants[3] : "";
             var match = new MatchData
             {
                 matchName = matchNameField.value,
-                wrestlerA = wrestlerAField.value,
-                wrestlerB = wrestlerBField.value,
+                wrestlerA = participants.Count > 0 ? participants[0] : "",
+                wrestlerB = participants.Count > 1 ? participants[1] : "",
+                wrestlerC = participants.Count > 2 ? participants[2] : "",
+                wrestlerD = participants.Count > 3 ? participants[3] : "",
                 isTitleMatch = isTitleMatchToggle.value,
                 titleName = (titleDropdown != null ? titleDropdown.value : ""),
-                winner = winnerField.value,
-                wrestlerC = wrestlerCField != null ? wrestlerCField.value : "",
-                wrestlerD = wrestlerDField != null ? wrestlerDField.value : ""
+                winner = winnerInput
             };
 
             if (currentEditingShow == null)
@@ -525,10 +569,10 @@ public class PromotionDashboard : MonoBehaviour
             RefreshMatchList();
             statusLabel.text = $"✅ Match '{match.matchName}' added.";
             matchNameField.value = "";
-            wrestlerAField.value = "";
-            wrestlerBField.value = "";
-            if (wrestlerCField != null) wrestlerCField.value = "";
-            if (wrestlerDField != null) wrestlerDField.value = "";
+            ResetDropdown(wrestlerADropdown);
+            ResetDropdown(wrestlerBDropdown);
+            ResetDropdown(wrestlerCDropdown);
+            ResetDropdown(wrestlerDDropdown);
             isTitleMatchToggle.value = false;
             if (titleDropdown != null)
             {
@@ -536,7 +580,7 @@ public class PromotionDashboard : MonoBehaviour
                 if (titleDropdown.choices != null && titleDropdown.choices.Count > 0)
                     titleDropdown.value = titleDropdown.choices[0];
             }
-            winnerField.value = "";
+            if (winnerDropdown != null) { if (winnerDropdown.choices != null && winnerDropdown.choices.Count > 0) winnerDropdown.value = winnerDropdown.choices[0]; }
             FocusPanel(showDetails ?? showsPanel);
         };
 
@@ -546,6 +590,42 @@ public class PromotionDashboard : MonoBehaviour
             matchEditor.AddToClassList("hidden");
             FocusPanel(showDetails ?? showsPanel);
         };
+        if (saveSegmentButton != null)
+        {
+            saveSegmentButton.clicked += () =>
+            {
+                SetActivePanel(showsPanel);
+                if (currentEditingShow == null)
+                {
+                    statusLabel.text = "No active show selected.";
+                    return;
+                }
+                string text = segmentTextField != null ? segmentTextField.value?.Trim() : string.Empty;
+                if (string.IsNullOrEmpty(text))
+                {
+                    statusLabel.text = "Enter segment text before saving.";
+                    FocusPanel(segmentEditor);
+                    return;
+                }
+                if (currentEditingShow.segments == null)
+                    currentEditingShow.segments = new System.Collections.Generic.List<SegmentData>();
+                currentEditingShow.segments.Add(new SegmentData { text = text });
+                DataManager.SavePromotion(currentPromotion);
+                segmentEditor?.AddToClassList("hidden");
+                segmentTextField.value = string.Empty;
+                statusLabel.text = "Segment added to show.";
+                FocusPanel(showDetails ?? showsPanel);
+            };
+        }
+        if (cancelSegmentButton != null)
+        {
+            cancelSegmentButton.clicked += () =>
+            {
+                SetActivePanel(showsPanel);
+                segmentEditor?.AddToClassList("hidden");
+                FocusPanel(showDetails ?? showsPanel);
+            };
+        }
 
         LoadPromotionData();
         SetActivePanel(promotionInfoPanel);
@@ -691,6 +771,95 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(historyShowsPanel ?? historyPanel);
     }
 
+    // ---------------- Rankings ----------------
+    private enum RankCategory { Men, Women, TagTeam }
+
+    private void ShowRankingsPanel()
+    {
+        ExitWrestlerEditMode();
+        SetActivePanel(rankingsPanel);
+        PopulateRankings(RankCategory.Men);
+        FocusPanel(rankingsPanel);
+    }
+
+    private void PopulateRankings(RankCategory category)
+    {
+        if (rankingsList == null || currentPromotion == null)
+            return;
+
+        rankingsList.Clear();
+
+        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+
+        // Build a quick lookup for wrestler flags by name
+        var flagByName = new Dictionary<string, (bool isFemale, bool isTagTeam)>(System.StringComparer.OrdinalIgnoreCase);
+        if (wrestlerCollection != null && wrestlerCollection.wrestlers != null)
+        {
+            foreach (var w in wrestlerCollection.wrestlers)
+            {
+                if (!string.IsNullOrEmpty(w.name))
+                    flagByName[w.name] = (w.isFemale, w.isTagTeam);
+            }
+        }
+
+        // Iterate all shows and matches to compile win/loss
+        if (currentPromotion.shows != null)
+        {
+            foreach (var show in currentPromotion.shows)
+            {
+                if (show?.matches == null) continue;
+                foreach (var m in show.matches)
+                {
+                    var participants = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerA)) participants.Add(m.wrestlerA.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerB)) participants.Add(m.wrestlerB.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerC)) participants.Add(m.wrestlerC.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerD)) participants.Add(m.wrestlerD.Trim());
+
+                    if (participants.Count < 2)
+                        continue;
+
+                    string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
+
+                    foreach (var p in participants)
+                    {
+                        // Check flags; if unknown, treat as non-matching so we skip
+                        flagByName.TryGetValue(p, out var flags);
+                        bool include = category switch
+                        {
+                            RankCategory.Men => !flags.isFemale && !flags.isTagTeam,
+                            RankCategory.Women => flags.isFemale && !flags.isTagTeam,
+                            RankCategory.TagTeam => flags.isTagTeam,
+                            _ => false
+                        };
+                        if (!include) continue;
+
+                        if (!records.ContainsKey(p)) records[p] = (0, 0);
+                        var r = records[p];
+                        if (!string.IsNullOrEmpty(winner) && string.Equals(p, winner, System.StringComparison.OrdinalIgnoreCase))
+                            r.wins++;
+                        else if (!string.IsNullOrEmpty(winner))
+                            r.losses++;
+                        records[p] = r;
+                    }
+                }
+            }
+        }
+
+        // Sort: wins desc, losses asc, then name
+        foreach (var entry in records.OrderByDescending(e => e.Value.wins).ThenBy(e => e.Value.losses).ThenBy(e => e.Key))
+        {
+            int total = entry.Value.wins + entry.Value.losses;
+            string pct = total > 0 ? ((float)entry.Value.wins / total).ToString("P0") : "0%";
+            rankingsList.Add(new Label($"{entry.Key} — {entry.Value.wins}-{entry.Value.losses} ({pct})"));
+        }
+
+        if (records.Count == 0)
+        {
+            rankingsList.Add(new Label("No results yet for this category.") { style = { color = Color.gray } });
+        }
+    }
+
     private void PopulateHistoryShowsList()
     {
         if (historyShowsList == null || currentPromotion == null)
@@ -721,11 +890,8 @@ public class PromotionDashboard : MonoBehaviour
             historyResultsHeader.text = $"Results: {show?.showName}{date}";
         }
         historyShowMatchesList.Clear();
-        if (show == null || show.matches == null || show.matches.Count == 0)
-        {
-            historyShowMatchesList.Add(new Label("No matches for this show.") { style = { color = Color.gray } });
-        }
-        else
+        bool anyEntries = false;
+        if (show != null && show.matches != null && show.matches.Count > 0)
         {
             foreach (var match in show.matches)
             {
@@ -745,7 +911,24 @@ public class PromotionDashboard : MonoBehaviour
                 if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName))
                     entry.Add(new Label($"Title: {match.titleName}"));
                 historyShowMatchesList.Add(entry);
+                anyEntries = true;
             }
+        }
+        if (show != null && show.segments != null && show.segments.Count > 0)
+        {
+            foreach (var segment in show.segments)
+            {
+                var entry = new VisualElement();
+                entry.style.marginBottom = 6;
+                entry.Add(new Label("Segment:"));
+                entry.Add(new Label(segment.text));
+                historyShowMatchesList.Add(entry);
+                anyEntries = true;
+            }
+        }
+        if (!anyEntries)
+        {
+            historyShowMatchesList.Add(new Label("No results for this show yet.") { style = { color = Color.gray } });
         }
         FocusPanel(historyResultsPanel);
     }
@@ -904,16 +1087,15 @@ public class PromotionDashboard : MonoBehaviour
 
     private void SaveSelectedWrestler()
     {
-        if (selectedIndex < 0 || wrestlerCollection == null)
-            return;
+        if (selectedIndex < 0 || wrestlerCollection == null) return; if (selectedIndex >= (wrestlerCollection?.wrestlers?.Count ?? 0)) return;
         var w = wrestlerCollection.wrestlers[selectedIndex];
-        w.name = wrestlerNameField.value.Trim();
+        w.name = (wrestlerNameField?.value ?? string.Empty).Trim();
         if (wrestlerIsTagTeamToggle != null)
             w.isTagTeam = wrestlerIsTagTeamToggle.value;
-        w.hometown = wrestlerHometownField.value.Trim();
+        w.hometown = (wrestlerHometownField?.value ?? string.Empty).Trim();
         w.isFemale = wrestlerIsFemaleToggle != null && wrestlerIsFemaleToggle.value;
-        w.height = wrestlerHeightField.value;
-        w.weight = wrestlerWeightField.value;
+        if (wrestlerHeightField != null) w.height = wrestlerHeightField.value;
+        if (wrestlerWeightField != null) w.weight = wrestlerWeightField.value;
         DataManager.SaveWrestlers(wrestlerCollection);
         RefreshWrestlerList();
         HideWrestlerDetails();
@@ -922,8 +1104,7 @@ public class PromotionDashboard : MonoBehaviour
 
     private void DeleteSelectedWrestler()
     {
-        if (selectedIndex < 0 || wrestlerCollection == null)
-            return;
+        if (selectedIndex < 0 || wrestlerCollection == null) return; if (selectedIndex >= (wrestlerCollection?.wrestlers?.Count ?? 0)) return;
         string name = wrestlerCollection.wrestlers[selectedIndex].name;
         wrestlerCollection.wrestlers.RemoveAt(selectedIndex);
         selectedIndex = -1;
@@ -949,6 +1130,7 @@ public class PromotionDashboard : MonoBehaviour
             var empty = new Label("No titles created yet.") { style = { color = Color.gray } };
             titleList.Add(empty);
             PopulateTitleDropdown();
+            PopulateWrestlerDropdowns();
             return;
         }
         for (int i = 0; i < titleCollection.titles.Count; i++)
@@ -959,6 +1141,70 @@ public class PromotionDashboard : MonoBehaviour
             titleList.Add(btn);
         }
         PopulateTitleDropdown();
+        PopulateWrestlerDropdowns();
+    }
+
+    private void PopulateWrestlerDropdowns()
+    {
+        var names = new List<string>();
+        names.Add("");
+        if (wrestlerCollection != null && wrestlerCollection.wrestlers != null)
+        {
+            foreach (var w in wrestlerCollection.wrestlers)
+                if (!string.IsNullOrEmpty(w.name)) names.Add(w.name);
+        }
+
+        void ApplyChoices(DropdownField dd)
+        {
+            if (dd == null) return;
+            dd.choices = new List<string>(names);
+            if (string.IsNullOrEmpty(dd.value) || !dd.choices.Contains(dd.value))
+                dd.value = dd.choices.Count > 0 ? dd.choices[0] : "";
+        }
+
+        ApplyChoices(wrestlerADropdown);
+        ApplyChoices(wrestlerBDropdown);
+        ApplyChoices(wrestlerCDropdown);
+        ApplyChoices(wrestlerDDropdown);
+        UpdateWinnerChoices();
+    }
+
+    private void UpdateWinnerChoices()
+    {
+        if (winnerDropdown == null)
+            return;
+        var choices = new List<string>();
+        choices.Add("");
+        void AddIfNotEmpty(string s)
+        {
+            if (!string.IsNullOrWhiteSpace(s) && !choices.Contains(s)) choices.Add(s);
+        }
+        AddIfNotEmpty(wrestlerADropdown != null ? wrestlerADropdown.value : null);
+        AddIfNotEmpty(wrestlerBDropdown != null ? wrestlerBDropdown.value : null);
+        AddIfNotEmpty(wrestlerCDropdown != null ? wrestlerCDropdown.value : null);
+        AddIfNotEmpty(wrestlerDDropdown != null ? wrestlerDDropdown.value : null);
+        winnerDropdown.choices = choices;
+        if (string.IsNullOrEmpty(winnerDropdown.value) || !choices.Contains(winnerDropdown.value))
+            winnerDropdown.value = choices[0];
+        // Wire change handlers
+        void EnsureHandler(DropdownField dd)
+        {
+            if (dd == null) return;
+            dd.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
+        }
+        EnsureHandler(wrestlerADropdown);
+        EnsureHandler(wrestlerBDropdown);
+        EnsureHandler(wrestlerCDropdown);
+        EnsureHandler(wrestlerDDropdown);
+    }
+
+    private void ResetDropdown(DropdownField dd)
+    {
+        if (dd == null) return;
+        if (dd.choices != null && dd.choices.Count > 0)
+            dd.value = dd.choices[0];
+        else
+            dd.value = "";
     }
 
     private void PopulateTitleDropdown()
@@ -1180,6 +1426,16 @@ public class PromotionDashboard : MonoBehaviour
             var label = new Label(string.IsNullOrEmpty(vsLine) ? match.matchName : $"{match.matchName} - {vsLine}");
             matchesList.Add(label);
         }
+
+        // Also list segments for this show
+        if (currentEditingShow.segments != null && currentEditingShow.segments.Count > 0)
+        {
+            foreach (var seg in currentEditingShow.segments)
+            {
+                var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
+                matchesList.Add(new Label($"Segment: {segText}"));
+            }
+        }
     }
 
     private void RefreshHistoryPanel()
@@ -1248,3 +1504,4 @@ public class PromotionDashboard : MonoBehaviour
         }
     }
 }
+

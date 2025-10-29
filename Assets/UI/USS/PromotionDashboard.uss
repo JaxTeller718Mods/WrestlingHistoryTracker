@@ -280,7 +280,8 @@ FloatField > .unity-float-field__input {
 
 .show-detail-card,
 .show-add-card,
-.match-editor-card {
+.match-editor-card,
+.segment-editor-card {
     width: 100%;
     background-color: rgba(30, 30, 30, 0.95);
     border-radius: 8px;
@@ -288,7 +289,8 @@ FloatField > .unity-float-field__input {
 }
 
 .show-edit-columns > .show-detail-card,
-.show-edit-columns > .match-editor-card {
+.show-edit-columns > .match-editor-card,
+.show-edit-columns > .segment-editor-card {
     flex: 1 1 380px;
     min-width: 360px;
     width: auto;
@@ -335,11 +337,46 @@ Label {
 /* ===== HISTORY RESULTS WIDTH TWEAK ===== */
 /* Widen only the History panel so Results can use more space */
 #historyPanel {
-    max-width: 900px;
+    max-width: 700px;
 }
 
 /* Ensure the results list stretches within the panel */
 #historyShowMatchesList {
     width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+}
+
+/* Wrap long text inside history results and matches list */
+#historyShowMatchesList Label {
+    white-space: normal;
+}
+
+#matchesList Label {
+    white-space: normal;
+}
+
+/* ===== RANKINGS LAYOUT ===== */
+#rankingsPanel {
+    max-width: 900px;
+}
+
+.rankings-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.rankings-nav {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rankings-list {
+    flex-grow: 1;
 }
 

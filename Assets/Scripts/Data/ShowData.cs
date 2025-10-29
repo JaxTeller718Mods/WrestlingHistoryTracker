@@ -8,6 +8,7 @@ public class ShowData
     public string showName;
     public string date;
     public List<MatchData> matches = new();
+    public List<SegmentData> segments = new();
 
     public ShowData(string name, string date)
     {
