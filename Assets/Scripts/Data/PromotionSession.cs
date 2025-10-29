@@ -9,6 +9,17 @@ public class PromotionSession : MonoBehaviour
     public static PromotionSession Instance;
     public PromotionData CurrentPromotion;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void EnsureInstance()
+    {
+        if (Instance != null)
+            return;
+
+        var sessionObject = new GameObject(nameof(PromotionSession));
+        sessionObject.hideFlags = HideFlags.DontSave;
+        sessionObject.AddComponent<PromotionSession>();
+    }
+
     private void Awake()
     {
         // Singleton setup
