@@ -7,7 +7,7 @@
 }
 
 .title {
-  -unity-text-align: upper-center;
+  unity-text-align: upper-center;
   font-size: 28px;
   margin-bottom: 18px;
   margin-top: 8px;
@@ -16,39 +16,25 @@
 .button-column {
   width: 320px;
   flex-direction: column;
+  gap: 10px;
   margin-bottom: 24px;
 }
 
 .button-column > Button {
   height: 44px;
-  -unity-font-style: bold;
+  unity-font-style: Bold;
   font-size: 16px;
-  margin-bottom: 10px;
-}
-
-.button-column > Button:last-child {
-  margin-bottom: 0;
 }
 
 .panel {
   width: 420px;
   padding: 14px;
   border-radius: 8px;
-  border-top-width: 1px;
-  border-right-width: 1px;
-  border-bottom-width: 1px;
-  border-left-width: 1px;
-  border-top-color: #888;
-  border-right-color: #888;
-  border-bottom-color: #888;
-  border-left-color: #888;
+  border: 1px solid #888;
   background-color: #222;
   margin-top: 18px;
   flex-direction: column;
-}
-
-.panel > * + * {
-  margin-top: 8px;
+  gap: 8px;
 }
 
 /* hidden helper */
