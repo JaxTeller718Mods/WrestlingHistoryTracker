@@ -50,6 +50,7 @@ using UnityEngine;
         private VisualElement matchEditor, segmentEditor, matchesView;
         private DropdownField matchTypeDropdown;
         private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, winnerDropdown;
+    private bool winnerHandlersHooked;
         private TextField segmentTextField;
         private DropdownField titleDropdown;
         private Toggle isTitleMatchToggle;
@@ -1150,9 +1151,9 @@ using UnityEngine;
         void ApplyChoices(DropdownField dd)
         {
         if (dd == null) return;
-        dd.choices = new List<string>(names);
+        if (dd.choices == null || dd.choices.Count != names.Count || !dd.choices.SequenceEqual(names)) dd.choices = new List<string>(names);
         if (string.IsNullOrEmpty(dd.value) || !dd.choices.Contains(dd.value))
-        dd.value = dd.choices.Count > 0 ? dd.choices[0] : "";
+        dd.SetValueWithoutNotify(dd.choices.Count > 0 ? dd.choices[0] : "");
         }
         ApplyChoices(wrestlerADropdown);
         ApplyChoices(wrestlerBDropdown);
@@ -1174,27 +1175,19 @@ using UnityEngine;
         AddIfNotEmpty(wrestlerBDropdown != null ? wrestlerBDropdown.value : null);
         AddIfNotEmpty(wrestlerCDropdown != null ? wrestlerCDropdown.value : null);
         AddIfNotEmpty(wrestlerDDropdown != null ? wrestlerDDropdown.value : null);
-        winnerDropdown.choices = choices;
-        if (string.IsNullOrEmpty(winnerDropdown.value) || !choices.Contains(winnerDropdown.value))
-        winnerDropdown.value = choices[0];
+        if (winnerDropdown.choices == null || winnerDropdown.choices.Count != choices.Count || !winnerDropdown.choices.SequenceEqual(choices)) winnerDropdown.choices = choices; if (string.IsNullOrEmpty(winnerDropdown.value) || !choices.Contains(winnerDropdown.value)) winnerDropdown.SetValueWithoutNotify(choices[0]);
         // Wire change handlers
         void EnsureHandler(DropdownField dd)
         {
         if (dd == null) return;
         dd.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
         }
-        EnsureHandler(wrestlerADropdown);
-        EnsureHandler(wrestlerBDropdown);
-        EnsureHandler(wrestlerCDropdown);
-        EnsureHandler(wrestlerDDropdown);
+        if (!winnerHandlersHooked) { EnsureHandler(wrestlerADropdown); EnsureHandler(wrestlerBDropdown); EnsureHandler(wrestlerCDropdown); EnsureHandler(wrestlerDDropdown); winnerHandlersHooked = true; }
         }
         private void ResetDropdown(DropdownField dd)
         {
         if (dd == null) return;
-        if (dd.choices != null && dd.choices.Count > 0)
-        dd.value = dd.choices[0];
-        else
-        dd.value = "";
+        if (dd.choices != null && dd.choices.Count > 0) dd.SetValueWithoutNotify(dd.choices[0]); else dd.SetValueWithoutNotify("");
         }
         private void PopulateMatchTypeDropdown()
         {
