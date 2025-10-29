@@ -63,27 +63,65 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement dashboardChrome;
     private readonly List<VisualElement> mainPanels = new();
     private readonly List<VisualElement> focusablePanels = new();
+    private Coroutine initializationRoutine;
 
     private void OnEnable()
     {
         // ✅ Load active promotion from persistent session
-        if (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
+        if (initializationRoutine != null)
         {
-            Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
-
-            if (SceneLoader.Instance != null)
-            {
-                SceneLoader.Instance.LoadScene("MainMenu");
-            }
-            else
-            {
-                Debug.LogWarning("SceneLoader singleton missing. Falling back to direct SceneManager load.");
-                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
-            }
-
-            return;
+            StopCoroutine(initializationRoutine);
         }
 
+        initializationRoutine = StartCoroutine(WaitForPromotionData());
+    }
+
+    private void OnDisable()
+    {
+        if (initializationRoutine != null)
+        {
+            StopCoroutine(initializationRoutine);
+            initializationRoutine = null;
+        }
+    }
+
+    private System.Collections.IEnumerator WaitForPromotionData()
+    {
+        const float timeoutSeconds = 2f;
+        float startTime = Time.unscaledTime;
+
+        while (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
+        {
+            if (Time.unscaledTime - startTime >= timeoutSeconds)
+            {
+                HandleMissingPromotionSession();
+                initializationRoutine = null;
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        InitializeDashboard();
+        initializationRoutine = null;
+    }
+
+    private void HandleMissingPromotionSession()
+    {
+        Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
+
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadScene("MainMenu");
+        }
+        else
+        {
+            Debug.LogWarning("SceneLoader singleton missing. Falling back to direct SceneManager load.");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+        }
+    }
+    private void InitializeDashboard()
+    {
         currentPromotion = PromotionSession.Instance.CurrentPromotion;
         Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
 
