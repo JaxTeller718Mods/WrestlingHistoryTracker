@@ -115,7 +115,7 @@ TextField, FloatField {
 TextField > .unity-text-field__input,
 FloatField > .unity-float-field__input {
     background-color: #202020;
-    color: #E5E5E5;
+    color: #000000;
     border-radius: 4px;
 }
 

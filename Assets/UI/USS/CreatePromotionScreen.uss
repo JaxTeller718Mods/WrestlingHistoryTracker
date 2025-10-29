@@ -17,6 +17,11 @@ TextField {
     margin-bottom: 10px;
 }
 
+TextField > .unity-text-field__input,
+TextField > .unity-base-text-field__input {
+    color: #000000;
+}
+
 Button {
     width: 200px;
     height: 35px;
