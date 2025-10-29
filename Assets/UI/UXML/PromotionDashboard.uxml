@@ -119,15 +119,25 @@
         <ui:ScrollView name="showsList" class="list" />
 
         <ui:VisualElement class="show-detail-column">
-          <!-- Details of the selected show -->
-          <ui:VisualElement name="showDetails" class="hidden show-detail-card">
-            <ui:Label text="Show Details" class="subsection-title" />
-            <ui:TextField name="showNameField" label="Show Name" />
-            <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-            <ui:Label text="Matches" class="subsection-title" />
-            <ui:ScrollView name="matchesList" class="list" />
-            <ui:Button name="addMatchButton" text="Add Match" />
+          <ui:VisualElement class="show-edit-columns">
+            <!-- Details of the selected show -->
+            <ui:VisualElement name="showDetails" class="hidden show-detail-card">
+              <ui:Label text="Show Details" class="subsection-title" />
+              <ui:TextField name="showNameField" label="Show Name" />
+              <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
+              <ui:Label text="Matches" class="subsection-title" />
+              <ui:ScrollView name="matchesList" class="list" />
+              <ui:Button name="addMatchButton" text="Add Match" />
+              <ui:VisualElement class="row">
+                <ui:Button name="saveShowButton" text="Save Show" />
+                <ui:Button name="deleteShowButton" text="Delete" />
+                <ui:Button name="cancelShowButton" text="Cancel" />
+              </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Match editor appears alongside show details -->
             <ui:VisualElement name="matchEditor" class="hidden match-editor-card">
+              <ui:Label text="Add Match" class="subsection-title" />
               <ui:TextField name="matchNameField" label="Match Name" />
               <ui:TextField name="wrestlerAField" label="Wrestler A" />
               <ui:TextField name="wrestlerBField" label="Wrestler B" />
@@ -138,11 +148,6 @@
                 <ui:Button name="saveMatchButton" text="Save Match" />
                 <ui:Button name="cancelMatchButton" text="Cancel" />
               </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="row">
-              <ui:Button name="saveShowButton" text="Save Show" />
-              <ui:Button name="deleteShowButton" text="Delete" />
-              <ui:Button name="cancelShowButton" text="Cancel" />
             </ui:VisualElement>
           </ui:VisualElement>
 
