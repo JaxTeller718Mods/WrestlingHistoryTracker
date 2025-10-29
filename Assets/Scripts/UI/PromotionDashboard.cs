@@ -70,7 +70,17 @@ public class PromotionDashboard : MonoBehaviour
         if (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
         {
             Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
-            SceneLoader.Instance.LoadScene("MainMenu");
+
+            if (SceneLoader.Instance != null)
+            {
+                SceneLoader.Instance.LoadScene("MainMenu");
+            }
+            else
+            {
+                Debug.LogWarning("SceneLoader singleton missing. Falling back to direct SceneManager load.");
+                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            }
+
             return;
         }
 
