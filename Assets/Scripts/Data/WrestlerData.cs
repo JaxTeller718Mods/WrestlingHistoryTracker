@@ -14,6 +14,7 @@ public class WrestlerData
     public string debutYear;
     public float weight;   // in pounds (lbs)
     public float height;   // in centimeters
+    public bool isFemale;  // gender flag for divisions/rankings
 
     // ✅ Parameterless constructor (needed for JSONUtility & object initializers)
     public WrestlerData() { }

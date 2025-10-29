@@ -19,10 +19,12 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement wrestlersPanel;
     private ScrollView wrestlerList;
     private VisualElement wrestlerDetails;
-    private TextField wrestlerNameField, wrestlerNicknameField, wrestlerHometownField, wrestlerDebutField;
+    private TextField wrestlerNameField, wrestlerNicknameField, wrestlerHometownField;
+    private Toggle wrestlerIsFemaleToggle;
     private FloatField wrestlerHeightField, wrestlerWeightField;
     private Button addWrestlerButton, saveWrestlersButton, saveWrestlerButton, deleteWrestlerButton, cancelEditButton;
     private TextField newWrestlerField;
+    private Toggle newWrestlerIsFemaleToggle;
     private WrestlerCollection wrestlerCollection;
     private VisualElement wrestlerAddPanel;
     private int selectedIndex = -1;
@@ -165,7 +167,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlerNameField = root.Q<TextField>("wrestlerNameField");
         wrestlerNicknameField = root.Q<TextField>("wrestlerNicknameField");
         wrestlerHometownField = root.Q<TextField>("wrestlerHometownField");
-        wrestlerDebutField = root.Q<TextField>("wrestlerDebutField");
+        wrestlerIsFemaleToggle = root.Q<Toggle>("wrestlerIsFemaleToggle");
         wrestlerHeightField = root.Q<FloatField>("wrestlerHeightField");
         wrestlerWeightField = root.Q<FloatField>("wrestlerWeightField");
         addWrestlerButton = root.Q<Button>("addWrestlerButton");
@@ -174,6 +176,7 @@ public class PromotionDashboard : MonoBehaviour
         deleteWrestlerButton = root.Q<Button>("deleteWrestlerButton");
         cancelEditButton = root.Q<Button>("cancelEditButton");
         newWrestlerField = root.Q<TextField>("newWrestlerField");
+        newWrestlerIsFemaleToggle = root.Q<Toggle>("newWrestlerIsFemaleToggle");
         wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
 
         // ===== Titles =====
@@ -671,8 +674,9 @@ public class PromotionDashboard : MonoBehaviour
         }
         if (wrestlerCollection == null)
             wrestlerCollection = new WrestlerCollection { promotionName = currentPromotion.promotionName };
-        wrestlerCollection.wrestlers.Add(new WrestlerData { name = name });
+        wrestlerCollection.wrestlers.Add(new WrestlerData { name = name, isFemale = (newWrestlerIsFemaleToggle != null && newWrestlerIsFemaleToggle.value) });
         newWrestlerField.value = "";
+        if (newWrestlerIsFemaleToggle != null) newWrestlerIsFemaleToggle.value = false;
         RefreshWrestlerList();
         FocusPanel(wrestlerAddPanel ?? wrestlersPanel);
     }
@@ -689,7 +693,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlerNameField.value = w.name;
         wrestlerNicknameField.value = w.nickname;
         wrestlerHometownField.value = w.hometown;
-        wrestlerDebutField.value = w.debutYear;
+        wrestlerIsFemaleToggle.value = w.isFemale;
         wrestlerHeightField.value = w.height;
         wrestlerWeightField.value = w.weight;
         wrestlerAddPanel.AddToClassList("hidden");
@@ -716,7 +720,7 @@ public class PromotionDashboard : MonoBehaviour
         w.name = wrestlerNameField.value.Trim();
         w.nickname = wrestlerNicknameField.value.Trim();
         w.hometown = wrestlerHometownField.value.Trim();
-        w.debutYear = wrestlerDebutField.value.Trim();
+        w.isFemale = wrestlerIsFemaleToggle != null && wrestlerIsFemaleToggle.value;
         w.height = wrestlerHeightField.value;
         w.weight = wrestlerWeightField.value;
         DataManager.SaveWrestlers(wrestlerCollection);
