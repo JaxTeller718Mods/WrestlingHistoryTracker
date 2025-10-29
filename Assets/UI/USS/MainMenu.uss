@@ -47,12 +47,8 @@
   flex-direction: column;
 }
 
-.panel > * {
+.panel > * + * {
   margin-top: 8px;
-}
-
-.panel > :first-child {
-  margin-top: 0;
 }
 
 /* hidden helper */
