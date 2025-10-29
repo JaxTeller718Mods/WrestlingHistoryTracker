@@ -1,25 +1,127 @@
-#root {
+/* ===============================
+   CREATE PROMOTION SCREEN STYLES
+   =============================== */
+
+.screen-root {
+    flex-grow: 1;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 20px;
+    padding: 40px;
+    gap: 20px;
+    background-color: rgba(12, 12, 12, 0.85);
+}
+
+.title {
+    font-size: 28px;
+    -unity-font-style: bold;
+    color: #FFFFFF;
+    -unity-text-align: middle-center;
+}
+
+.form-panel {
+    width: 100%;
+    max-width: 520px;
+    background-color: rgba(40, 40, 40, 0.9);
+    border-radius: 8px;
+    padding: 24px;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
 Label {
-    font-size: 24px;
-    -unity-text-align: middle-center;
-    margin-bottom: 20px;
-    -unity-font-style: bold;
+    color: #E5E5E5;
 }
 
-TextField {
-    width: 300px;
-    margin-bottom: 10px;
-    color: #000000;
+.field {
+    width: 100%;
 }
 
-Button {
-    width: 200px;
-    height: 35px;
-    margin-top: 5px;
+TextField,
+FloatField {
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+TextField > .unity-base-field__label,
+FloatField > .unity-base-field__label {
+    color: #D8D8D8;
+    font-size: 13px;
+    min-width: 140px;
+}
+
+TextField > .unity-text-field__input,
+FloatField > .unity-float-field__input {
+    background-color: #202020;
+    color: #E5E5E5;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: #3A3A3A;
+    padding: 6px 8px;
+}
+
+.description-field > .unity-text-field__input {
+    min-height: 120px;
+    white-space: normal;
+}
+
+.button-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+button {
+    min-width: 0;
+    width: auto;
+    flex-shrink: 0;
+    flex-grow: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    white-space: nowrap;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: #666;
+    background-color: #2A2A2A;
+    color: white;
+    font-size: 14px;
+    -unity-font-style: normal;
+    transition-property: background-color, color, border-color;
+    transition-duration: 0.1s;
+}
+
+.primary-button {
+    background-color: #357A38;
+    border-color: #4C9A50;
+}
+
+.primary-button:hover {
+    background-color: #3F8B43;
+    border-color: #58AD5C;
+}
+
+.secondary-button {
+    background-color: #2A2A2A;
+}
+
+button:hover {
+    background-color: #3D3D3D;
+    border-color: #999;
+}
+
+button:active {
+    background-color: #505050;
+    border-color: #AAA;
+}
+
+.secondary-button:hover {
+    background-color: #3D3D3D;
+}
+
+.secondary-button:active {
+    background-color: #505050;
 }
