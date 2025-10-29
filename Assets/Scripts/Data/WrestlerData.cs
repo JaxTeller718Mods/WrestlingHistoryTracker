@@ -9,12 +9,12 @@ using UnityEngine;
 public class WrestlerData
 {
     public string name;
-    public string nickname;
     public string hometown;
     public string debutYear;
     public float weight;   // in pounds (lbs)
     public float height;   // in centimeters
     public bool isFemale;  // gender flag for divisions/rankings
+    public bool isTagTeam; // tag team flag for rankings
 
     // ✅ Parameterless constructor (needed for JSONUtility & object initializers)
     public WrestlerData() { }

@@ -52,7 +52,7 @@
           <ui:VisualElement name="wrestlerDetails" class="hidden wrestler-detail-card">
             <ui:Label text="Wrestler Details" class="subsection-title" />
             <ui:TextField name="wrestlerNameField" label="Name" />
-            <ui:TextField name="wrestlerNicknameField" label="Nickname" />
+            <ui:Toggle name="wrestlerIsTagTeamToggle" label="Tag Team" />
             <ui:TextField name="wrestlerHometownField" label="Hometown" />
             <ui:Toggle name="wrestlerIsFemaleToggle" label="Female" />
             <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
@@ -67,6 +67,7 @@
           <ui:VisualElement name="wrestlerAddPanel" class="wrestler-add-card">
             <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
             <ui:Toggle name="newWrestlerIsFemaleToggle" label="Female" />
+            <ui:Toggle name="newWrestlerIsTagTeamToggle" label="Tag Team" />
             <ui:VisualElement class="row">
               <ui:Button name="addWrestlerButton" text="Add Wrestler" />
               <ui:Button name="saveWrestlersButton" text="Save All" />
@@ -141,8 +142,10 @@
               <ui:TextField name="matchNameField" label="Match Name" />
               <ui:TextField name="wrestlerAField" label="Wrestler A" />
               <ui:TextField name="wrestlerBField" label="Wrestler B" />
+              <ui:TextField name="wrestlerCField" label="Wrestler C (optional)" />
+              <ui:TextField name="wrestlerDField" label="Wrestler D (optional)" />
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
-              <ui:TextField name="titleInvolvedField" label="Title (optional)" />
+              <ui:DropdownField name="titleDropdown" label="Title (optional)" />
               <ui:TextField name="winnerField" label="Winner" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveMatchButton" text="Save Match" />
@@ -167,6 +170,23 @@
     <!-- ===== HISTORY PANEL ===== -->
     <ui:VisualElement name="historyPanel" class="hidden">
       <ui:Label text="Promotion History" class="section-title" />
+
+      <!-- Primary: list of shows to browse results -->
+      <ui:VisualElement name="historyShowsPanel">
+        <ui:Label text="Shows" class="subsection-title" />
+        <ui:ScrollView name="historyShowsList" class="list" />
+      </ui:VisualElement>
+
+      <!-- Results for a selected show -->
+      <ui:VisualElement name="historyResultsPanel" class="hidden">
+        <ui:Label name="historyResultsHeader" text="Results" class="subsection-title" />
+        <ui:ScrollView name="historyShowMatchesList" class="list" />
+        <ui:VisualElement class="row">
+          <ui:Button name="historyCloseResultsButton" text="Close" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <!-- Keep existing aggregated history sections (hidden by code when using show browser) -->
       <ui:Label text="Match Results" class="subsection-title" />
       <ui:ScrollView name="matchHistoryList" class="list" />
       <ui:Label text="Title Lineages" class="subsection-title" />

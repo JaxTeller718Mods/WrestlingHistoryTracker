@@ -240,6 +240,23 @@ FloatField > .unity-float-field__input {
     flex-wrap: wrap;
 }
 
+/* When editing a show, hide the list and center editors */
+.editing-show .shows-layout {
+    justify-content: center;
+}
+
+.editing-show #showsList {
+    display: none;
+}
+
+.editing-show .show-detail-column {
+    max-width: 1100px;
+}
+
+.editing-show .show-edit-columns {
+    flex-wrap: nowrap;
+}
+
 .show-edit-columns {
     width: 100%;
     display: flex;
@@ -272,8 +289,8 @@ FloatField > .unity-float-field__input {
 
 .show-edit-columns > .show-detail-card,
 .show-edit-columns > .match-editor-card {
-    flex: 1 1 320px;
-    min-width: 280px;
+    flex: 1 1 380px;
+    min-width: 360px;
     width: auto;
 }
 
@@ -313,5 +330,16 @@ FloatField > .unity-float-field__input {
 /* ===== SMALL UI TWEAKS ===== */
 Label {
     color: #E5E5E5;
+}
+
+/* ===== HISTORY RESULTS WIDTH TWEAK ===== */
+/* Widen only the History panel so Results can use more space */
+#historyPanel {
+    max-width: 900px;
+}
+
+/* Ensure the results list stretches within the panel */
+#historyShowMatchesList {
+    width: 100%;
 }
 
