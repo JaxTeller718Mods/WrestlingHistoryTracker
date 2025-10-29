@@ -179,7 +179,9 @@ FloatField > .unity-float-field__input {
 }
 
 .wrestler-detail-card,
-.wrestler-add-card {
+.wrestler-add-card,
+.title-detail-card,
+.title-add-card {
     width: 100%;
     background-color: rgba(30, 30, 30, 0.95);
     border-radius: 8px;
@@ -190,8 +192,40 @@ FloatField > .unity-float-field__input {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
+.title-detail-card {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
 .wrestler-detail-card .row,
 .wrestler-add-card .row {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+/* ===== TITLES LAYOUT ===== */
+.titles-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+#titleList {
+    max-width: 260px;
+    min-height: 260px;
+}
+
+.title-detail-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.title-detail-card .row,
+.title-add-card .row {
     justify-content: flex-start;
     gap: 8px;
 }

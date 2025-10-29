@@ -78,31 +78,36 @@
     <!-- ===== TITLES PANEL ===== -->
     <ui:VisualElement name="titlesPanel" class="hidden">
       <ui:Label text="Titles" class="section-title" />
-      <ui:ScrollView name="titleList" class="list" />
+      <ui:VisualElement class="titles-layout">
+        <ui:ScrollView name="titleList" class="list" />
 
-      <ui:VisualElement name="titleDetails" class="hidden">
-        <ui:Label text="Title Details" class="subsection-title" />
-        <ui:TextField name="titleNameField" label="Title Name" />
-        <ui:TextField name="titleDivisionField" label="Division" />
-        <ui:TextField name="titleEstablishedField" label="Established Year" />
-        <ui:TextField name="titleChampionField" label="Current Champion" />
-        <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
-        <ui:VisualElement class="row">
-          <ui:Button name="saveTitleButton" text="Save Changes" />
-          <ui:Button name="deleteTitleButton" text="Delete" />
-          <ui:Button name="cancelTitleButton" text="Cancel" />
+        <ui:VisualElement class="title-detail-column">
+          <ui:VisualElement name="titleDetails" class="hidden title-detail-card">
+            <ui:Label text="Title Details" class="subsection-title" />
+            <ui:TextField name="titleNameField" label="Title Name" />
+            <ui:TextField name="titleDivisionField" label="Division" />
+            <ui:TextField name="titleEstablishedField" label="Established Year" />
+            <ui:TextField name="titleChampionField" label="Current Champion" />
+            <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
+            <ui:VisualElement class="row">
+              <ui:Button name="saveTitleButton" text="Save Changes" />
+              <ui:Button name="deleteTitleButton" text="Delete" />
+              <ui:Button name="cancelTitleButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+
+          <ui:VisualElement name="titleAddPanel" class="title-add-card">
+            <ui:TextField name="newTitleField" label="New Title Name" />
+            <ui:VisualElement class="row">
+              <ui:Button name="addTitleButton" text="Add Title" />
+              <ui:Button name="saveTitlesButton" text="Save All" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+
+          <ui:Button name="viewHistoryButton" text="View Title History" />
+          <ui:ScrollView name="titleHistoryList" class="hidden list" />
         </ui:VisualElement>
       </ui:VisualElement>
-
-      <ui:VisualElement name="titleAddPanel">
-        <ui:TextField name="newTitleField" label="New Title Name" />
-        <ui:VisualElement class="row">
-          <ui:Button name="addTitleButton" text="Add Title" />
-          <ui:Button name="saveTitlesButton" text="Save All" />
-        </ui:VisualElement>
-      </ui:VisualElement>
-      <ui:ScrollView name="titleHistoryList" class="hidden list" />
-<ui:Button name="viewHistoryButton" text="View Title History" />
 
     </ui:VisualElement>
 
