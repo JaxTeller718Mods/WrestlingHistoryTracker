@@ -32,7 +32,7 @@ using UnityEngine;
         private VisualElement titleAddPanel;
         private ScrollView titleList;
         private VisualElement titleDetails;
-        private TextField titleNameField, titleDivisionField, titleEstablishedField, titleChampionField, titleNotesField;
+        private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
         private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
         private Button viewHistoryButton;
         private TextField newTitleField;
@@ -177,7 +177,6 @@ using UnityEngine;
         titleDetails = root.Q<VisualElement>("titleDetails");
         titleNameField = root.Q<TextField>("titleNameField");
         titleDivisionField = root.Q<TextField>("titleDivisionField");
-        titleEstablishedField = root.Q<TextField>("titleEstablishedField");
         titleChampionField = root.Q<TextField>("titleChampionField");
         titleNotesField = root.Q<TextField>("titleNotesField");
         addTitleButton = root.Q<Button>("addTitleButton");
@@ -321,6 +320,7 @@ using UnityEngine;
         addShowButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         showsPanel?.RemoveFromClassList("editing-show");
         showsList?.RemoveFromClassList("hidden");
         var show = new ShowData(newShowField.value, newShowDateField.value);
@@ -328,11 +328,13 @@ using UnityEngine;
         RefreshShowList();
         newShowField.value = "";
         newShowDateField.value = "";
-        FocusPanel(showAddPanel ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showAddPanel ?? showsPanel);
         };
         saveShowsButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         showsPanel?.RemoveFromClassList("editing-show");
         showsList?.RemoveFromClassList("hidden");
         DataManager.SavePromotion(currentPromotion);
@@ -345,6 +347,7 @@ using UnityEngine;
         if (currentPromotion == null)
         return;
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
         foreach (ShowData showData in currentPromotion.shows)
         {
@@ -370,16 +373,19 @@ using UnityEngine;
         showsList?.RemoveFromClassList("hidden");
         RefreshShowList();
         statusLabel.text = $"✅ Show '{currentEditingShow.showName}' saved & history updated.";
-        FocusPanel(showAddPanel ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showAddPanel ?? showsPanel);
         };
         cancelShowButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         showDetails.AddToClassList("hidden");
         showAddPanel.RemoveFromClassList("hidden");
         showsPanel?.RemoveFromClassList("editing-show");
         showsList?.RemoveFromClassList("hidden");
-        FocusPanel(showAddPanel ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showAddPanel ?? showsPanel);
         };
         deleteShowButton.clicked += () =>
         {
@@ -396,13 +402,16 @@ using UnityEngine;
         showAddPanel.RemoveFromClassList("hidden");
         statusLabel.text = "🗑️ Show deleted and history cleaned.";
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         showsPanel?.RemoveFromClassList("editing-show");
         showsList?.RemoveFromClassList("hidden");
-        FocusPanel(showAddPanel ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showAddPanel ?? showsPanel);
         };
         addMatchButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         PopulateTitleDropdown();
         PopulateMatchTypeDropdown();
         PopulateWrestlerDropdowns();
@@ -410,17 +419,21 @@ using UnityEngine;
         matchEditor.RemoveFromClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
-        FocusPanel(matchEditor);
+        showsPanel?.AddToClassList("editor-full");
+            FocusPanel(matchEditor);
         };
         if (addSegmentButton != null)
         {
         addSegmentButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         segmentEditor?.RemoveFromClassList("hidden");
         matchEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
-        FocusPanel(segmentEditor);
+        showsPanel?.AddToClassList("editor-full");
+                showsPanel?.AddToClassList("editor-full");
+                FocusPanel(segmentEditor);
         };
         }
         if (viewMatchesButton != null)
@@ -428,6 +441,7 @@ using UnityEngine;
         viewMatchesButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         matchesView?.RemoveFromClassList("hidden");
         matchEditor?.AddToClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
@@ -454,6 +468,7 @@ using UnityEngine;
         saveMatchButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         // Validate participants (need at least two unique names)
         var rawNames = new List<string>
         {
@@ -477,13 +492,15 @@ using UnityEngine;
         if (participants.Count < 2)
         {
         statusLabel.text = "Enter at least two unique participants.";
-        FocusPanel(matchEditor);
+        showsPanel?.AddToClassList("editor-full");
+            FocusPanel(matchEditor);
         return;
         }
         if (hasDuplicate)
         {
         statusLabel.text = "Duplicate names detected. Participants must be unique.";
-        FocusPanel(matchEditor);
+        showsPanel?.AddToClassList("editor-full");
+            FocusPanel(matchEditor);
         return;
         }
         // Validate winner (if provided) must be one of the participants
@@ -502,7 +519,8 @@ using UnityEngine;
         if (!winnerValid)
         {
         statusLabel.text = "Winner must be one of the participants.";
-        FocusPanel(matchEditor);
+        showsPanel?.AddToClassList("editor-full");
+            FocusPanel(matchEditor);
         return;
         }
         }
@@ -527,7 +545,16 @@ using UnityEngine;
         statusLabel.text = "⚠️ No active show selected.";
         return;
         }
-        currentEditingShow.matches.Add(match);
+            currentEditingShow.matches.Add(match);
+            try
+            {
+                if (currentEditingShow.entryOrder == null)
+                    currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
+                currentEditingShow.entryOrder.Add($"M:{currentEditingShow.matches.Count - 1}");
+            }
+            catch { }
+            // Persist immediately so existing items are never overwritten by subsequent saves
+            DataManager.SavePromotion(currentPromotion);
         matchEditor.AddToClassList("hidden");
         RefreshMatchList();
         statusLabel.text = $"✅ Match '{match.matchName}' added.";
@@ -544,19 +571,23 @@ using UnityEngine;
         titleDropdown.value = titleDropdown.choices[0];
         }
         if (winnerDropdown != null) { if (winnerDropdown.choices != null && winnerDropdown.choices.Count > 0) winnerDropdown.value = winnerDropdown.choices[0]; }
-        FocusPanel(showDetails ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showDetails ?? showsPanel);
         };
         cancelMatchButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         matchEditor.AddToClassList("hidden");
-        FocusPanel(showDetails ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showDetails ?? showsPanel);
         };
         if (saveSegmentButton != null)
         {
         saveSegmentButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         if (currentEditingShow == null)
         {
         statusLabel.text = "No active show selected.";
@@ -566,18 +597,28 @@ using UnityEngine;
         if (string.IsNullOrEmpty(text))
         {
         statusLabel.text = "Enter segment text before saving.";
-        FocusPanel(segmentEditor);
+        showsPanel?.AddToClassList("editor-full");
+                showsPanel?.AddToClassList("editor-full");
+                FocusPanel(segmentEditor);
         return;
         }
         if (currentEditingShow.segments == null)
         currentEditingShow.segments = new System.Collections.Generic.List<SegmentData>();
-        currentEditingShow.segments.Add(new SegmentData { text = text });
+                currentEditingShow.segments.Add(new SegmentData { text = text });
+                try
+                {
+                    if (currentEditingShow.entryOrder == null)
+                        currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
+                    currentEditingShow.entryOrder.Add($"S:{currentEditingShow.segments.Count - 1}");
+                }
+                catch { }
         DataManager.SavePromotion(currentPromotion);
         segmentEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
         segmentTextField.value = string.Empty;
         statusLabel.text = "Segment added to show.";
-        FocusPanel(showDetails ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showDetails ?? showsPanel);
         };
         }
         if (cancelSegmentButton != null)
@@ -585,9 +626,11 @@ using UnityEngine;
         cancelSegmentButton.clicked += () =>
         {
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         segmentEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
-        FocusPanel(showDetails ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showDetails ?? showsPanel);
         };
         }
         LoadPromotionData();
@@ -689,6 +732,7 @@ using UnityEngine;
         {
         ExitWrestlerEditMode();
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         matchEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
         // Ensure list is visible when not editing a specific show
@@ -698,7 +742,8 @@ using UnityEngine;
         {
         showDetails?.AddToClassList("hidden");
         showAddPanel?.RemoveFromClassList("hidden");
-        FocusPanel(showAddPanel ?? showsPanel);
+        showsPanel?.RemoveFromClassList("editor-full");
+            FocusPanel(showAddPanel ?? showsPanel);
         }
         else if (showDetails != null)
         {
@@ -825,40 +870,81 @@ using UnityEngine;
         }
         historyShowMatchesList.Clear();
         bool anyEntries = false;
-        if (show != null && show.matches != null && show.matches.Count > 0)
+        if (show != null && show.entryOrder != null && show.entryOrder.Count > 0)
         {
-        foreach (var match in show.matches)
-        {
-        var entry = new VisualElement();
-        entry.style.marginBottom = 6;
-        var parts = new List<string>();
-        if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
-        if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
-        if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
-        if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
-        string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-        entry.Add(new Label(match.matchName));
-        if (!string.IsNullOrEmpty(vsLine))
-        entry.Add(new Label(vsLine));
-        if (!string.IsNullOrEmpty(match.winner))
-        entry.Add(new Label($"Winner: {match.winner}"));
-        if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName))
-        entry.Add(new Label($"Title: {match.titleName}"));
-        historyShowMatchesList.Add(entry);
-        anyEntries = true;
+            foreach (var token in show.entryOrder)
+            {
+                if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
+                    continue;
+                char kind = token[0];
+                if (!int.TryParse(token.Substring(2), out int idx))
+                    continue;
+                if (kind == 'M')
+                {
+                    if (show.matches == null || idx < 0 || idx >= show.matches.Count) continue;
+                    var match = show.matches[idx];
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
+                    var parts = new List<string>();
+                    if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
+                    if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
+                    if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
+                    if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
+                    entry.Add(new Label(match.matchName));
+                    if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
+                    if (!string.IsNullOrEmpty(match.winner)) entry.Add(new Label($"Winner: {match.winner}"));
+                    if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName)) entry.Add(new Label($"Title: {match.titleName}"));
+                    historyShowMatchesList.Add(entry);
+                    anyEntries = true;
+                }
+                else if (kind == 'S')
+                {
+                    if (show.segments == null || idx < 0 || idx >= show.segments.Count) continue;
+                    var segment = show.segments[idx];
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
+                    entry.Add(new Label("Segment:"));
+                    entry.Add(new Label(segment.text));
+                    historyShowMatchesList.Add(entry);
+                    anyEntries = true;
+                }
+            }
         }
-        }
-        if (show != null && show.segments != null && show.segments.Count > 0)
+        else
         {
-        foreach (var segment in show.segments)
-        {
-        var entry = new VisualElement();
-        entry.style.marginBottom = 6;
-        entry.Add(new Label("Segment:"));
-        entry.Add(new Label(segment.text));
-        historyShowMatchesList.Add(entry);
-        anyEntries = true;
-        }
+            if (show != null && show.matches != null && show.matches.Count > 0)
+            {
+                foreach (var match in show.matches)
+                {
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
+                    var parts = new List<string>();
+                    if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
+                    if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
+                    if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
+                    if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
+                    entry.Add(new Label(match.matchName));
+                    if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
+                    if (!string.IsNullOrEmpty(match.winner)) entry.Add(new Label($"Winner: {match.winner}"));
+                    if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName)) entry.Add(new Label($"Title: {match.titleName}"));
+                    historyShowMatchesList.Add(entry);
+                    anyEntries = true;
+                }
+            }
+            if (show != null && show.segments != null && show.segments.Count > 0)
+            {
+                foreach (var segment in show.segments)
+                {
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
+                    entry.Add(new Label("Segment:"));
+                    entry.Add(new Label(segment.text));
+                    historyShowMatchesList.Add(entry);
+                    anyEntries = true;
+                }
+            }
         }
         if (!anyEntries)
         {
@@ -1195,7 +1281,6 @@ using UnityEngine;
         wrestlersPanel.AddToClassList("hidden");
         titleNameField.value = t.titleName;
         titleDivisionField.value = t.division;
-        titleEstablishedField.value = t.establishedYear;
         titleChampionField.value = t.currentChampion;
         titleNotesField.value = t.notes;
         titleAddPanel.AddToClassList("hidden");
@@ -1221,7 +1306,6 @@ using UnityEngine;
         var t = titleCollection.titles[selectedTitleIndex];
         t.titleName = titleNameField.value.Trim();
         t.division = titleDivisionField.value.Trim();
-        t.establishedYear = titleEstablishedField.value.Trim();
         t.currentChampion = titleChampionField.value.Trim();
         t.notes = titleNotesField.value.Trim();
         DataManager.SaveTitles(titleCollection);
@@ -1306,6 +1390,7 @@ using UnityEngine;
         originalShowName = show.showName;
         originalShowDate = show.date;
         SetActivePanel(showsPanel);
+            showsPanel?.RemoveFromClassList("editor-full");
         showsPanel?.AddToClassList("editing-show");
         showsList?.AddToClassList("hidden");
         showAddPanel.AddToClassList("hidden");
@@ -1320,26 +1405,65 @@ using UnityEngine;
         {
         matchesList.Clear();
         if (currentEditingShow == null)
-        return;
-        foreach (var match in currentEditingShow.matches)
+            return;
+
+        bool any = false;
+        if (currentEditingShow.entryOrder != null && currentEditingShow.entryOrder.Count > 0)
         {
-        var parts = new List<string>();
-        if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
-        if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
-        if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
-        if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
-        string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-        var label = new Label(string.IsNullOrEmpty(vsLine) ? match.matchName : $"{match.matchName} - {vsLine}");
-        matchesList.Add(label);
+            foreach (var token in currentEditingShow.entryOrder)
+            {
+                if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
+                    continue;
+                char kind = token[0];
+                if (!int.TryParse(token.Substring(2), out int idx))
+                    continue;
+                if (kind == 'M')
+                {
+                    if (currentEditingShow.matches == null || idx < 0 || idx >= currentEditingShow.matches.Count) continue;
+                    var m = currentEditingShow.matches[idx];
+                    var parts = new List<string>();
+                    if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
+                    if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
+                    if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
+                    if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
+                    matchesList.Add(new Label(string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}"));
+                    any = true;
+                }
+                else if (kind == 'S')
+                {
+                    if (currentEditingShow.segments == null || idx < 0 || idx >= currentEditingShow.segments.Count) continue;
+                    var seg = currentEditingShow.segments[idx];
+                    var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
+                    matchesList.Add(new Label($"Segment: {segText}"));
+                    any = true;
+                }
+            }
         }
-        // Also list segments for this show
-        if (currentEditingShow.segments != null && currentEditingShow.segments.Count > 0)
+        if (!any)
         {
-        foreach (var seg in currentEditingShow.segments)
-        {
-        var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
-        matchesList.Add(new Label($"Segment: {segText}"));
-        }
+            // Fallback order if no entryOrder exists
+            if (currentEditingShow.matches != null)
+            {
+                foreach (var m in currentEditingShow.matches)
+                {
+                    var parts = new List<string>();
+                    if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
+                    if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
+                    if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
+                    if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
+                    matchesList.Add(new Label(string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}"));
+                }
+            }
+            if (currentEditingShow.segments != null)
+            {
+                foreach (var seg in currentEditingShow.segments)
+                {
+                    var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
+                    matchesList.Add(new Label($"Segment: {segText}"));
+                }
+            }
         }
         }
         private void RefreshHistoryPanel()

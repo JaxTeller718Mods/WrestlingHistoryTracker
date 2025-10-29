@@ -102,7 +102,6 @@
             <ui:Label text="Title Details" class="subsection-title" />
             <ui:TextField name="titleNameField" label="Title Name" />
             <ui:TextField name="titleDivisionField" label="Division" />
-            <ui:TextField name="titleEstablishedField" label="Established Year" />
             <ui:TextField name="titleChampionField" label="Current Champion" />
             <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
             <ui:VisualElement class="row">

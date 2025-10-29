@@ -1,9 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/USS/LoadPromotionScreen.uss?fileID=7433441132597879392&amp;guid=fa3f639d9a4145e468bf009a8a5c87fc&amp;type=3#LoadPromotionScreen" />
-    <ui:VisualElement name="root" style="flex-grow: 1; padding: 20px; align-items: center; justify-content: flex-start;">
+    <ui:VisualElement name="root" style="flex-grow: 1; padding: 20px; align-items: center; justify-content: center;">
         <ui:Label text="Load Existing Promotion" style="-unity-font-style: bold; font-size: 24px; margin-bottom: 20px; -unity-text-align: middle-center;" />
-        <ui:ScrollView name="promotionList" style="width: 400px; height: 300px; margin-bottom: 20px;" />
-        <ui:Label name="statusLabel" style="font-size: 14px; color: rgb(204, 204, 204); margin-bottom: 10px;" />
+        <ui:ScrollView name="promotionList" style="width: 400px; height: 300px; margin-bottom: 16px;" />
+        <ui:Label name="statusLabel" style="font-size: 14px; color: rgb(204, 204, 204); margin-bottom: 12px; -unity-text-align: middle-center;" />
         <ui:Button name="backButton" text="Back to Menu" style="width: 200px; height: 35px;" />
     </ui:VisualElement>
 </ui:UXML>

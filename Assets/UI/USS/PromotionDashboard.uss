@@ -266,6 +266,23 @@ FloatField > .unity-float-field__input {
     flex-wrap: wrap;
 }
 
+/* Make editor cards full width when editing a match/segment */
+.editor-full .show-detail-card {
+    display: none;
+}
+
+.editor-full .show-edit-columns {
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
+.editor-full .show-edit-columns > .match-editor-card,
+.editor-full .show-edit-columns > .segment-editor-card,
+.editor-full .show-edit-columns > .matches-view-card {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
 #showsList {
     max-width: 260px;
     min-height: 260px;
