@@ -60,6 +60,7 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView titleLineageList;
 
     private VisualElement root;
+    private VisualElement dashboardChrome;
     private readonly List<VisualElement> mainPanels = new();
     private readonly List<VisualElement> focusablePanels = new();
 
@@ -77,8 +78,12 @@ public class PromotionDashboard : MonoBehaviour
         Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
 
         root = GetComponent<UIDocument>().rootVisualElement;
+        dashboardChrome = root.Q<VisualElement>("dashboardChrome");
         mainPanels.Clear();
         focusablePanels.Clear();
+
+        ExitWrestlerEditMode();
+
 
         // ===== Navigation =====
         promotionButton = root.Q<Button>("promotionButton");
@@ -447,12 +452,17 @@ public class PromotionDashboard : MonoBehaviour
     // ---------------- Navigation ----------------
     private void ShowPromotionPanel()
     {
+        ExitWrestlerEditMode();
         SetActivePanel(promotionInfoPanel);
         SetEditMode(false);
     }
 
     private void ShowWrestlersPanel()
     {
+        if (wrestlerDetails != null && !wrestlerDetails.ClassListContains("hidden"))
+            EnterWrestlerEditMode();
+        else
+            ExitWrestlerEditMode();
         SetActivePanel(wrestlersPanel);
         if (wrestlerDetails != null && !wrestlerDetails.ClassListContains("hidden"))
             FocusPanel(wrestlerDetails);
@@ -478,6 +488,7 @@ public class PromotionDashboard : MonoBehaviour
 
     private void ShowShowsPanel()
     {
+        ExitWrestlerEditMode();
         SetActivePanel(showsPanel);
         matchEditor?.AddToClassList("hidden");
 
@@ -495,6 +506,7 @@ public class PromotionDashboard : MonoBehaviour
 
     private void ShowHistoryPanel()
     {
+        ExitWrestlerEditMode();
         SetActivePanel(historyPanel);
         RefreshHistoryPanel();
     }
@@ -523,6 +535,18 @@ public class PromotionDashboard : MonoBehaviour
             if (!focusablePanels.Contains(panel))
                 focusablePanels.Add(panel);
         }
+    }
+
+    private void EnterWrestlerEditMode()
+    {
+        root?.AddToClassList("editing-wrestler");
+        dashboardChrome?.AddToClassList("hidden");
+    }
+
+    private void ExitWrestlerEditMode()
+    {
+        root?.RemoveFromClassList("editing-wrestler");
+        dashboardChrome?.RemoveFromClassList("hidden");
     }
 
     private void SetActivePanel(VisualElement panel)
@@ -622,6 +646,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlerWeightField.value = w.weight;
         wrestlerAddPanel.AddToClassList("hidden");
         wrestlerDetails.RemoveFromClassList("hidden");
+        EnterWrestlerEditMode();
         FocusPanel(wrestlerDetails);
     }
 
@@ -631,7 +656,8 @@ public class PromotionDashboard : MonoBehaviour
         wrestlerAddPanel.RemoveFromClassList("hidden");
         selectedIndex = -1;
         SetActivePanel(wrestlersPanel);
-        FocusPanel(wrestlerAddPanel ?? wrestlersPanel);
+        EnterWrestlerEditMode();
+        FocusPanel(wrestlerDetails);
     }
 
     private void SaveSelectedWrestler()

@@ -11,6 +11,18 @@
     margin-top: 10px;
 }
 
+.root.editing-wrestler {
+    padding-top: 30px;
+}
+
+.root.editing-wrestler #dashboardChrome {
+    display: none;
+}
+
+.root.editing-wrestler #wrestlersPanel {
+    max-width: 900px;
+}
+
 /* ===== TITLES & LABELS ===== */
 .title {
     font-size: 28px;
@@ -98,11 +110,22 @@ button:active {
 }
 
 /* ===== NAVIGATION BAR ===== */
-.flex-row {
+.dashboard-chrome {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.nav-buttons {
+    display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap; /* ✅ allows long buttons to wrap neatly */
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
     margin-bottom: 20px;
 }
 
@@ -120,7 +143,7 @@ FloatField > .unity-float-field__input {
 }
 
 /* ===== LISTS & SCROLLVIEWS ===== */
-ScrollView {
+.list {
     width: 100%;
     max-width: 400px;
     height: 180px;
@@ -129,8 +152,48 @@ ScrollView {
     padding: 4px;
 }
 
-ScrollView > Label {
+.list > Label {
     color: #AAAAAA;
+}
+
+/* ===== WRESTLER LAYOUT ===== */
+.wrestler-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+#wrestlerList {
+    max-width: 260px;
+    min-height: 260px;
+}
+
+.wrestler-detail-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wrestler-detail-card,
+.wrestler-add-card {
+    width: 100%;
+    background-color: rgba(30, 30, 30, 0.95);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.wrestler-detail-card {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.wrestler-detail-card .row,
+.wrestler-add-card .row {
+    justify-content: flex-start;
+    gap: 8px;
 }
 
 /* ===== DETAIL SECTIONS ===== */

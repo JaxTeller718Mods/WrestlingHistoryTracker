@@ -3,18 +3,20 @@
 
   <ui:VisualElement name="root" class="root">
 
-    <!-- ===== HEADER ===== -->
-    <ui:Label text="Promotion Dashboard" class="title" />
-    <ui:Label name="statusLabel" text="Ready." class="status-label" />
+    <!-- ===== HEADER & NAVIGATION ===== -->
+    <ui:VisualElement name="dashboardChrome" class="dashboard-chrome">
+      <ui:Label text="Promotion Dashboard" class="title" />
+      <ui:Label name="statusLabel" text="Ready." class="status-label" />
 
-    <!-- ===== NAV BUTTONS ===== -->
-    <ui:VisualElement class="nav-buttons">
-      <ui:Button name="promotionButton" text="Promotion Info" />
-      <ui:Button name="wrestlersButton" text="Wrestlers" />
-      <ui:Button name="titlesButton" text="Titles" />
-      <ui:Button name="showsButton" text="Shows" />
-      <ui:Button name="historyButton" text="History" />
-      <ui:Button name="returnButton" text="Return to Main Menu" />
+      <!-- ===== NAV BUTTONS ===== -->
+      <ui:VisualElement name="navContainer" class="nav-buttons">
+        <ui:Button name="promotionButton" text="Promotion Info" />
+        <ui:Button name="wrestlersButton" text="Wrestlers" />
+        <ui:Button name="titlesButton" text="Titles" />
+        <ui:Button name="showsButton" text="Shows" />
+        <ui:Button name="historyButton" text="History" />
+        <ui:Button name="returnButton" text="Return to Main Menu" />
+      </ui:VisualElement>
     </ui:VisualElement>
 
     <!-- ===== PROMOTION INFO PANEL ===== -->
@@ -44,27 +46,31 @@
     <!-- ===== WRESTLERS PANEL ===== -->
     <ui:VisualElement name="wrestlersPanel" class="hidden">
       <ui:Label text="Wrestlers" class="section-title" />
-      <ui:ScrollView name="wrestlerList" class="list" />
-      <ui:VisualElement name="wrestlerDetails" class="hidden">
-        <ui:Label text="Wrestler Details" class="subsection-title" />
-        <ui:TextField name="wrestlerNameField" label="Name" />
-        <ui:TextField name="wrestlerNicknameField" label="Nickname" />
-        <ui:TextField name="wrestlerHometownField" label="Hometown" />
-        <ui:TextField name="wrestlerDebutField" label="Debut Year" />
-        <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
-        <ui:FloatField name="wrestlerWeightField" label="Weight (lbs)" />
-        <ui:VisualElement class="row">
-          <ui:Button name="saveWrestlerButton" text="Save Changes" />
-          <ui:Button name="deleteWrestlerButton" text="Delete" />
-          <ui:Button name="cancelEditButton" text="Cancel" />
-        </ui:VisualElement>
-      </ui:VisualElement>
+      <ui:VisualElement class="wrestler-layout">
+        <ui:ScrollView name="wrestlerList" class="list" />
+        <ui:VisualElement class="wrestler-detail-column">
+          <ui:VisualElement name="wrestlerDetails" class="hidden wrestler-detail-card">
+            <ui:Label text="Wrestler Details" class="subsection-title" />
+            <ui:TextField name="wrestlerNameField" label="Name" />
+            <ui:TextField name="wrestlerNicknameField" label="Nickname" />
+            <ui:TextField name="wrestlerHometownField" label="Hometown" />
+            <ui:TextField name="wrestlerDebutField" label="Debut Year" />
+            <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
+            <ui:FloatField name="wrestlerWeightField" label="Weight (lbs)" />
+            <ui:VisualElement class="row">
+              <ui:Button name="saveWrestlerButton" text="Save Changes" />
+              <ui:Button name="deleteWrestlerButton" text="Delete" />
+              <ui:Button name="cancelEditButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
 
-      <ui:VisualElement name="wrestlerAddPanel">
-        <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
-        <ui:VisualElement class="row">
-          <ui:Button name="addWrestlerButton" text="Add Wrestler" />
-          <ui:Button name="saveWrestlersButton" text="Save All" />
+          <ui:VisualElement name="wrestlerAddPanel" class="wrestler-add-card">
+            <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
+            <ui:VisualElement class="row">
+              <ui:Button name="addWrestlerButton" text="Add Wrestler" />
+              <ui:Button name="saveWrestlersButton" text="Save All" />
+            </ui:VisualElement>
+          </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
     </ui:VisualElement>
