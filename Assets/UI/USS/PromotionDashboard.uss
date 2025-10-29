@@ -196,6 +196,48 @@ FloatField > .unity-float-field__input {
     gap: 8px;
 }
 
+/* ===== SHOWS LAYOUT ===== */
+.shows-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+#showsList {
+    max-width: 260px;
+    min-height: 260px;
+}
+
+.show-detail-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.show-detail-card,
+.show-add-card,
+.match-editor-card {
+    width: 100%;
+    background-color: rgba(30, 30, 30, 0.95);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.show-detail-card {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.show-detail-card .row,
+.show-add-card .row,
+.match-editor-card .row {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
 /* ===== DETAIL SECTIONS ===== */
 #wrestlerDetails,
 #titleDetails {

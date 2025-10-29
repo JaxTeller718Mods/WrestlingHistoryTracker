@@ -109,27 +109,40 @@
     <!-- ===== SHOWS PANEL ===== -->
     <ui:VisualElement name="showsPanel" class="hidden">
       <ui:Label text="Shows &amp; Events" class="section-title" />
-      <ui:ScrollView name="showsList" class="list" />
+      <ui:VisualElement class="shows-layout">
+        <ui:ScrollView name="showsList" class="list" />
 
-      <ui:VisualElement name="showDetails" class="hidden">
-        <ui:Label text="Show Details" class="subsection-title" />
-        <ui:TextField name="showNameField" label="Show Name" />
-        <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-        <ui:Label text="Matches" class="subsection-title" />
-        <ui:ScrollView name="matchesList" class="list" />
-        <ui:Button name="addMatchButton" text="Add Match" />
-        <ui:VisualElement name="matchEditor" class="hidden">
-          <ui:TextField name="matchNameField" label="Match Name" />
-          <ui:TextField name="wrestlerAField" label="Wrestler A" />
-          <ui:TextField name="wrestlerBField" label="Wrestler B" />
-          <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
-          <ui:TextField name="titleInvolvedField" label="Title (optional)" />
-          <ui:TextField name="winnerField" label="Winner" />
-          <ui:VisualElement class="row">
-            <ui:Button name="saveMatchButton" text="Save Match" />
-            <ui:Button name="cancelMatchButton" text="Cancel" />
+        <ui:VisualElement class="show-detail-column">
+          <ui:VisualElement name="showDetails" class="hidden show-detail-card">
+            <ui:Label text="Show Details" class="subsection-title" />
+            <ui:TextField name="showNameField" label="Show Name" />
+            <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
+            <ui:Label text="Matches" class="subsection-title" />
+            <ui:ScrollView name="matchesList" class="list" />
+            <ui:Button name="addMatchButton" text="Add Match" />
+            <ui:VisualElement name="matchEditor" class="hidden match-editor-card">
+              <ui:TextField name="matchNameField" label="Match Name" />
+              <ui:TextField name="wrestlerAField" label="Wrestler A" />
+              <ui:TextField name="wrestlerBField" label="Wrestler B" />
+              <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
+              <ui:TextField name="titleInvolvedField" label="Title (optional)" />
+              <ui:TextField name="winnerField" label="Winner" />
+              <ui:VisualElement class="row">
+                <ui:Button name="saveMatchButton" text="Save Match" />
+                <ui:Button name="cancelMatchButton" text="Cancel" />
+              </ui:VisualElement>
+            </ui:VisualElement>
+          <ui:VisualElement name="showAddPanel" class="show-add-card">
+            <ui:TextField name="newShowField" label="New Show Name" />
+            <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
+            <ui:VisualElement class="row">
+              <ui:Button name="addShowButton" text="Add Show" />
+              <ui:Button name="saveShowsButton" text="Save All" />
+            </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
         <ui:VisualElement class="row">
           <ui:Button name="saveShowButton" text="Save Show" />
           <ui:Button name="deleteShowButton" text="Delete" />
