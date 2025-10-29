@@ -113,6 +113,7 @@
         <ui:ScrollView name="showsList" class="list" />
 
         <ui:VisualElement class="show-detail-column">
+          <!-- Details of the selected show -->
           <ui:VisualElement name="showDetails" class="hidden show-detail-card">
             <ui:Label text="Show Details" class="subsection-title" />
             <ui:TextField name="showNameField" label="Show Name" />
@@ -132,6 +133,14 @@
                 <ui:Button name="cancelMatchButton" text="Cancel" />
               </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement class="row">
+              <ui:Button name="saveShowButton" text="Save Show" />
+              <ui:Button name="deleteShowButton" text="Delete" />
+              <ui:Button name="cancelShowButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+
+          <!-- Create a new show -->
           <ui:VisualElement name="showAddPanel" class="show-add-card">
             <ui:TextField name="newShowField" label="New Show Name" />
             <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
@@ -140,22 +149,6 @@
               <ui:Button name="saveShowsButton" text="Save All" />
             </ui:VisualElement>
           </ui:VisualElement>
-        </ui:VisualElement>
-      </ui:VisualElement>
-    </ui:VisualElement>
-        <ui:VisualElement class="row">
-          <ui:Button name="saveShowButton" text="Save Show" />
-          <ui:Button name="deleteShowButton" text="Delete" />
-          <ui:Button name="cancelShowButton" text="Cancel" />
-        </ui:VisualElement>
-      </ui:VisualElement>
-
-      <ui:VisualElement name="showAddPanel">
-        <ui:TextField name="newShowField" label="New Show Name" />
-        <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
-        <ui:VisualElement class="row">
-          <ui:Button name="addShowButton" text="Add Show" />
-          <ui:Button name="saveShowsButton" text="Save All" />
         </ui:VisualElement>
       </ui:VisualElement>
     </ui:VisualElement>
