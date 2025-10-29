@@ -47,8 +47,3 @@
   unity-font-style: Bold;
   margin-bottom: 6px;
 }
-
-TextField > .unity-text-field__input,
-TextField > .unity-base-text-field__input {
-  color: #000000;
-}
