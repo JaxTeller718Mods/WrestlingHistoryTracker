@@ -386,6 +386,14 @@ Label {
     white-space: normal;
 }
 
+/* Reorderable matches/segments list view */
+#matchesOrderView {
+    width: 100%;
+}
+#matchesOrderView Label {
+    white-space: normal;
+}
+
 /* ===== RANKINGS LAYOUT ===== */
 #rankingsPanel {
     max-width: 900px;

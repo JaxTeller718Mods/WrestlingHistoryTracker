@@ -43,7 +43,8 @@ using UnityEngine;
         private int selectedTitleIndex = -1;
         // ===== Shows =====
         private VisualElement showsPanel, showDetails, showAddPanel;
-    private ScrollView showsList, matchesList;
+        private ScrollView showsList, matchesList;
+        private ListView matchesOrderView;
         private ListView showsListView;
 
         private TextField showNameField, showDateField, newShowField, newShowDateField;
@@ -233,6 +234,8 @@ using UnityEngine;
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
         saveSegmentButton = root.Q<Button>("saveSegmentButton");
         cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
+        // Enable drag-reorder list for matches/segments
+        EnsureMatchesOrderListView();
         // ===== Histories =====
         historyPanel = root.Q<VisualElement>("historyPanel");
         matchHistoryList = root.Q<ScrollView>("matchHistoryList");
@@ -910,6 +913,86 @@ using UnityEngine;
         parent?.Add(historyShowsListView);
         if (historyShowsList != null)
             historyShowsList.style.display = DisplayStyle.None;
+    }
+
+    private void EnsureMatchesOrderListView()
+    {
+        if (matchesOrderView != null)
+            return;
+        var parent = matchesList != null ? matchesList.parent : showDetails;
+        if (parent == null)
+            return;
+        matchesOrderView = new ListView
+        {
+            name = "matchesOrderView",
+            selectionType = SelectionType.None,
+            reorderable = true
+        };
+        matchesOrderView.style.flexGrow = 1;
+        matchesOrderView.fixedItemHeight = 36f;
+        matchesOrderView.makeItem = () =>
+        {
+            // Use an enabled Button so it matches other list styles/colors
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            return b;
+        };
+        matchesOrderView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = matchesOrderView.itemsSource as System.Collections.Generic.List<string>;
+            if (list != null && i >= 0 && i < list.Count)
+            {
+                var token = list[i];
+                b.text = GetDisplayTextForToken(currentEditingShow, token);
+            }
+            else
+            {
+                b.text = string.Empty;
+            }
+        };
+        // Persist after drag-and-drop reorder
+        matchesOrderView.itemIndexChanged += (from, to) =>
+        {
+            DataManager.SavePromotion(currentPromotion);
+        };
+        parent.Add(matchesOrderView);
+        if (matchesList != null)
+            matchesList.style.display = DisplayStyle.None;
+    }
+
+    private static string GetDisplayTextForToken(ShowData show, string token)
+    {
+        if (show == null || string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') return string.Empty;
+        char kind = token[0];
+        string key = token.Substring(2);
+        int idx;
+        if (!int.TryParse(key, out idx))
+        {
+            if (kind == 'M') idx = FindMatchIndexById(show, key);
+            else if (kind == 'S') idx = FindSegmentIndexById(show, key);
+        }
+        if (idx < 0) return string.Empty;
+        if (kind == 'M')
+        {
+            if (show.matches == null || idx < 0 || idx >= show.matches.Count) return string.Empty;
+            var m = show.matches[idx];
+            var parts = new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
+            if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
+            if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
+            if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
+            string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+            return string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}";
+        }
+        else if (kind == 'S')
+        {
+            if (show.segments == null || idx < 0 || idx >= show.segments.Count) return string.Empty;
+            var seg = show.segments[idx];
+            var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
+            return $"Segment: {segText}";
+        }
+        return string.Empty;
     }
 
     // ----- Stable ID utilities and upgrade -----
@@ -1679,6 +1762,37 @@ using UnityEngine;
             showsList.style.display = DisplayStyle.None;
     }private void RefreshMatchList()
         {
+        // Prefer ListView (drag-reorder) if available
+        if (matchesOrderView != null)
+        {
+            if (currentEditingShow == null)
+            {
+                matchesOrderView.itemsSource = System.Array.Empty<string>();
+                matchesOrderView.Rebuild();
+                return;
+            }
+            // Ensure entryOrder exists and uses IDs
+            if (currentEditingShow.entryOrder == null)
+                currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
+            // If empty but we have items, seed it using current order (matches then segments)
+            if (currentEditingShow.entryOrder.Count == 0)
+            {
+                if (currentEditingShow.matches != null)
+                {
+                    foreach (var m in currentEditingShow.matches)
+                        if (m != null && !string.IsNullOrEmpty(m.id)) currentEditingShow.entryOrder.Add($"M:{m.id}");
+                }
+                if (currentEditingShow.segments != null)
+                {
+                    foreach (var s in currentEditingShow.segments)
+                        if (s != null && !string.IsNullOrEmpty(s.id)) currentEditingShow.entryOrder.Add($"S:{s.id}");
+                }
+            }
+            matchesOrderView.itemsSource = currentEditingShow.entryOrder;
+            matchesOrderView.Rebuild();
+            return;
+        }
+        // Fallback ScrollView rendering if ListView is not present
         matchesList.Clear();
         if (currentEditingShow == null)
             return;
