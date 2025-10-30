@@ -171,6 +171,17 @@ FloatField > .unity-float-field__input {
     min-height: 260px;
 }
 
+/* Virtualized ListView replacements sizing */
+#wrestlerListView,
+#titleListView,
+#showsListView,
+#historyShowsListView {
+    width: 100%;
+    max-width: 260px;
+    min-height: 260px;
+    height: 260px; /* ensures internal scrolling is available */
+}
+
 .wrestler-detail-column {
     flex-grow: 1;
     display: flex;
@@ -399,3 +410,13 @@ Label {
     flex-grow: 1;
 }
 
+
+.list-entry {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
+  min-height: 30px;
+}

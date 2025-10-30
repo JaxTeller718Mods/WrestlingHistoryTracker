@@ -43,8 +43,9 @@ using UnityEngine;
         private int selectedTitleIndex = -1;
         // ===== Shows =====
         private VisualElement showsPanel, showDetails, showAddPanel;
-        private ScrollView showsList, matchesList;
+    private ScrollView showsList, matchesList;
         private ListView showsListView;
+
         private TextField showNameField, showDateField, newShowField, newShowDateField;
         private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton;
         private Button addMatchButton, saveMatchButton, cancelMatchButton;
@@ -194,9 +195,11 @@ using UnityEngine;
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
+        EnsureTitleListView();
         // ===== Shows =====
         showsPanel = root.Q<VisualElement>("showsPanel");
         showsList = root.Q<ScrollView>("showsList");
+        EnsureShowsListView();
         showDetails = root.Q<VisualElement>("showDetails");
         showAddPanel = root.Q<VisualElement>("showAddPanel");
         showNameField = root.Q<TextField>("showNameField");
@@ -848,21 +851,62 @@ using UnityEngine;
         }
         private void PopulateHistoryShowsList()
         {
-        if (historyShowsList == null || currentPromotion == null)
-        return;
-        historyShowsList.Clear();
-        if (currentPromotion.shows == null || currentPromotion.shows.Count == 0)
+        EnsureHistoryShowsListView();
+        if (historyShowsListView == null)
+            return;
+        if (currentPromotion == null || currentPromotion.shows == null || currentPromotion.shows.Count == 0)
         {
-        historyShowsList.Add(new Label("No shows recorded yet.") { style = { color = Color.gray } });
-        return;
+            historyShowsListView.itemsSource = System.Array.Empty<ShowData>();
+            historyShowsListView.Rebuild();
+            if (historyShowsList != null)
+            {
+                historyShowsList.Clear();
+                historyShowsList.Add(new Label("No shows recorded yet.") { style = { color = Color.gray } });
+            }
+            return;
         }
-        foreach (var show in currentPromotion.shows)
+        historyShowsListView.itemsSource = currentPromotion.shows;
+        historyShowsListView.Rebuild();
+    }
+    private void EnsureHistoryShowsListView()
+    {
+        if (historyShowsListView != null)
+            return;
+        var parent = historyShowsList != null ? historyShowsList.parent : historyPanel;
+        historyShowsListView = new ListView
         {
-        var s = show; // capture
-        Button btn = new(() => ShowSelectedShowHistory(s)) { text = $"{s.showName} - {s.date}" };
-        historyShowsList.Add(btn);
-        }
-        }
+            name = "historyShowsListView",
+            selectionType = SelectionType.None
+        };
+        historyShowsListView.style.flexGrow = 1;
+        historyShowsListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
+        historyShowsListView.makeItem = () =>{ var b = new Button(); b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
+                    ShowSelectedShowHistory(currentPromotion.shows[idx]);
+            });
+            return b;
+        };
+        historyShowsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            if (currentPromotion != null && currentPromotion.shows != null && i >= 0 && i < currentPromotion.shows.Count)
+            {
+                var s = currentPromotion.shows[i];
+                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} - {s?.date}";
+                b.userData = i;
+            }
+            else
+            {
+                b.text = string.Empty;
+                b.userData = -1;
+            }
+        };
+        parent?.Add(historyShowsListView);
+        if (historyShowsList != null)
+            historyShowsList.style.display = DisplayStyle.None;
+    }
         private void ShowSelectedShowHistory(ShowData show)
         {
         if (historyResultsPanel == null || historyShowMatchesList == null)
@@ -1051,9 +1095,8 @@ using UnityEngine;
             selectionType = SelectionType.None
         };
         wrestlerListView.style.flexGrow = 1;
-        wrestlerListView.makeItem = () =>
-        {
-            var b = new Button();
+        wrestlerListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
+        wrestlerListView.makeItem = () =>{ var b = new Button(); b.AddToClassList("list-entry");
             b.RegisterCallback<ClickEvent>(_ =>
             {
                 if (b.userData is int idx)
@@ -1163,26 +1206,71 @@ using UnityEngine;
         // ---------------- Titles Logic ----------------
         private void RefreshTitleList()
         {
-        titleList.Clear();
-        if (titleCollection == null || titleCollection.titles.Count == 0)
+        EnsureTitleListView();
+        if (titleListView == null)
+            return;
+        if (titleCollection == null || titleCollection.titles == null || titleCollection.titles.Count == 0)
         {
-        var empty = new Label("No titles created yet.") { style = { color = Color.gray } };
-        titleList.Add(empty);
+            titleListView.itemsSource = System.Array.Empty<TitleData>();
+            titleListView.Rebuild();
+            if (titleList != null)
+            {
+                titleList.Clear();
+                titleList.Add(new Label("No titles created yet.") { style = { color = Color.gray } });
+            }
+            PopulateTitleDropdown();
+            PopulateMatchTypeDropdown();
+            PopulateWrestlerDropdowns();
+            return;
+        }
+        titleListView.itemsSource = titleCollection.titles;
+        titleListView.Rebuild();
         PopulateTitleDropdown();
         PopulateMatchTypeDropdown();
         PopulateWrestlerDropdowns();
-        return;
         }
-        for (int i = 0; i < titleCollection.titles.Count; i++)
+
+        private void EnsureTitleListView()
         {
-        int index = i;
-        var t = titleCollection.titles[i];
-        Button btn = new(() => SelectTitle(index)) { text = $"• {t.titleName}" };
-        titleList.Add(btn);
-        }
-        PopulateTitleDropdown();
-        PopulateMatchTypeDropdown();
-        PopulateWrestlerDropdowns();
+            if (titleListView != null)
+                return;
+
+            var parent = titleList != null ? titleList.parent : titlesPanel;
+            titleListView = new ListView
+            {
+                name = "titleListView",
+                selectionType = SelectionType.None
+            };
+            titleListView.style.flexGrow = 1;
+            titleListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
+            titleListView.makeItem = () =>
+            {
+                var b = new Button();
+                b.AddToClassList("list-entry");
+                b.RegisterCallback<ClickEvent>(_ =>
+                {
+                    if (b.userData is int idx)
+                        SelectTitle(idx);
+                });
+                return b;
+            };
+            titleListView.bindItem = (ve, i) =>
+            {
+                var b = (Button)ve;
+                if (titleCollection != null && titleCollection.titles != null && i >= 0 && i < titleCollection.titles.Count)
+                {
+                    b.text = titleCollection.titles[i].titleName;
+                    b.userData = i;
+                }
+                else
+                {
+                    b.text = string.Empty;
+                    b.userData = -1;
+                }
+            };
+            parent?.Add(titleListView);
+            if (titleList != null)
+                titleList.style.display = DisplayStyle.None;
         }
         private void PopulateWrestlerDropdowns()
         {
@@ -1255,43 +1343,43 @@ using UnityEngine;
         matchTypeDropdown.choices = types;
         if (string.IsNullOrEmpty(matchTypeDropdown.value) || !types.Contains(matchTypeDropdown.value))
         matchTypeDropdown.value = types[0];
-        }private void PopulateTitleDropdown()
+        }
+        private void PopulateTitleDropdown()
         {
         if (titleDropdown == null)
-        return;
+            return;
         var choices = new List<string>();
-        // Add empty option for "no title"
         choices.Add("");
         if (titleCollection != null && titleCollection.titles != null)
         {
-        foreach (var t in titleCollection.titles)
-        if (!string.IsNullOrEmpty(t.titleName)) choices.Add(t.titleName);
+            foreach (var t in titleCollection.titles)
+            {
+                if (!string.IsNullOrEmpty(t.titleName)) choices.Add(t.titleName);
+            }
         }
-        titleDropdown.choices = choices;
-        // Determine a good default: prefer a title that currently has a champion
+        if (titleDropdown.choices == null || !titleDropdown.choices.SequenceEqual(choices))
+            titleDropdown.choices = choices;
         string championTitle = null;
         if (titleCollection != null && titleCollection.titles != null)
         {
-        foreach (var t in titleCollection.titles)
-        {
-        if (!string.IsNullOrEmpty(t.titleName) && !string.IsNullOrEmpty(t.currentChampion))
-        {
-        championTitle = t.titleName;
-        break;
+            foreach (var t in titleCollection.titles)
+            {
+                if (!string.IsNullOrEmpty(t.titleName) && !string.IsNullOrEmpty(t.currentChampion))
+                {
+                    championTitle = t.titleName;
+                    break;
+                }
+            }
         }
-        }
-        }
-        // Preserve current selection if possible, else use championTitle, else first
         if (string.IsNullOrEmpty(titleDropdown.value) || !choices.Contains(titleDropdown.value))
         {
-        if (!string.IsNullOrEmpty(championTitle) && choices.Contains(championTitle))
-        titleDropdown.value = championTitle;
-        else
-        titleDropdown.value = choices.Count > 0 ? choices[0] : "";
+            if (!string.IsNullOrEmpty(championTitle) && choices.Contains(championTitle))
+                titleDropdown.SetValueWithoutNotify(championTitle);
+            else
+                titleDropdown.SetValueWithoutNotify(choices.Count > 0 ? choices[0] : "");
         }
-        // Sync enable state with toggle
         if (isTitleMatchToggle != null)
-        titleDropdown.SetEnabled(isTitleMatchToggle.value);
+            titleDropdown.SetEnabled(isTitleMatchToggle.value);
         }
         private void AddTitle()
         {
@@ -1412,15 +1500,17 @@ using UnityEngine;
         // ---------------- Shows & Matches ----------------
         private void RefreshShowList()
         {
-        showsList.Clear();
+        EnsureShowsListView();
+        if (showsListView == null)
+            return;
         if (currentPromotion == null || currentPromotion.shows == null)
-        return;
-        foreach (var show in currentPromotion.shows)
         {
-        var label = new Label($"{show.showName} ({show.date})");
-        label.RegisterCallback<ClickEvent>(_ => EditShow(show));
-        showsList.Add(label);
+            showsListView.itemsSource = System.Array.Empty<ShowData>();
+            showsListView.Rebuild();
+            return;
         }
+        showsListView.itemsSource = currentPromotion.shows;
+        showsListView.Rebuild();
         }
         private void EditShow(ShowData show)
         {
@@ -1439,7 +1529,48 @@ using UnityEngine;
         RefreshMatchList();
         FocusPanel(showDetails);
         }
-        private void RefreshMatchList()
+            private void EnsureShowsListView()
+    {
+        if (showsListView != null)
+            return;
+        var parent = showsList != null ? showsList.parent : showsPanel;
+        showsListView = new ListView
+        {
+            name = "showsListView",
+            selectionType = SelectionType.None
+        };
+        showsListView.style.flexGrow = 1;
+        showsListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
+        showsListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
+                    EditShow(currentPromotion.shows[idx]);
+            });
+            return b;
+        };
+        showsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            if (currentPromotion != null && currentPromotion.shows != null && i >= 0 && i < currentPromotion.shows.Count)
+            {
+                var s = currentPromotion.shows[i];
+                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} ({s?.date})";
+                b.userData = i;
+            }
+            else
+            {
+                b.text = string.Empty;
+                b.userData = -1;
+            }
+        };
+        parent?.Add(showsListView);
+        if (showsList != null)
+            showsList.style.display = DisplayStyle.None;
+    }private void RefreshMatchList()
         {
         matchesList.Clear();
         if (currentEditingShow == null)
