@@ -46,14 +46,20 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement titleDetailsPanel, titleAddPanel;
     private Button viewHistoryButton;
     private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
+    private TextField newTitleField;
+    private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
-    
+
     // Promotion info widgets
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
+
+    // Shows add/save UI (basic)
+    private TextField newShowField, newShowDateField;
+    private Button addShowButton, saveShowsButton;
 
     private void OnEnable()
     {
@@ -156,6 +162,17 @@ public class PromotionDashboard : MonoBehaviour
         titleChampionField = root.Q<TextField>("titleChampionField");
         titleNotesField = root.Q<TextField>("titleNotesField");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
+        // Shows add/save widgets
+        newShowField = root.Q<TextField>("newShowField");
+        newShowDateField = root.Q<TextField>("newShowDateField");
+        addShowButton = root.Q<Button>("addShowButton");
+        saveShowsButton = root.Q<Button>("saveShowsButton");
+        newTitleField = root.Q<TextField>("newTitleField");
+        addTitleButton = root.Q<Button>("addTitleButton");
+        saveTitlesButton = root.Q<Button>("saveTitlesButton");
+        saveTitleButton = root.Q<Button>("saveTitleButton");
+        deleteTitleButton = root.Q<Button>("deleteTitleButton");
+        cancelTitleButton = root.Q<Button>("cancelTitleButton");
         
         // Promotion info UI
         nameLabel = root.Q<Label>("nameLabel");
@@ -191,12 +208,21 @@ public class PromotionDashboard : MonoBehaviour
         if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
         if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
+        // Titles handlers
+        if (addTitleButton != null) addTitleButton.clicked += OnAddTitle;
+        if (saveTitlesButton != null) saveTitlesButton.clicked += OnSaveTitles;
+        if (saveTitleButton != null) saveTitleButton.clicked += OnSaveSelectedTitle;
+        if (deleteTitleButton != null) deleteTitleButton.clicked += OnDeleteSelectedTitle;
+        if (cancelTitleButton != null) cancelTitleButton.clicked += OnCancelEditTitle;
         // Wrestlers handlers
         if (addWrestlerButton != null) addWrestlerButton.clicked += OnAddWrestler;
         if (saveWrestlersButton != null) saveWrestlersButton.clicked += OnSaveWrestlers;
         if (saveWrestlerButton != null) saveWrestlerButton.clicked += OnSaveSelectedWrestler;
         if (deleteWrestlerButton != null) deleteWrestlerButton.clicked += OnDeleteSelectedWrestler;
         if (cancelEditButton != null) cancelEditButton.clicked += OnCancelEditWrestler;
+        // Shows handlers (basic add/save)
+        if (addShowButton != null) addShowButton.clicked += OnAddShow;
+        if (saveShowsButton != null) saveShowsButton.clicked += OnSaveShows;
         // Promotion info handlers
         if (editPromotionButton != null) editPromotionButton.clicked += ShowPromotionEditPanel;
         if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
@@ -528,6 +554,78 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(titleDetailsPanel ?? titlesPanel);
     }
 
+    private void OnAddTitle()
+    {
+        if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
+        var name = newTitleField != null ? (newTitleField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name)) { if (statusLabel != null) statusLabel.text = "Enter a title name."; return; }
+
+        titleCollection ??= DataManager.LoadTitles(currentPromotion.promotionName) ?? new TitleCollection { promotionName = currentPromotion.promotionName };
+        if (titleCollection.promotionName != currentPromotion.promotionName)
+            titleCollection.promotionName = currentPromotion.promotionName;
+
+        // Prevent duplicate title names (case-insensitive)
+        if (titleCollection.titles != null && titleCollection.titles.Any(t => !string.IsNullOrEmpty(t?.titleName) && string.Equals(t.titleName.Trim(), name, System.StringComparison.OrdinalIgnoreCase)))
+        {
+            if (statusLabel != null) statusLabel.text = "Title already exists.";
+            return;
+        }
+
+        var tNew = new TitleData { titleName = name };
+        titleCollection.titles ??= new List<TitleData>();
+        titleCollection.titles.Add(tNew);
+
+        DataManager.SaveTitles(titleCollection);
+        RefreshTitleList();
+        if (newTitleField != null) newTitleField.value = string.Empty;
+        if (statusLabel != null) statusLabel.text = "Title added.";
+
+        // Auto-select the new title for editing
+        int idx = titleCollection.titles.FindIndex(t => string.Equals(t.titleName, name, System.StringComparison.OrdinalIgnoreCase));
+        if (idx >= 0) SelectTitle(idx);
+    }
+
+    private void OnSaveTitles()
+    {
+        if (currentPromotion == null || titleCollection == null) return;
+        titleCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveTitles(titleCollection);
+        if (statusLabel != null) statusLabel.text = "Titles saved.";
+    }
+
+    private void OnSaveSelectedTitle()
+    {
+        if (titleCollection?.titles == null || selectedTitleIndex < 0 || selectedTitleIndex >= titleCollection.titles.Count) return;
+        var t = titleCollection.titles[selectedTitleIndex];
+        if (titleNameField != null) t.titleName = titleNameField.value;
+        if (titleDivisionField != null) t.division = titleDivisionField.value;
+        if (titleChampionField != null) t.currentChampion = titleChampionField.value;
+        if (titleNotesField != null) t.notes = titleNotesField.value;
+        DataManager.SaveTitles(titleCollection);
+        RefreshTitleList();
+        if (statusLabel != null) statusLabel.text = "Title updated.";
+    }
+
+    private void OnDeleteSelectedTitle()
+    {
+        if (titleCollection?.titles == null || selectedTitleIndex < 0 || selectedTitleIndex >= titleCollection.titles.Count) return;
+        titleCollection.titles.RemoveAt(selectedTitleIndex);
+        selectedTitleIndex = -1;
+        DataManager.SaveTitles(titleCollection);
+        RefreshTitleList();
+        titleDetailsPanel?.AddToClassList("hidden");
+        titleAddPanel?.RemoveFromClassList("hidden");
+        if (statusLabel != null) statusLabel.text = "Title deleted.";
+    }
+
+    private void OnCancelEditTitle()
+    {
+        titleDetailsPanel?.AddToClassList("hidden");
+        titleAddPanel?.RemoveFromClassList("hidden");
+        selectedTitleIndex = -1;
+        FocusPanel(titlesPanel);
+    }
+
     private void ShowSelectedTitleHistory()
     {
         if (titleHistoryList == null) return;
@@ -608,6 +706,44 @@ public class PromotionDashboard : MonoBehaviour
         var shows = currentPromotion?.shows ?? new List<ShowData>();
         showsListView.itemsSource = shows;
         showsListView.Rebuild();
+    }
+
+    private void OnAddShow()
+    {
+        if (currentPromotion == null)
+        {
+            if (statusLabel != null) statusLabel.text = "No promotion loaded.";
+            return;
+        }
+        string name = newShowField != null ? (newShowField.value ?? string.Empty).Trim() : string.Empty;
+        string date = newShowDateField != null ? (newShowDateField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name))
+        {
+            if (statusLabel != null) statusLabel.text = "Enter a show name.";
+            return;
+        }
+        currentPromotion.shows ??= new List<ShowData>();
+        // prevent exact duplicate (name+date)
+        if (currentPromotion.shows.Any(s => string.Equals(s?.showName ?? string.Empty, name, System.StringComparison.OrdinalIgnoreCase)
+                                          && string.Equals((s?.date ?? string.Empty).Trim(), date, System.StringComparison.OrdinalIgnoreCase)))
+        {
+            if (statusLabel != null) statusLabel.text = "Show already exists.";
+            return;
+        }
+        var show = new ShowData(name, date);
+        currentPromotion.shows.Add(show);
+        DataManager.SavePromotion(currentPromotion);
+        RefreshShowList();
+        if (newShowField != null) newShowField.value = string.Empty;
+        if (newShowDateField != null) newShowDateField.value = string.Empty;
+        if (statusLabel != null) statusLabel.text = "Show added.";
+    }
+
+    private void OnSaveShows()
+    {
+        if (currentPromotion == null) return;
+        DataManager.SavePromotion(currentPromotion);
+        if (statusLabel != null) statusLabel.text = "Shows saved.";
     }
 
     private void EnsureHistoryShowsListView()
