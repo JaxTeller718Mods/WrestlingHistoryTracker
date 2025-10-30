@@ -824,6 +824,7 @@ public class PromotionDashboard : MonoBehaviour
         selectedShowIndex = index;
         var s = currentPromotion.shows[index];
         showDetailsPanel?.RemoveFromClassList("hidden");
+        matchesView?.AddToClassList("hidden");
         showAddPanel?.AddToClassList("hidden");
         matchEditor?.AddToClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
@@ -858,6 +859,7 @@ public class PromotionDashboard : MonoBehaviour
     private void OnCancelEditShow()
     {
         showDetailsPanel?.AddToClassList("hidden");
+        matchesView?.AddToClassList("hidden");
         selectedShowIndex = -1;
         showAddPanel?.RemoveFromClassList("hidden");
         FocusPanel(showsPanel);
@@ -887,6 +889,7 @@ public class PromotionDashboard : MonoBehaviour
         showDetailsPanel?.AddToClassList("hidden");
         showsListView?.AddToClassList("hidden");
         showAddPanel?.AddToClassList("hidden");
+        matchesView?.AddToClassList("hidden");
         FocusPanel(matchEditor ?? showDetailsPanel ?? showsPanel);
         RegisterWinnerAutoUpdate(wrestlerADropdown);
         RegisterWinnerAutoUpdate(wrestlerBDropdown);
@@ -912,6 +915,7 @@ public class PromotionDashboard : MonoBehaviour
         showDetailsPanel?.AddToClassList("hidden");
         showsListView?.AddToClassList("hidden");
         showAddPanel?.AddToClassList("hidden");
+        matchesView?.AddToClassList("hidden");
         FocusPanel(segmentEditor ?? showDetailsPanel ?? showsPanel);
     }
 
@@ -1062,6 +1066,7 @@ public class PromotionDashboard : MonoBehaviour
 
     // ----- Drag-and-drop reordering for matches/segments (Step 3) -----
     private ListView matchesOrderView;
+    private Button matchesCloseButton;
 
     private void EnsureMatchesOrderListView()
     {
@@ -1089,6 +1094,13 @@ public class PromotionDashboard : MonoBehaviour
                 DataManager.SavePromotion(currentPromotion);
         };
         matchesView.Add(matchesOrderView);
+
+        // Add a Close button to return to the main Shows panel
+        if (matchesCloseButton == null)
+        {
+            matchesCloseButton = new Button(() => CloseMatchesView()) { name = "matchesCloseButton", text = "Close" };
+            matchesView.Add(matchesCloseButton);
+        }
     }
 
     private ShowData currentEditingShow;
@@ -1114,6 +1126,10 @@ public class PromotionDashboard : MonoBehaviour
         RefreshMatchesOrderList();
         // Reveal the matches view panel so user can reorder
         matchesView?.RemoveFromClassList("hidden");
+        // Hide other shows UI while viewing matches to declutter
+        showDetailsPanel?.AddToClassList("hidden");
+        showAddPanel?.AddToClassList("hidden");
+        showsListView?.AddToClassList("hidden");
         FocusPanel(matchesView ?? showsPanel);
     }
 
@@ -1123,6 +1139,15 @@ public class PromotionDashboard : MonoBehaviour
         var src = currentEditingShow?.entryOrder ?? new List<string>();
         matchesOrderView.itemsSource = src;
         matchesOrderView.Rebuild();
+    }
+
+    private void CloseMatchesView()
+    {
+        matchesView?.AddToClassList("hidden");
+        // Restore main Shows UI
+        showsListView?.RemoveFromClassList("hidden");
+        if (selectedShowIndex >= 0) showDetailsPanel?.RemoveFromClassList("hidden"); else showAddPanel?.RemoveFromClassList("hidden");
+        FocusPanel(showsPanel);
     }
 
     private static string GetDisplayTextForToken(ShowData show, string token)
