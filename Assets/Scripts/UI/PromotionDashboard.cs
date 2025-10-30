@@ -56,7 +56,7 @@ using UnityEngine;
         private DropdownField matchTypeDropdown;
         private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, winnerDropdown;
     private bool winnerHandlersHooked;
-        private TextField segmentTextField;
+        private TextField segmentNameField, segmentTextField;
         private DropdownField titleDropdown;
         private Toggle isTitleMatchToggle;
         private ShowData currentEditingShow;
@@ -226,6 +226,7 @@ using UnityEngine;
         isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
         titleDropdown = root.Q<DropdownField>("titleDropdown");
         winnerDropdown = root.Q<DropdownField>("winnerDropdown");
+        segmentNameField = root.Q<TextField>("segmentNameField");
         segmentTextField = root.Q<TextField>("segmentTextField");
         addMatchButton = root.Q<Button>("addMatchButton");
         addSegmentButton = root.Q<Button>("addSegmentButton");
@@ -608,6 +609,7 @@ using UnityEngine;
         statusLabel.text = "No active show selected.";
         return;
         }
+        string name = segmentNameField != null ? segmentNameField.value?.Trim() : string.Empty;
         string text = segmentTextField != null ? segmentTextField.value?.Trim() : string.Empty;
         if (string.IsNullOrEmpty(text))
         {
@@ -619,7 +621,7 @@ using UnityEngine;
         }
         if (currentEditingShow.segments == null)
         currentEditingShow.segments = new System.Collections.Generic.List<SegmentData>();
-                currentEditingShow.segments.Add(new SegmentData { id = System.Guid.NewGuid().ToString("N"), text = text });
+                currentEditingShow.segments.Add(new SegmentData { id = System.Guid.NewGuid().ToString("N"), name = name, text = text });
                 try
                 {
                     if (currentEditingShow.entryOrder == null)
@@ -631,7 +633,8 @@ using UnityEngine;
         DataManager.SavePromotion(currentPromotion);
         segmentEditor?.AddToClassList("hidden");
         matchesView?.AddToClassList("hidden");
-        segmentTextField.value = string.Empty;
+        if (segmentNameField != null) segmentNameField.value = string.Empty;
+        if (segmentTextField != null) segmentTextField.value = string.Empty;
         statusLabel.text = "Segment added to show.";
         showsPanel?.RemoveFromClassList("editor-full");
             FocusPanel(showDetails ?? showsPanel);
@@ -989,8 +992,8 @@ using UnityEngine;
         {
             if (show.segments == null || idx < 0 || idx >= show.segments.Count) return string.Empty;
             var seg = show.segments[idx];
-            var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
-            return $"Segment: {segText}";
+            var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
+            return $"Segment: {segName}";
         }
         return string.Empty;
     }
@@ -1831,8 +1834,8 @@ using UnityEngine;
                 {
                     if (currentEditingShow.segments == null || idx < 0 || idx >= currentEditingShow.segments.Count) continue;
                     var seg = currentEditingShow.segments[idx];
-                    var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
-                    matchesList.Add(new Label($"Segment: {segText}"));
+                    var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
+                    matchesList.Add(new Label($"Segment: {segName}"));
                     any = true;
                 }
             }
@@ -1857,8 +1860,8 @@ using UnityEngine;
             {
                 foreach (var seg in currentEditingShow.segments)
                 {
-                    var segText = string.IsNullOrEmpty(seg?.text) ? "(Empty segment)" : seg.text;
-                    matchesList.Add(new Label($"Segment: {segText}"));
+                    var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
+                    matchesList.Add(new Label($"Segment: {segName}"));
                 }
             }
         }

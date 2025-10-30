@@ -171,6 +171,7 @@
             <!-- Segment editor appears alongside show details -->
             <ui:VisualElement name="segmentEditor" class="hidden segment-editor-card">
               <ui:Label text="Add Segment" class="subsection-title" />
+              <ui:TextField name="segmentNameField" label="Segment Name" />
               <ui:TextField name="segmentTextField" label="Segment / Promo" multiline="true" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveSegmentButton" text="Save Segment" />

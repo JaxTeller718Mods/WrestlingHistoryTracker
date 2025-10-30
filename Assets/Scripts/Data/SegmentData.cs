@@ -5,5 +5,6 @@ using UnityEngine;
 public class SegmentData
 {
     public string id; // stable identifier for entryOrder
+    public string name; // short label for lists
     public string text;
 }
