@@ -144,6 +144,8 @@ using UnityEngine;
         rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
         statusLabel = root.Q<Label>("statusLabel");
+        // Ensure all shows/matches/segments have stable IDs and upgrade entryOrder
+        EnsureStableIdsAndEntryOrder();
         // ===== Promotion Info =====
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
         editPanel = root.Q<VisualElement>("editPanel");
@@ -540,6 +542,7 @@ using UnityEngine;
         if (wrestlerDDropdown != null) wrestlerDDropdown.value = participants.Count > 3 ? participants[3] : "";
         var match = new MatchData
         {
+        id = System.Guid.NewGuid().ToString("N"),
         matchName = (matchTypeDropdown != null ? matchTypeDropdown.value : ""),
         wrestlerA = participants.Count > 0 ? participants[0] : "",
         wrestlerB = participants.Count > 1 ? participants[1] : "",
@@ -559,7 +562,7 @@ using UnityEngine;
             {
                 if (currentEditingShow.entryOrder == null)
                     currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
-                currentEditingShow.entryOrder.Add($"M:{currentEditingShow.matches.Count - 1}");
+                currentEditingShow.entryOrder.Add($"M:{match.id}");
             }
             catch { }
             // Persist immediately so existing items are never overwritten by subsequent saves
@@ -613,12 +616,13 @@ using UnityEngine;
         }
         if (currentEditingShow.segments == null)
         currentEditingShow.segments = new System.Collections.Generic.List<SegmentData>();
-                currentEditingShow.segments.Add(new SegmentData { text = text });
+                currentEditingShow.segments.Add(new SegmentData { id = System.Guid.NewGuid().ToString("N"), text = text });
                 try
                 {
                     if (currentEditingShow.entryOrder == null)
                         currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
-                    currentEditingShow.entryOrder.Add($"S:{currentEditingShow.segments.Count - 1}");
+                    var lastSeg = currentEditingShow.segments[currentEditingShow.segments.Count - 1];
+                    currentEditingShow.entryOrder.Add($"S:{lastSeg.id}");
                 }
                 catch { }
         DataManager.SavePromotion(currentPromotion);
@@ -907,6 +911,102 @@ using UnityEngine;
         if (historyShowsList != null)
             historyShowsList.style.display = DisplayStyle.None;
     }
+
+    // ----- Stable ID utilities and upgrade -----
+    private static int FindMatchIndexById(ShowData show, string id)
+    {
+        if (show?.matches == null || string.IsNullOrEmpty(id)) return -1;
+        for (int i = 0; i < show.matches.Count; i++)
+        {
+            if (string.Equals(show.matches[i]?.id, id, System.StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+        return -1;
+    }
+
+    private static int FindSegmentIndexById(ShowData show, string id)
+    {
+        if (show?.segments == null || string.IsNullOrEmpty(id)) return -1;
+        for (int i = 0; i < show.segments.Count; i++)
+        {
+            if (string.Equals(show.segments[i]?.id, id, System.StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+        return -1;
+    }
+
+    private void EnsureStableIdsAndEntryOrder()
+    {
+        if (currentPromotion == null || currentPromotion.shows == null) return;
+        bool changed = false;
+        foreach (var show in currentPromotion.shows)
+        {
+            // Assign IDs to matches/segments as needed
+            if (show.matches != null)
+            {
+                foreach (var m in show.matches)
+                {
+                    if (m != null && string.IsNullOrEmpty(m.id)) { m.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+                }
+            }
+            if (show.segments != null)
+            {
+                foreach (var s in show.segments)
+                {
+                    if (s != null && string.IsNullOrEmpty(s.id)) { s.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+                }
+            }
+
+            // Upgrade entryOrder tokens from index to id if necessary
+            if (show.entryOrder != null && show.entryOrder.Count > 0)
+            {
+                var upgraded = new System.Collections.Generic.List<string>(show.entryOrder.Count);
+                bool localChanged = false;
+                foreach (var token in show.entryOrder)
+                {
+                    if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
+                    {
+                        continue;
+                    }
+                    char kind = token[0];
+                    string tail = token.Substring(2);
+                    // If already looks like an id (non-numeric), keep as-is
+                    if (!int.TryParse(tail, out int idx))
+                    {
+                        upgraded.Add(token);
+                        continue;
+                    }
+                    // Convert numeric index to id
+                    if (kind == 'M')
+                    {
+                        if (show.matches != null && idx >= 0 && idx < show.matches.Count)
+                        {
+                            string id = show.matches[idx]?.id;
+                            if (!string.IsNullOrEmpty(id)) { upgraded.Add($"M:{id}"); localChanged = true; }
+                        }
+                    }
+                    else if (kind == 'S')
+                    {
+                        if (show.segments != null && idx >= 0 && idx < show.segments.Count)
+                        {
+                            string id = show.segments[idx]?.id;
+                            if (!string.IsNullOrEmpty(id)) { upgraded.Add($"S:{id}"); localChanged = true; }
+                        }
+                    }
+                }
+                if (localChanged)
+                {
+                    show.entryOrder = upgraded;
+                    changed = true;
+                }
+            }
+        }
+        if (changed)
+        {
+            // Persist upgrade so future loads use IDs
+            DataManager.SavePromotion(currentPromotion);
+        }
+    }
         private void ShowSelectedShowHistory(ShowData show)
         {
         if (historyResultsPanel == null || historyShowMatchesList == null)
@@ -927,8 +1027,15 @@ using UnityEngine;
                 if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
                     continue;
                 char kind = token[0];
-                if (!int.TryParse(token.Substring(2), out int idx))
-                    continue;
+                var key = token.Substring(2);
+                int idx = -1;
+                if (!int.TryParse(key, out idx))
+                {
+                    // treat as ID
+                    if (kind == 'M') idx = FindMatchIndexById(show, key);
+                    else if (kind == 'S') idx = FindSegmentIndexById(show, key);
+                }
+                if (idx < 0) continue;
                 if (kind == 'M')
                 {
                     if (show.matches == null || idx < 0 || idx >= show.matches.Count) continue;
@@ -1584,8 +1691,15 @@ using UnityEngine;
                 if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
                     continue;
                 char kind = token[0];
-                if (!int.TryParse(token.Substring(2), out int idx))
-                    continue;
+                var key = token.Substring(2);
+                int idx = -1;
+                if (!int.TryParse(key, out idx))
+                {
+                    // treat as ID
+                    if (kind == 'M') idx = FindMatchIndexById(currentEditingShow, key);
+                    else if (kind == 'S') idx = FindSegmentIndexById(currentEditingShow, key);
+                }
+                if (idx < 0) continue;
                 if (kind == 'M')
                 {
                     if (currentEditingShow.matches == null || idx < 0 || idx >= currentEditingShow.matches.Count) continue;

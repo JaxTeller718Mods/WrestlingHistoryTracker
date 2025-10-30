@@ -7,6 +7,7 @@ using UnityEngine;
 [Serializable]
 public class MatchData
 {
+    public string id; // stable identifier for entryOrder
     public string matchName;
     public string wrestlerA;
     public string wrestlerB;
