@@ -109,6 +109,9 @@
               <ui:Button name="deleteTitleButton" text="Delete" />
               <ui:Button name="cancelTitleButton" text="Cancel" />
             </ui:VisualElement>
+            <ui:VisualElement class="row">
+              <ui:Button name="viewHistoryButton" text="View Title History" />
+            </ui:VisualElement>
           </ui:VisualElement>
 
           <ui:VisualElement name="titleAddPanel" class="title-add-card">
@@ -119,7 +122,7 @@
             </ui:VisualElement>
           </ui:VisualElement>
 
-          <ui:Button name="viewHistoryButton" text="View Title History" />
+          <!-- Removed main panel View Title History button; button now lives inside titleDetails -->
           <ui:ScrollView name="titleHistoryList" class="hidden list" />
         </ui:VisualElement>
       </ui:VisualElement>
@@ -218,11 +221,7 @@
         </ui:VisualElement>
       </ui:VisualElement>
 
-      <!-- Keep existing aggregated history sections (hidden by code when using show browser) -->
-      <ui:Label text="Match Results" class="subsection-title" />
-      <ui:ScrollView name="matchHistoryList" class="list" />
-      <ui:Label text="Title Lineages" class="subsection-title" />
-      <ui:ScrollView name="titleLineageList" class="list" />
+      <!-- Aggregated sections removed per request -->
     </ui:VisualElement>
 
   </ui:VisualElement>

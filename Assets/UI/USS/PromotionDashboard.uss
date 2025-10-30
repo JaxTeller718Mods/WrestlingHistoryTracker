@@ -65,6 +65,11 @@
     margin-bottom: 15px;
 }
 
+/* Make Shows panel wider to accommodate side-by-side columns */
+#showsPanel {
+    max-width: 1100px;
+}
+
 /* ===== HIDDEN STATE ===== */
 .hidden {
     display: none;
@@ -124,10 +129,10 @@ button:active {
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
     margin-top: 15px;
     margin-bottom: 20px;
 }
+.nav-buttons > * { margin-right: 10px; margin-bottom: 10px; }
 
 /* ===== TEXT FIELDS ===== */
 TextField, FloatField {
@@ -161,10 +166,11 @@ FloatField > .unity-float-field__input {
     width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    /* gap unsupported in UI Toolkit: emulate via child margins */
     align-items: flex-start;
     flex-wrap: wrap;
 }
+.wrestler-layout > * { margin-right: 20px; margin-bottom: 20px; }
 
 #wrestlerList {
     max-width: 260px;
@@ -186,8 +192,9 @@ FloatField > .unity-float-field__input {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    /* emulate gap */
 }
+.wrestler-detail-column > * { margin-bottom: 16px; }
 
 .wrestler-detail-card,
 .wrestler-add-card,
@@ -210,18 +217,21 @@ FloatField > .unity-float-field__input {
 .wrestler-detail-card .row,
 .wrestler-add-card .row {
     justify-content: flex-start;
-    gap: 8px;
+    /* emulate gap */
 }
+.wrestler-detail-card .row > *,
+.wrestler-add-card .row > * { margin-right: 8px; margin-bottom: 8px; }
 
 /* ===== TITLES LAYOUT ===== */
 .titles-layout {
     width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    /* emulate gap */
     align-items: flex-start;
     flex-wrap: wrap;
 }
+.titles-layout > * { margin-right: 20px; margin-bottom: 20px; }
 
 #titleList {
     max-width: 260px;
@@ -232,24 +242,28 @@ FloatField > .unity-float-field__input {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    /* emulate gap */
 }
+.title-detail-column > * { margin-bottom: 16px; }
 
 .title-detail-card .row,
 .title-add-card .row {
     justify-content: flex-start;
-    gap: 8px;
+    /* emulate gap */
 }
+.title-detail-card .row > *,
+.title-add-card .row > * { margin-right: 8px; margin-bottom: 8px; }
 
 /* ===== SHOWS LAYOUT ===== */
 .shows-layout {
     width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    /* emulate gap */
     align-items: flex-start;
     flex-wrap: wrap;
 }
+.shows-layout > * { margin-right: 20px; margin-bottom: 20px; }
 
 /* When editing a show, hide the list and center editors */
 .editing-show .shows-layout {
@@ -257,6 +271,9 @@ FloatField > .unity-float-field__input {
 }
 
 .editing-show #showsList {
+    display: none;
+}
+.editing-show #showsListView {
     display: none;
 }
 
@@ -272,10 +289,11 @@ FloatField > .unity-float-field__input {
     width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 16px;
+    /* emulate gap */
     align-items: flex-start;
     flex-wrap: wrap;
 }
+.show-edit-columns > * { margin-right: 16px; margin-bottom: 16px; }
 
 /* Make editor cards full width when editing a match/segment */
 .editor-full .show-detail-card {
@@ -303,8 +321,9 @@ FloatField > .unity-float-field__input {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    /* emulate gap */
 }
+.show-detail-column > * { margin-bottom: 16px; }
 
 .show-detail-card,
 .show-add-card,
@@ -326,6 +345,11 @@ FloatField > .unity-float-field__input {
     width: auto;
 }
 
+/* Add a little separation for the matches list when shown next to details */
+.editing-show .show-edit-columns > .matches-view-card {
+    margin-left: 24px;
+}
+
 .show-detail-card {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
@@ -334,8 +358,11 @@ FloatField > .unity-float-field__input {
 .show-add-card .row,
 .match-editor-card .row {
     justify-content: flex-start;
-    gap: 8px;
+    /* emulate gap */
 }
+.show-detail-card .row > *,
+.show-add-card .row > *,
+.match-editor-card .row > * { margin-right: 8px; margin-bottom: 8px; }
 
 /* ===== DETAIL SECTIONS ===== */
 #wrestlerDetails,
@@ -403,16 +430,18 @@ Label {
     width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 16px;
+    /* emulate gap */
     align-items: flex-start;
 }
+.rankings-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
 .rankings-nav {
     width: 220px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    /* emulate gap */
 }
+.rankings-nav > * { margin-bottom: 8px; }
 
 .rankings-list {
     flex-grow: 1;
@@ -427,4 +456,18 @@ Label {
   padding-left: 10px;
   padding-right: 10px;
   min-height: 30px;
+}
+
+/* New virtualized lists */
+#rankingsListView {
+  width: 100%;
+}
+#matchHistoryListView,
+#titleLineageListView {
+  width: 100%;
+}
+
+/* Ensure long text wraps inside list entries */
+.list-entry Label {
+  white-space: normal;
 }
