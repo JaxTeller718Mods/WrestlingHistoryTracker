@@ -58,7 +58,7 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement editPanel;
 
     // Shows UI (details + editors)
-    private VisualElement showDetailsPanel, matchEditor, segmentEditor;
+    private VisualElement showDetailsPanel, showAddPanel, matchEditor, segmentEditor;
     private TextField newShowField, newShowDateField, showNameField, showDateField;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
@@ -175,6 +175,7 @@ public class PromotionDashboard : MonoBehaviour
         saveShowsButton = root.Q<Button>("saveShowsButton");
         // Show details and editors
         showDetailsPanel = root.Q<VisualElement>("showDetails");
+        showAddPanel = root.Q<VisualElement>("showAddPanel");
         showNameField = root.Q<TextField>("showNameField");
         showDateField = root.Q<TextField>("showDateField");
         saveShowButton = root.Q<Button>("saveShowButton");
@@ -308,6 +309,7 @@ public class PromotionDashboard : MonoBehaviour
         EnsureHistoryShowsListView();
         EnsureRankingsListView();
         EnsureMatchesOrderListView();
+        EnsureDefaultMatchTypes();
 
         // Load data for lists
         if (currentPromotion != null)
@@ -329,6 +331,28 @@ public class PromotionDashboard : MonoBehaviour
             statusLabel.text = currentPromotion != null ? $"Loaded: {currentPromotion.promotionName}" : "Ready.";
         // Populate promotion info labels
         UpdatePromotionInfoUI();
+    }
+
+    private void EnsureDefaultMatchTypes()
+    {
+        if (matchTypeDropdown == null) return;
+        if (matchTypeDropdown.choices == null || matchTypeDropdown.choices.Count == 0)
+        {
+            matchTypeDropdown.choices = new List<string>
+            {
+                "Singles",
+                "Tag Team",
+                "Triple Threat",
+                "Fatal Four Way",
+                "Ladder",
+                "Steel Cage",
+                "No DQ",
+                "Submission",
+                "Falls Count Anywhere",
+                "Battle Royal"
+            };
+            matchTypeDropdown.value = matchTypeDropdown.choices[0];
+        }
     }
 
     private void UpdatePromotionInfoUI()
@@ -800,6 +824,7 @@ public class PromotionDashboard : MonoBehaviour
         selectedShowIndex = index;
         var s = currentPromotion.shows[index];
         showDetailsPanel?.RemoveFromClassList("hidden");
+        showAddPanel?.AddToClassList("hidden");
         matchEditor?.AddToClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
         if (showNameField != null) showNameField.value = s.showName;
@@ -826,6 +851,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
         showDetailsPanel?.AddToClassList("hidden");
+        showAddPanel?.RemoveFromClassList("hidden");
         if (statusLabel != null) statusLabel.text = "Show deleted.";
     }
 
@@ -833,12 +859,14 @@ public class PromotionDashboard : MonoBehaviour
     {
         showDetailsPanel?.AddToClassList("hidden");
         selectedShowIndex = -1;
+        showAddPanel?.RemoveFromClassList("hidden");
         FocusPanel(showsPanel);
     }
 
     private void ShowMatchEditor()
     {
         if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        EnsureDefaultMatchTypes();
         EnsureRosterAndTitlesLoaded();
         var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
         if (names.Count == 0) names.Add(string.Empty);
