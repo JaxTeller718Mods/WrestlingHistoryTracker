@@ -41,6 +41,12 @@ public class PromotionDashboard : MonoBehaviour
     private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    
+    // Promotion info widgets
+    private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
+    private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
+    private TextField nameField, locationField, foundedField, descriptionField;
+    private VisualElement editPanel;
 
     private void OnEnable()
     {
@@ -126,6 +132,20 @@ public class PromotionDashboard : MonoBehaviour
         titleChampionField = root.Q<TextField>("titleChampionField");
         titleNotesField = root.Q<TextField>("titleNotesField");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
+        
+        // Promotion info UI
+        nameLabel = root.Q<Label>("nameLabel");
+        locationLabel = root.Q<Label>("locationLabel");
+        foundedLabel = root.Q<Label>("foundedLabel");
+        descriptionLabel = root.Q<Label>("descriptionLabel");
+        editPromotionButton = root.Q<Button>("editPromotionButton");
+        savePromotionButton = root.Q<Button>("savePromotionButton");
+        cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
+        nameField = root.Q<TextField>("nameField");
+        locationField = root.Q<TextField>("locationField");
+        foundedField = root.Q<TextField>("foundedField");
+        descriptionField = root.Q<TextField>("descriptionField");
+        editPanel = root.Q<VisualElement>("editPanel");
 
         // Register panels
         mainPanels.Clear();
@@ -147,6 +167,10 @@ public class PromotionDashboard : MonoBehaviour
         if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
         if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
+        // Promotion info handlers
+        if (editPromotionButton != null) editPromotionButton.clicked += ShowPromotionEditPanel;
+        if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
+        if (cancelPromotionButton != null) cancelPromotionButton.clicked += HidePromotionEditPanel;
         if (returnButton != null)
         {
             returnButton.clicked += () =>
@@ -198,6 +222,56 @@ public class PromotionDashboard : MonoBehaviour
         SetActivePanel(promotionInfoPanel ?? root);
         if (statusLabel != null)
             statusLabel.text = currentPromotion != null ? $"Loaded: {currentPromotion.promotionName}" : "Ready.";
+        // Populate promotion info labels
+        UpdatePromotionInfoUI();
+    }
+
+    private void UpdatePromotionInfoUI()
+    {
+        if (currentPromotion == null)
+        {
+            if (nameLabel != null) nameLabel.text = "Name: [None]";
+            if (locationLabel != null) locationLabel.text = "Location: [None]";
+            if (foundedLabel != null) foundedLabel.text = "Founded: [None]";
+            if (descriptionLabel != null) descriptionLabel.text = "Description: [None]";
+            return;
+        }
+
+        if (nameLabel != null) nameLabel.text = $"Name: {currentPromotion.promotionName}";
+        if (locationLabel != null) locationLabel.text = $"Location: {currentPromotion.location}";
+        if (foundedLabel != null) foundedLabel.text = $"Founded: {currentPromotion.foundedYear}";
+        if (descriptionLabel != null) descriptionLabel.text = $"Description: {currentPromotion.description}";
+    }
+
+    private void ShowPromotionEditPanel()
+    {
+        if (currentPromotion == null || editPanel == null) return;
+        if (nameField != null) nameField.value = currentPromotion.promotionName;
+        if (locationField != null) locationField.value = currentPromotion.location;
+        if (foundedField != null) foundedField.value = currentPromotion.foundedYear;
+        if (descriptionField != null) descriptionField.value = currentPromotion.description;
+        editPanel.RemoveFromClassList("hidden");
+        FocusPanel(editPanel);
+    }
+
+    private void HidePromotionEditPanel()
+    {
+        editPanel?.AddToClassList("hidden");
+        FocusPanel(promotionInfoPanel ?? root);
+    }
+
+    private void SavePromotionEdits()
+    {
+        if (currentPromotion == null) return;
+        if (nameField != null) currentPromotion.promotionName = nameField.value;
+        if (locationField != null) currentPromotion.location = locationField.value;
+        if (foundedField != null) currentPromotion.foundedYear = foundedField.value;
+        if (descriptionField != null) currentPromotion.description = descriptionField.value;
+
+        DataManager.SavePromotion(currentPromotion);
+        UpdatePromotionInfoUI();
+        HidePromotionEditPanel();
+        if (statusLabel != null) statusLabel.text = "Promotion updated.";
     }
 
     // Panel registration helpers

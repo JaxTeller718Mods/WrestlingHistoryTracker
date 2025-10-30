@@ -39,15 +39,14 @@ public class CreatePromotionScreen : MonoBehaviour
             description = descriptionField.value
         };
 
-        // Prompt for file name (temporary simple version)
-        string folderPath = Path.Combine(Application.persistentDataPath, "Promotions");
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
+        if (string.IsNullOrWhiteSpace(promotion.promotionName))
+        {
+            Debug.LogError("Cannot save promotion: name is required.");
+            return;
+        }
 
-        string filePath = Path.Combine(folderPath, promotion.promotionName + ".json");
-        promotion.SaveToFile(filePath);
-
-        Debug.Log($"Promotion saved: {filePath}");
+        // Save via DataManager for consistent naming and location
+        DataManager.SavePromotion(promotion);
 
         // Return to main menu
         SceneLoader.Instance.LoadScene("MainMenu");
