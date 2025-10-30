@@ -1,142 +1,91 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-        using UnityEngine.UIElements;
-        using System.Collections.Generic;
-        using System.Linq;
-        public class PromotionDashboard : MonoBehaviour
-        {
-        // ===== Promotion Info =====
-        private PromotionData currentPromotion;
-        private VisualElement promotionInfoPanel;
-        private VisualElement editPanel;
-        private Label nameLabel, locationLabel, foundedLabel, descriptionLabel, statusLabel;
-        private TextField nameField, locationField, foundedField, descriptionField;
-        private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
-        // ===== Navigation Buttons =====
-        private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, rankingsButton, returnButton;
-        // ===== Wrestlers =====
-        private VisualElement wrestlersPanel;
-    private ScrollView wrestlerList;
-    private ListView wrestlerListView;
-        private VisualElement wrestlerDetails;
-        private TextField wrestlerNameField, wrestlerHometownField;
-        private Toggle wrestlerIsFemaleToggle, wrestlerIsTagTeamToggle;
-        private FloatField wrestlerHeightField, wrestlerWeightField;
-        private Button addWrestlerButton, saveWrestlersButton, saveWrestlerButton, deleteWrestlerButton, cancelEditButton;
-        private TextField newWrestlerField;
-        private Toggle newWrestlerIsFemaleToggle;
-        private Toggle newWrestlerIsTagTeamToggle;
-        private WrestlerCollection wrestlerCollection;
-        private VisualElement wrestlerAddPanel;
-        private int selectedIndex = -1;
-        // ===== Titles =====
-        private VisualElement titlesPanel;
-        private VisualElement titleAddPanel;
-        private ScrollView titleList;
-        private ListView titleListView;
-        private VisualElement titleDetails;
-        private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
-        private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
-        private Button viewHistoryButton;
-        private TextField newTitleField;
-        private ScrollView titleHistoryList;
-        private TitleCollection titleCollection;
-        private int selectedTitleIndex = -1;
-        // ===== Shows =====
-        private VisualElement showsPanel, showDetails, showAddPanel;
-        private ScrollView showsList, matchesList;
-        private ListView matchesOrderView;
-        private ListView showsListView;
+using UnityEngine.UIElements;
 
-        private TextField showNameField, showDateField, newShowField, newShowDateField;
-        private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton;
-        private Button addMatchButton, saveMatchButton, cancelMatchButton;
-            private Button viewMatchesButton;
-        private Button addSegmentButton, saveSegmentButton, cancelSegmentButton;
-        private VisualElement matchEditor, segmentEditor, matchesView;
-        private DropdownField matchTypeDropdown;
-        private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, winnerDropdown;
-    private bool winnerHandlersHooked;
-        private TextField segmentNameField, segmentTextField;
-        private DropdownField titleDropdown;
-        private Toggle isTitleMatchToggle;
-        private ShowData currentEditingShow;
-        private string originalShowName;
-        private string originalShowDate;
-        // ===== Histories =====
-        private VisualElement historyPanel;
-        private ScrollView matchHistoryList;
-        private ScrollView titleLineageList;
-        private VisualElement historyShowsPanel, historyResultsPanel;
-        private ScrollView historyShowsList, historyShowMatchesList;
-        private ListView historyShowsListView;
-        private Button historyCloseResultsButton;
-        private Label historyResultsHeader;
-        // ===== Rankings =====
-        private VisualElement rankingsPanel;
-        private ScrollView rankingsList;
-        private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton;
-        private VisualElement root;
-        private VisualElement dashboardChrome;
-        private readonly List<VisualElement> mainPanels = new();
-        private readonly List<VisualElement> focusablePanels = new();
-        private Coroutine initializationRoutine;
-        private void OnEnable()
-        {
-        // ✅ Load active promotion from persistent session
+public class PromotionDashboard : MonoBehaviour
+{
+    // Data
+    private PromotionData currentPromotion;
+
+    // Root and navigation
+    private VisualElement root;
+    private Label statusLabel;
+    private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, rankingsButton, returnButton;
+
+    // Panels
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, showsPanel, historyPanel, rankingsPanel;
+    // History subpanels
+    private VisualElement historyShowsPanel, historyResultsPanel;
+    private Label historyResultsHeader;
+    private ScrollView historyShowMatchesList;
+    // Shows subpanels (for reordering)
+    private VisualElement matchesView;
+
+    // Bookkeeping
+    private readonly List<VisualElement> mainPanels = new();
+    private readonly List<VisualElement> focusablePanels = new();
+    private Coroutine initializationRoutine;
+
+    // Virtualized lists (Step 1)
+    private ScrollView wrestlerListScroll, showsListScroll, historyShowsListScroll, rankingsListScroll;
+    private ListView wrestlerListView, showsListView, historyShowsListView, rankingsListView;
+    private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton;
+    private WrestlerCollection wrestlerCollection;
+    // Titles (Step 4)
+    private ScrollView titleListScroll, titleHistoryList;
+    private ListView titleListView;
+    private VisualElement titleDetailsPanel, titleAddPanel;
+    private Button viewHistoryButton;
+    private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
+    private TitleCollection titleCollection;
+    private int selectedTitleIndex = -1;
+
+    private void OnEnable()
+    {
         if (initializationRoutine != null)
-        {
-        StopCoroutine(initializationRoutine);
-        }
+            StopCoroutine(initializationRoutine);
         initializationRoutine = StartCoroutine(WaitForPromotionData());
-        }
-        private void OnDisable()
-        {
+    }
+
+    private void OnDisable()
+    {
         if (initializationRoutine != null)
         {
-        StopCoroutine(initializationRoutine);
-        initializationRoutine = null;
+            StopCoroutine(initializationRoutine);
+            initializationRoutine = null;
         }
-        }
-        private System.Collections.IEnumerator WaitForPromotionData()
-        {
+    }
+
+    private IEnumerator WaitForPromotionData()
+    {
         const float timeoutSeconds = 2f;
         float startTime = Time.unscaledTime;
         while (PromotionSession.Instance == null || PromotionSession.Instance.CurrentPromotion == null)
         {
-        if (Time.unscaledTime - startTime >= timeoutSeconds)
-        {
-        HandleMissingPromotionSession();
-        initializationRoutine = null;
-        yield break;
-        }
-        yield return null;
+            if (Time.unscaledTime - startTime >= timeoutSeconds)
+            {
+                Debug.LogWarning("PromotionDashboard: No promotion loaded in session; proceeding.");
+                break;
+            }
+            yield return null;
         }
         InitializeDashboard();
         initializationRoutine = null;
-        }
-        private void HandleMissingPromotionSession()
-        {
-        Debug.LogError("❌ No promotion loaded in session. Returning to Main Menu.");
-        if (SceneLoader.Instance != null)
-        {
-        SceneLoader.Instance.LoadScene("MainMenu");
-        }
-        else
-        {
-        Debug.LogWarning("SceneLoader singleton missing. Falling back to direct SceneManager load.");
-        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
-        }
-        }
-        private void InitializeDashboard()
-        {
-        currentPromotion = PromotionSession.Instance.CurrentPromotion;
-        Debug.Log($"✅ PromotionDashboard opened for: {currentPromotion.promotionName}");
+    }
+
+    private void InitializeDashboard()
+    {
+        currentPromotion = PromotionSession.Instance != null ? PromotionSession.Instance.CurrentPromotion : null;
         root = GetComponent<UIDocument>().rootVisualElement;
-        dashboardChrome = root.Q<VisualElement>("dashboardChrome");
-        mainPanels.Clear();
-        focusablePanels.Clear();
-        ExitWrestlerEditMode();
-        // ===== Navigation =====
+        if (root == null)
+        {
+            Debug.LogError("PromotionDashboard: rootVisualElement not found.");
+            return;
+        }
+
+        // Query navigation
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
@@ -145,1595 +94,294 @@ using UnityEngine;
         rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
         statusLabel = root.Q<Label>("statusLabel");
-        // Ensure all shows/matches/segments have stable IDs and upgrade entryOrder
-        EnsureStableIdsAndEntryOrder();
-        // ===== Promotion Info =====
+
+        // Query panels
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
-        editPanel = root.Q<VisualElement>("editPanel");
-        nameLabel = root.Q<Label>("nameLabel");
-        locationLabel = root.Q<Label>("locationLabel");
-        foundedLabel = root.Q<Label>("foundedLabel");
-        descriptionLabel = root.Q<Label>("descriptionLabel");
-        nameField = root.Q<TextField>("nameField");
-        locationField = root.Q<TextField>("locationField");
-        foundedField = root.Q<TextField>("foundedField");
-        descriptionField = root.Q<TextField>("descriptionField");
-        editPromotionButton = root.Q<Button>("editPromotionButton");
-        savePromotionButton = root.Q<Button>("savePromotionButton");
-        cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
-        // ===== Wrestlers =====
         wrestlersPanel = root.Q<VisualElement>("wrestlersPanel");
-        wrestlerList = root.Q<ScrollView>("wrestlerList");
-        wrestlerDetails = root.Q<VisualElement>("wrestlerDetails");
-        wrestlerNameField = root.Q<TextField>("wrestlerNameField");
-        wrestlerIsTagTeamToggle = root.Q<Toggle>("wrestlerIsTagTeamToggle");
-        wrestlerHometownField = root.Q<TextField>("wrestlerHometownField");
-        wrestlerIsFemaleToggle = root.Q<Toggle>("wrestlerIsFemaleToggle");
-        wrestlerHeightField = root.Q<FloatField>("wrestlerHeightField");
-        wrestlerWeightField = root.Q<FloatField>("wrestlerWeightField");
-        addWrestlerButton = root.Q<Button>("addWrestlerButton");
-        saveWrestlersButton = root.Q<Button>("saveWrestlersButton");
-        saveWrestlerButton = root.Q<Button>("saveWrestlerButton");
-        deleteWrestlerButton = root.Q<Button>("deleteWrestlerButton");
-        cancelEditButton = root.Q<Button>("cancelEditButton");
-        newWrestlerField = root.Q<TextField>("newWrestlerField");
-        newWrestlerIsFemaleToggle = root.Q<Toggle>("newWrestlerIsFemaleToggle");
-        newWrestlerIsTagTeamToggle = root.Q<Toggle>("newWrestlerIsTagTeamToggle");
-        wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
-        EnsureWrestlerListView();
-        // ===== Titles =====
         titlesPanel = root.Q<VisualElement>("titlesPanel");
-        titleList = root.Q<ScrollView>("titleList");
-        titleDetails = root.Q<VisualElement>("titleDetails");
+        showsPanel = root.Q<VisualElement>("showsPanel");
+        historyPanel = root.Q<VisualElement>("historyPanel");
+        historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
+        historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
+        historyResultsHeader = root.Q<Label>("historyResultsHeader");
+        historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
+        rankingsPanel = root.Q<VisualElement>("rankingsPanel");
+
+        // Query list ScrollViews/buttons used as anchors in UXML
+        wrestlerListScroll = root.Q<ScrollView>("wrestlerList");
+        titleListScroll = root.Q<ScrollView>("titleList");
+        titleHistoryList = root.Q<ScrollView>("titleHistoryList");
+        showsListScroll = root.Q<ScrollView>("showsList");
+        historyShowsListScroll = root.Q<ScrollView>("historyShowsList");
+        rankingsListScroll = root.Q<ScrollView>("rankingsList");
+        matchesView = root.Q<VisualElement>("matchesView");
+        rankingsMenButton = root.Q<Button>("rankingsMenButton");
+        rankingsWomenButton = root.Q<Button>("rankingsWomenButton");
+        rankingsTagButton = root.Q<Button>("rankingsTagButton");
+        // Title edit/display widgets
+        titleDetailsPanel = root.Q<VisualElement>("titleDetails");
+        titleAddPanel = root.Q<VisualElement>("titleAddPanel");
         titleNameField = root.Q<TextField>("titleNameField");
         titleDivisionField = root.Q<TextField>("titleDivisionField");
         titleChampionField = root.Q<TextField>("titleChampionField");
         titleNotesField = root.Q<TextField>("titleNotesField");
-        addTitleButton = root.Q<Button>("addTitleButton");
-        saveTitlesButton = root.Q<Button>("saveTitlesButton");
-        saveTitleButton = root.Q<Button>("saveTitleButton");
-        deleteTitleButton = root.Q<Button>("deleteTitleButton");
-        cancelTitleButton = root.Q<Button>("cancelTitleButton");
-        newTitleField = root.Q<TextField>("newTitleField");
-        titleAddPanel = root.Q<VisualElement>("titleAddPanel");
-        titleHistoryList = root.Q<ScrollView>("titleHistoryList");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
-        EnsureTitleListView();
-        // ===== Shows =====
-        showsPanel = root.Q<VisualElement>("showsPanel");
-        showsList = root.Q<ScrollView>("showsList");
-        EnsureShowsListView();
-        showDetails = root.Q<VisualElement>("showDetails");
-        showAddPanel = root.Q<VisualElement>("showAddPanel");
-        showNameField = root.Q<TextField>("showNameField");
-        showDateField = root.Q<TextField>("showDateField");
-        newShowField = root.Q<TextField>("newShowField");
-        newShowDateField = root.Q<TextField>("newShowDateField");
-        addShowButton = root.Q<Button>("addShowButton");
-        saveShowsButton = root.Q<Button>("saveShowsButton");
-        saveShowButton = root.Q<Button>("saveShowButton");
-        deleteShowButton = root.Q<Button>("deleteShowButton");
-        cancelShowButton = root.Q<Button>("cancelShowButton");
-        matchesList = root.Q<ScrollView>("matchesList");
-        matchEditor = root.Q<VisualElement>("matchEditor");
-        segmentEditor = root.Q<VisualElement>("segmentEditor");
-                matchesView = root.Q<VisualElement>("matchesView");
-        matchTypeDropdown = root.Q<DropdownField>("matchTypeDropdown");
-        wrestlerADropdown = root.Q<DropdownField>("wrestlerADropdown");
-        wrestlerBDropdown = root.Q<DropdownField>("wrestlerBDropdown");
-        wrestlerCDropdown = root.Q<DropdownField>("wrestlerCDropdown");
-        wrestlerDDropdown = root.Q<DropdownField>("wrestlerDDropdown");
-        isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
-        titleDropdown = root.Q<DropdownField>("titleDropdown");
-        winnerDropdown = root.Q<DropdownField>("winnerDropdown");
-        segmentNameField = root.Q<TextField>("segmentNameField");
-        segmentTextField = root.Q<TextField>("segmentTextField");
-        addMatchButton = root.Q<Button>("addMatchButton");
-        addSegmentButton = root.Q<Button>("addSegmentButton");
-                viewMatchesButton = root.Q<Button>("viewMatchesButton");
-        saveMatchButton = root.Q<Button>("saveMatchButton");
-        cancelMatchButton = root.Q<Button>("cancelMatchButton");
-        saveSegmentButton = root.Q<Button>("saveSegmentButton");
-        cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
-        // Enable drag-reorder list for matches/segments
-        EnsureMatchesOrderListView();
-        // ===== Histories =====
-        historyPanel = root.Q<VisualElement>("historyPanel");
-        matchHistoryList = root.Q<ScrollView>("matchHistoryList");
-        titleLineageList = root.Q<ScrollView>("titleLineageList");
-        historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
-        historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
-        historyShowsList = root.Q<ScrollView>("historyShowsList");
-        historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
-        historyCloseResultsButton = root.Q<Button>("historyCloseResultsButton");
-        historyResultsHeader = root.Q<Label>("historyResultsHeader");
-        // ===== Rankings =====
-        rankingsPanel = root.Q<VisualElement>("rankingsPanel");
-        rankingsList = root.Q<ScrollView>("rankingsList");
-        rankingsMenButton = root.Q<Button>("rankingsMenButton");
-        rankingsWomenButton = root.Q<Button>("rankingsWomenButton");
-        rankingsTagButton = root.Q<Button>("rankingsTagButton");
+
+        // Register panels
+        mainPanels.Clear();
         RegisterMainPanel(promotionInfoPanel);
         RegisterMainPanel(wrestlersPanel);
         RegisterMainPanel(titlesPanel);
         RegisterMainPanel(showsPanel);
         RegisterMainPanel(historyPanel);
         RegisterMainPanel(rankingsPanel);
-        RegisterFocusablePanel(editPanel, wrestlerDetails, wrestlerAddPanel, titleDetails, titleAddPanel,
-        titleHistoryList, showDetails, showAddPanel, matchEditor, showsPanel, historyPanel,
-        rankingsPanel, promotionInfoPanel, wrestlersPanel, titlesPanel);
-        // ===== Navigation wiring =====
-        if (promotionButton != null)
-        promotionButton.clicked += ShowPromotionPanel;
-        if (wrestlersButton != null)
-        wrestlersButton.clicked += ShowWrestlersPanel;
-        if (titlesButton != null)
-        titlesButton.clicked += ShowTitlesPanel;
-        if (showsButton != null)
-        showsButton.clicked += ShowShowsPanel;
-        if (historyButton != null)
-        historyButton.clicked += ShowHistoryPanel;
-        if (rankingsButton != null)
-        rankingsButton.clicked += ShowRankingsPanel;
-        if (rankingsMenButton != null)
-        rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
-        if (rankingsWomenButton != null)
-        rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
-        if (rankingsTagButton != null)
-        rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
-        if (historyCloseResultsButton != null)
-        {
-        historyCloseResultsButton.clicked += () =>
-        {
-        historyResultsPanel?.AddToClassList("hidden");
-        historyShowsPanel?.RemoveFromClassList("hidden");
-        FocusPanel(historyShowsPanel ?? historyPanel);
-        };
-        }
+
+        // Wire navigation
+        if (promotionButton != null) promotionButton.clicked += ShowPromotionPanel;
+        if (wrestlersButton != null) wrestlersButton.clicked += ShowWrestlersPanel;
+        if (titlesButton != null) titlesButton.clicked += ShowTitlesPanel;
+        if (showsButton != null) showsButton.clicked += ShowShowsPanel;
+        if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
+        if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        if (rankingsMenButton != null) rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
+        if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
+        if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
+        if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
         if (returnButton != null)
         {
-        returnButton.clicked += () =>
-        {
-        Debug.Log("Returning to Main Menu...");
-        if (PromotionSession.Instance != null)
-        PromotionSession.Instance.CurrentPromotion = null;
-        SceneLoader.Instance.LoadScene("MainMenu");
-        };
-        }
-        // ===== Promotion actions =====
-        if (editPromotionButton != null)
-        editPromotionButton.clicked += () => SetEditMode(true);
-        if (savePromotionButton != null)
-        savePromotionButton.clicked += SavePromotionChanges;
-        if (cancelPromotionButton != null)
-        cancelPromotionButton.clicked += () => SetEditMode(false);
-        // ===== Wrestler actions =====
-        if (addWrestlerButton != null)
-        addWrestlerButton.clicked += AddWrestler;
-        if (saveWrestlersButton != null)
-        saveWrestlersButton.clicked += SaveWrestlers;
-        if (saveWrestlerButton != null)
-        saveWrestlerButton.clicked += SaveSelectedWrestler;
-        if (deleteWrestlerButton != null)
-        deleteWrestlerButton.clicked += DeleteSelectedWrestler;
-        if (cancelEditButton != null)
-        cancelEditButton.clicked += HideWrestlerDetails;
-        // ===== Title actions =====
-        if (addTitleButton != null)
-        addTitleButton.clicked += AddTitle;
-        if (saveTitlesButton != null)
-        saveTitlesButton.clicked += SaveTitles;
-        if (saveTitleButton != null)
-        saveTitleButton.clicked += SaveSelectedTitle;
-        if (deleteTitleButton != null)
-        deleteTitleButton.clicked += DeleteSelectedTitle;
-        if (cancelTitleButton != null)
-        cancelTitleButton.clicked += HideTitleDetails;
-        if (viewHistoryButton != null)
-        viewHistoryButton.clicked += ShowSelectedTitleHistory;
-        // ===== Shows logic =====
-        addShowButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        var show = new ShowData(newShowField.value, newShowDateField.value);
-        currentPromotion.shows.Add(show);
-        RefreshShowList();
-        newShowField.value = "";
-        newShowDateField.value = "";
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showAddPanel ?? showsPanel);
-        };
-        saveShowsButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        DataManager.SavePromotion(currentPromotion);
-        RefreshHistoryPanel();
-        statusLabel.text = "💾 Shows saved & history refreshed.";
-        FocusPanel(showsPanel);
-        };
-        saveShowButton.clicked += () =>
-        {
-        if (currentPromotion == null)
-        return;
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
-        foreach (ShowData showData in currentPromotion.shows)
-        {
-        TitleHistoryManager.UpdateShowResults(currentPromotion, showData);
-        }
-        currentEditingShow.showName = showNameField.value;
-        currentEditingShow.date = showDateField.value;
-        if (currentEditingShow == null)
-        {
-        statusLabel.text = "⚠️ No active show selected.";
-        return;
-        }
-        string previousName = originalShowName;
-        string previousDate = originalShowDate;
-        currentEditingShow.showName = showNameField.value;
-        currentEditingShow.date = showDateField.value;
-        TitleHistoryManager.UpdateShowResults(currentPromotion, currentEditingShow, previousName, previousDate);
-        DataManager.SavePromotion(currentPromotion);
-        RefreshHistoryPanel();
-        showDetails.AddToClassList("hidden");
-        showAddPanel.RemoveFromClassList("hidden");
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        RefreshShowList();
-        statusLabel.text = $"✅ Show '{currentEditingShow.showName}' saved & history updated.";
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showAddPanel ?? showsPanel);
-        };
-        cancelShowButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        showDetails.AddToClassList("hidden");
-        showAddPanel.RemoveFromClassList("hidden");
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showAddPanel ?? showsPanel);
-        };
-        deleteShowButton.clicked += () =>
-        {
-        if (currentEditingShow == null)
-        return;
-        var deletedShow = currentEditingShow;
-        currentPromotion.shows.Remove(currentEditingShow);
-        TitleHistoryManager.RemoveShow(currentPromotion, deletedShow);
-        DataManager.SavePromotion(currentPromotion);
-        RefreshHistoryPanel();
-        currentEditingShow = null;
-        RefreshShowList();
-        showDetails.AddToClassList("hidden");
-        showAddPanel.RemoveFromClassList("hidden");
-        statusLabel.text = "🗑️ Show deleted and history cleaned.";
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showAddPanel ?? showsPanel);
-        };
-        addMatchButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        PopulateTitleDropdown();
-        PopulateMatchTypeDropdown();
-        PopulateWrestlerDropdowns();
-        UpdateWinnerChoices();
-        matchEditor.RemoveFromClassList("hidden");
-        segmentEditor?.AddToClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        showsPanel?.AddToClassList("editor-full");
-            FocusPanel(matchEditor);
-        };
-        if (addSegmentButton != null)
-        {
-        addSegmentButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        segmentEditor?.RemoveFromClassList("hidden");
-        matchEditor?.AddToClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        showsPanel?.AddToClassList("editor-full");
-                showsPanel?.AddToClassList("editor-full");
-                FocusPanel(segmentEditor);
-        };
-        }
-        if (viewMatchesButton != null)
-        {
-        viewMatchesButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        matchesView?.RemoveFromClassList("hidden");
-        matchEditor?.AddToClassList("hidden");
-        segmentEditor?.AddToClassList("hidden");
-        RefreshMatchList();
-        FocusPanel(matchesView ?? showsPanel);
-        };
-        }
-        if (isTitleMatchToggle != null)
-        {
-        isTitleMatchToggle.RegisterValueChangedCallback(_ =>
-        {
-        if (titleDropdown != null)
-        {
-        titleDropdown.SetEnabled(isTitleMatchToggle.value);
-        if (isTitleMatchToggle.value)
-        {
-        if (string.IsNullOrEmpty(titleDropdown.value))
-        PopulateTitleDropdown();
-        PopulateMatchTypeDropdown();
-        }
-        }
-        });
-        }
-        saveMatchButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        // Validate participants (need at least two unique names)
-        var rawNames = new List<string>
-        {
-        wrestlerADropdown?.value?.Trim(),
-        wrestlerBDropdown?.value?.Trim(),
-        wrestlerCDropdown != null ? wrestlerCDropdown.value?.Trim() : null,
-        wrestlerDDropdown != null ? wrestlerDDropdown.value?.Trim() : null
-        };
-        var participants = new List<string>();
-        var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-        bool hasDuplicate = false;
-        foreach (var n in rawNames)
-        {
-        if (string.IsNullOrWhiteSpace(n))
-        continue;
-        if (!seen.Add(n))
-        hasDuplicate = true;
-        else
-        participants.Add(n);
-        }
-        if (participants.Count < 2)
-        {
-        statusLabel.text = "Enter at least two unique participants.";
-        showsPanel?.AddToClassList("editor-full");
-            FocusPanel(matchEditor);
-        return;
-        }
-        if (hasDuplicate)
-        {
-        statusLabel.text = "Duplicate names detected. Participants must be unique.";
-        showsPanel?.AddToClassList("editor-full");
-            FocusPanel(matchEditor);
-        return;
-        }
-        // Validate winner (if provided) must be one of the participants
-        string winnerInput = winnerDropdown != null ? winnerDropdown.value?.Trim() : string.Empty;
-        if (!string.IsNullOrEmpty(winnerInput))
-        {
-        bool winnerValid = false;
-        foreach (var p in participants)
-        {
-        if (string.Equals(p, winnerInput, System.StringComparison.OrdinalIgnoreCase))
-        {
-        winnerValid = true;
-        break;
-        }
-        }
-        if (!winnerValid)
-        {
-        statusLabel.text = "Winner must be one of the participants.";
-        showsPanel?.AddToClassList("editor-full");
-            FocusPanel(matchEditor);
-        return;
-        }
-        }
-        // Write validated names back to fields so MatchData uses them
-        if (wrestlerADropdown != null) wrestlerADropdown.value = participants[0];
-        if (wrestlerBDropdown != null) wrestlerBDropdown.value = participants[1];
-        if (wrestlerCDropdown != null) wrestlerCDropdown.value = participants.Count > 2 ? participants[2] : "";
-        if (wrestlerDDropdown != null) wrestlerDDropdown.value = participants.Count > 3 ? participants[3] : "";
-        var match = new MatchData
-        {
-        id = System.Guid.NewGuid().ToString("N"),
-        matchName = (matchTypeDropdown != null ? matchTypeDropdown.value : ""),
-        wrestlerA = participants.Count > 0 ? participants[0] : "",
-        wrestlerB = participants.Count > 1 ? participants[1] : "",
-        wrestlerC = participants.Count > 2 ? participants[2] : "",
-        wrestlerD = participants.Count > 3 ? participants[3] : "",
-        isTitleMatch = isTitleMatchToggle.value,
-        titleName = (titleDropdown != null ? titleDropdown.value : ""),
-        winner = winnerInput
-        };
-        if (currentEditingShow == null)
-        {
-        statusLabel.text = "⚠️ No active show selected.";
-        return;
-        }
-            currentEditingShow.matches.Add(match);
-            try
+            returnButton.clicked += () =>
             {
-                if (currentEditingShow.entryOrder == null)
-                    currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
-                currentEditingShow.entryOrder.Add($"M:{match.id}");
-            }
-            catch { }
-            // Persist immediately so existing items are never overwritten by subsequent saves
-            DataManager.SavePromotion(currentPromotion);
-        matchEditor.AddToClassList("hidden");
-        RefreshMatchList();
-        statusLabel.text = $"✅ Match '{match.matchName}' added.";
-        ResetDropdown(matchTypeDropdown);
-        ResetDropdown(wrestlerADropdown);
-        ResetDropdown(wrestlerBDropdown);
-        ResetDropdown(wrestlerCDropdown);
-        ResetDropdown(wrestlerDDropdown);
-        isTitleMatchToggle.value = false;
-        if (titleDropdown != null)
-        {
-        // reset to first option (empty or first title)
-        if (titleDropdown.choices != null && titleDropdown.choices.Count > 0)
-        titleDropdown.value = titleDropdown.choices[0];
+                Debug.Log("Returning to Main Menu...");
+                if (PromotionSession.Instance != null)
+                    PromotionSession.Instance.CurrentPromotion = null;
+                if (SceneLoader.Instance != null)
+                    SceneLoader.Instance.LoadScene("MainMenu");
+                else
+                    UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            };
         }
-        if (winnerDropdown != null) { if (winnerDropdown.choices != null && winnerDropdown.choices.Count > 0) winnerDropdown.value = winnerDropdown.choices[0]; }
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showDetails ?? showsPanel);
-        };
-        cancelMatchButton.clicked += () =>
+
+        var closeResultsBtn = root.Q<Button>("historyCloseResultsButton");
+        if (closeResultsBtn != null)
         {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        matchEditor.AddToClassList("hidden");
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showDetails ?? showsPanel);
-        };
-        if (saveSegmentButton != null)
-        {
-        saveSegmentButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        if (currentEditingShow == null)
-        {
-        statusLabel.text = "No active show selected.";
-        return;
+            closeResultsBtn.clicked += () =>
+            {
+                historyResultsPanel?.AddToClassList("hidden");
+                historyShowsPanel?.RemoveFromClassList("hidden");
+                FocusPanel(historyShowsPanel ?? historyPanel);
+            };
         }
-        string name = segmentNameField != null ? segmentNameField.value?.Trim() : string.Empty;
-        string text = segmentTextField != null ? segmentTextField.value?.Trim() : string.Empty;
-        if (string.IsNullOrEmpty(text))
+
+        // Ensure virtualized lists
+        EnsureWrestlerListView();
+        EnsureTitleListView();
+        EnsureShowsListView();
+        EnsureHistoryShowsListView();
+        EnsureRankingsListView();
+        EnsureMatchesOrderListView();
+
+        // Load data for lists
+        if (currentPromotion != null)
         {
-        statusLabel.text = "Enter segment text before saving.";
-        showsPanel?.AddToClassList("editor-full");
-                showsPanel?.AddToClassList("editor-full");
-                FocusPanel(segmentEditor);
-        return;
+            wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
+            titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
+            // Step 2: ensure stable IDs and upgraded entryOrder
+            EnsureStableIdsAndEntryOrder();
         }
-        if (currentEditingShow.segments == null)
-        currentEditingShow.segments = new System.Collections.Generic.List<SegmentData>();
-                currentEditingShow.segments.Add(new SegmentData { id = System.Guid.NewGuid().ToString("N"), name = name, text = text });
-                try
-                {
-                    if (currentEditingShow.entryOrder == null)
-                        currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
-                    var lastSeg = currentEditingShow.segments[currentEditingShow.segments.Count - 1];
-                    currentEditingShow.entryOrder.Add($"S:{lastSeg.id}");
-                }
-                catch { }
-        DataManager.SavePromotion(currentPromotion);
-        segmentEditor?.AddToClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        if (segmentNameField != null) segmentNameField.value = string.Empty;
-        if (segmentTextField != null) segmentTextField.value = string.Empty;
-        statusLabel.text = "Segment added to show.";
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showDetails ?? showsPanel);
-        };
-        }
-        if (cancelSegmentButton != null)
-        {
-        cancelSegmentButton.clicked += () =>
-        {
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        segmentEditor?.AddToClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showDetails ?? showsPanel);
-        };
-        }
-        LoadPromotionData();
-        SetActivePanel(promotionInfoPanel);
-        }
-        // ---------------- Promotion Info ----------------
-        private void LoadPromotionData()
-        {
-        currentPromotion = PromotionSession.Instance?.CurrentPromotion;
-        if (currentPromotion == null)
-        {
-        statusLabel.text = "❌ No promotion loaded!";
-        Debug.LogError("❌ LoadPromotionData: currentPromotion is null");
-        return;
-        }
-        nameLabel.text = $"Name: {currentPromotion.promotionName}";
-        locationLabel.text = $"Location: {currentPromotion.location}";
-        foundedLabel.text = $"Founded: {currentPromotion.foundedYear}";
-        descriptionLabel.text = $"Description: {currentPromotion.description}";
-        wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
-        titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
-        TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
         RefreshWrestlerList();
         RefreshTitleList();
         RefreshShowList();
-        RefreshHistoryPanel();
-        }
-        private void SetEditMode(bool enable)
-        {
-        SetActivePanel(promotionInfoPanel);
-        if (enable)
-        {
-        nameField.value = currentPromotion.promotionName;
-        locationField.value = currentPromotion.location;
-        foundedField.value = currentPromotion.foundedYear;
-        descriptionField.value = currentPromotion.description;
-        nameLabel.AddToClassList("hidden");
-        locationLabel.AddToClassList("hidden");
-        foundedLabel.AddToClassList("hidden");
-        descriptionLabel.AddToClassList("hidden");
-        editPromotionButton?.AddToClassList("hidden");
-        editPanel?.RemoveFromClassList("hidden");
-        FocusPanel(editPanel ?? promotionInfoPanel);
-        }
-        else
-        {
-        nameLabel.RemoveFromClassList("hidden");
-        locationLabel.RemoveFromClassList("hidden");
-        foundedLabel.RemoveFromClassList("hidden");
-        descriptionLabel.RemoveFromClassList("hidden");
-        editPromotionButton?.RemoveFromClassList("hidden");
-        editPanel?.AddToClassList("hidden");
-        }
-        }
-        private void SavePromotionChanges()
-        {
-        currentPromotion.promotionName = nameField.value.Trim();
-        currentPromotion.location = locationField.value.Trim();
-        currentPromotion.foundedYear = foundedField.value.Trim();
-        currentPromotion.description = descriptionField.value.Trim();
-        DataManager.SavePromotion(currentPromotion);
-        LoadPromotionData();
-        SetEditMode(false);
-        statusLabel.text = "💾 Promotion saved!";
-        }
-        // ---------------- Navigation ----------------
-        private void ShowPromotionPanel()
-        {
-        ExitWrestlerEditMode();
-        SetActivePanel(promotionInfoPanel);
-        SetEditMode(false);
-        }
-        private void ShowWrestlersPanel()
-        {
-        if (wrestlerDetails != null && !wrestlerDetails.ClassListContains("hidden"))
-        EnterWrestlerEditMode();
-        else
-        ExitWrestlerEditMode();
-        SetActivePanel(wrestlersPanel);
-        if (wrestlerDetails != null && !wrestlerDetails.ClassListContains("hidden"))
-        FocusPanel(wrestlerDetails);
-        }
-        private void ShowTitlesPanel()
-        {
-        SetActivePanel(titlesPanel);
-        if (titleHistoryList != null)
-        {
-        titleHistoryList.AddToClassList("hidden");
-        titleHistoryList.Clear();
-        }
-        if (selectedTitleIndex < 0)
-        titleAddPanel?.RemoveFromClassList("hidden");
-        if (titleDetails != null && !titleDetails.ClassListContains("hidden"))
-        FocusPanel(titleDetails);
-        else if (titleAddPanel != null)
-        FocusPanel(titleAddPanel);
-        }
-        private void ShowShowsPanel()
-        {
-        ExitWrestlerEditMode();
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        matchEditor?.AddToClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        // Ensure list is visible when not editing a specific show
-        showsPanel?.RemoveFromClassList("editing-show");
-        showsList?.RemoveFromClassList("hidden");
-        if (currentEditingShow == null)
-        {
-        showDetails?.AddToClassList("hidden");
-        showAddPanel?.RemoveFromClassList("hidden");
-        showsPanel?.RemoveFromClassList("editor-full");
-            FocusPanel(showAddPanel ?? showsPanel);
-        }
-        else if (showDetails != null)
-        {
-        FocusPanel(showDetails);
-        }
-        }
-        private void ShowHistoryPanel()
-        {
-        ExitWrestlerEditMode();
-        SetActivePanel(historyPanel);
-        if (historyShowsPanel != null)
-        historyShowsPanel.RemoveFromClassList("hidden");
-        if (historyResultsPanel != null)
-        historyResultsPanel.AddToClassList("hidden");
-        // Hide aggregated sections while using show browser
-        matchHistoryList?.AddToClassList("hidden");
-        titleLineageList?.AddToClassList("hidden");
         PopulateHistoryShowsList();
-        FocusPanel(historyShowsPanel ?? historyPanel);
-        }
-        // ---------------- Rankings ----------------
-        private enum RankCategory { Men, Women, TagTeam }
-        private void ShowRankingsPanel()
-        {
-        ExitWrestlerEditMode();
-        SetActivePanel(rankingsPanel);
         PopulateRankings(RankCategory.Men);
-        FocusPanel(rankingsPanel);
-        }
-        private void PopulateRankings(RankCategory category)
-        {
-        if (rankingsList == null || currentPromotion == null)
-        return;
-        rankingsList.Clear();
-        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
-        // Build a quick lookup for wrestler flags by name
-        var flagByName = new Dictionary<string, (bool isFemale, bool isTagTeam)>(System.StringComparer.OrdinalIgnoreCase);
-        if (wrestlerCollection != null && wrestlerCollection.wrestlers != null)
-        {
-        foreach (var w in wrestlerCollection.wrestlers)
-        {
-        if (!string.IsNullOrEmpty(w.name))
-        flagByName[w.name] = (w.isFemale, w.isTagTeam);
-        }
-        }
-        // Iterate all shows and matches to compile win/loss
-        if (currentPromotion.shows != null)
-        {
-        foreach (var show in currentPromotion.shows)
-        {
-        if (show?.matches == null) continue;
-        foreach (var m in show.matches)
-        {
-        var participants = new List<string>();
-        if (!string.IsNullOrWhiteSpace(m.wrestlerA)) participants.Add(m.wrestlerA.Trim());
-        if (!string.IsNullOrWhiteSpace(m.wrestlerB)) participants.Add(m.wrestlerB.Trim());
-        if (!string.IsNullOrWhiteSpace(m.wrestlerC)) participants.Add(m.wrestlerC.Trim());
-        if (!string.IsNullOrWhiteSpace(m.wrestlerD)) participants.Add(m.wrestlerD.Trim());
-        if (participants.Count < 2)
-        continue;
-        string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
-        foreach (var p in participants)
-        {
-        // Check flags; if unknown, treat as non-matching so we skip
-        flagByName.TryGetValue(p, out var flags);
-        bool include = category switch
-        {
-        RankCategory.Men => !flags.isFemale && !flags.isTagTeam,
-        RankCategory.Women => flags.isFemale && !flags.isTagTeam,
-        RankCategory.TagTeam => flags.isTagTeam,
-        _ => false
-        };
-        if (!include) continue;
-        if (!records.ContainsKey(p)) records[p] = (0, 0);
-        var r = records[p];
-        if (!string.IsNullOrEmpty(winner) && string.Equals(p, winner, System.StringComparison.OrdinalIgnoreCase))
-        r.wins++;
-        else if (!string.IsNullOrEmpty(winner))
-        r.losses++;
-        records[p] = r;
-        }
-        }
-        }
-        }
-        // Sort: wins desc, losses asc, then name
-        foreach (var entry in records.OrderByDescending(e => e.Value.wins).ThenBy(e => e.Value.losses).ThenBy(e => e.Key))
-        {
-        int total = entry.Value.wins + entry.Value.losses;
-        string pct = total > 0 ? ((float)entry.Value.wins / total).ToString("P0") : "0%";
-        rankingsList.Add(new Label($"{entry.Key} — {entry.Value.wins}-{entry.Value.losses} ({pct})"));
-        }
-        if (records.Count == 0)
-        {
-        rankingsList.Add(new Label("No results yet for this category.") { style = { color = Color.gray } });
-        }
-        }
-        private void PopulateHistoryShowsList()
-        {
-        EnsureHistoryShowsListView();
-        if (historyShowsListView == null)
-            return;
-        if (currentPromotion == null || currentPromotion.shows == null || currentPromotion.shows.Count == 0)
-        {
-            historyShowsListView.itemsSource = System.Array.Empty<ShowData>();
-            historyShowsListView.Rebuild();
-            if (historyShowsList != null)
-            {
-                historyShowsList.Clear();
-                historyShowsList.Add(new Label("No shows recorded yet.") { style = { color = Color.gray } });
-            }
-            return;
-        }
-        historyShowsListView.itemsSource = currentPromotion.shows;
-        historyShowsListView.Rebuild();
-    }
-    private void EnsureHistoryShowsListView()
-    {
-        if (historyShowsListView != null)
-            return;
-        var parent = historyShowsList != null ? historyShowsList.parent : historyPanel;
-        historyShowsListView = new ListView
-        {
-            name = "historyShowsListView",
-            selectionType = SelectionType.None
-        };
-        historyShowsListView.style.flexGrow = 1;
-        historyShowsListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
-        historyShowsListView.makeItem = () =>{ var b = new Button(); b.AddToClassList("list-entry");
-            b.RegisterCallback<ClickEvent>(_ =>
-            {
-                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
-                    ShowSelectedShowHistory(currentPromotion.shows[idx]);
-            });
-            return b;
-        };
-        historyShowsListView.bindItem = (ve, i) =>
-        {
-            var b = (Button)ve;
-            if (currentPromotion != null && currentPromotion.shows != null && i >= 0 && i < currentPromotion.shows.Count)
-            {
-                var s = currentPromotion.shows[i];
-                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} - {s?.date}";
-                b.userData = i;
-            }
-            else
-            {
-                b.text = string.Empty;
-                b.userData = -1;
-            }
-        };
-        parent?.Add(historyShowsListView);
-        if (historyShowsList != null)
-            historyShowsList.style.display = DisplayStyle.None;
+
+        // Default panel and status
+        SetActivePanel(promotionInfoPanel ?? root);
+        if (statusLabel != null)
+            statusLabel.text = currentPromotion != null ? $"Loaded: {currentPromotion.promotionName}" : "Ready.";
     }
 
-    private void EnsureMatchesOrderListView()
+    // Panel registration helpers
+    private void RegisterMainPanel(VisualElement panel)
     {
-        if (matchesOrderView != null)
-            return;
-        var parent = matchesList != null ? matchesList.parent : showDetails;
-        if (parent == null)
-            return;
-        matchesOrderView = new ListView
-        {
-            name = "matchesOrderView",
-            selectionType = SelectionType.None,
-            reorderable = true
-        };
-        matchesOrderView.style.flexGrow = 1;
-        matchesOrderView.fixedItemHeight = 36f;
-        matchesOrderView.makeItem = () =>
-        {
-            // Use an enabled Button so it matches other list styles/colors
-            var b = new Button();
-            b.AddToClassList("list-entry");
-            return b;
-        };
-        matchesOrderView.bindItem = (ve, i) =>
-        {
-            var b = (Button)ve;
-            var list = matchesOrderView.itemsSource as System.Collections.Generic.List<string>;
-            if (list != null && i >= 0 && i < list.Count)
-            {
-                var token = list[i];
-                b.text = GetDisplayTextForToken(currentEditingShow, token);
-            }
-            else
-            {
-                b.text = string.Empty;
-            }
-        };
-        // Persist after drag-and-drop reorder
-        matchesOrderView.itemIndexChanged += (from, to) =>
-        {
-            DataManager.SavePromotion(currentPromotion);
-        };
-        parent.Add(matchesOrderView);
-        if (matchesList != null)
-            matchesList.style.display = DisplayStyle.None;
-    }
-
-    private static string GetDisplayTextForToken(ShowData show, string token)
-    {
-        if (show == null || string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') return string.Empty;
-        char kind = token[0];
-        string key = token.Substring(2);
-        int idx;
-        if (!int.TryParse(key, out idx))
-        {
-            if (kind == 'M') idx = FindMatchIndexById(show, key);
-            else if (kind == 'S') idx = FindSegmentIndexById(show, key);
-        }
-        if (idx < 0) return string.Empty;
-        if (kind == 'M')
-        {
-            if (show.matches == null || idx < 0 || idx >= show.matches.Count) return string.Empty;
-            var m = show.matches[idx];
-            var parts = new System.Collections.Generic.List<string>();
-            if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
-            if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
-            if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
-            if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-            string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
-            return string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}";
-        }
-        else if (kind == 'S')
-        {
-            if (show.segments == null || idx < 0 || idx >= show.segments.Count) return string.Empty;
-            var seg = show.segments[idx];
-            var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
-            return $"Segment: {segName}";
-        }
-        return string.Empty;
-    }
-
-    // ----- Stable ID utilities and upgrade -----
-    private static int FindMatchIndexById(ShowData show, string id)
-    {
-        if (show?.matches == null || string.IsNullOrEmpty(id)) return -1;
-        for (int i = 0; i < show.matches.Count; i++)
-        {
-            if (string.Equals(show.matches[i]?.id, id, System.StringComparison.OrdinalIgnoreCase))
-                return i;
-        }
-        return -1;
-    }
-
-    private static int FindSegmentIndexById(ShowData show, string id)
-    {
-        if (show?.segments == null || string.IsNullOrEmpty(id)) return -1;
-        for (int i = 0; i < show.segments.Count; i++)
-        {
-            if (string.Equals(show.segments[i]?.id, id, System.StringComparison.OrdinalIgnoreCase))
-                return i;
-        }
-        return -1;
-    }
-
-    private void EnsureStableIdsAndEntryOrder()
-    {
-        if (currentPromotion == null || currentPromotion.shows == null) return;
-        bool changed = false;
-        foreach (var show in currentPromotion.shows)
-        {
-            // Assign IDs to matches/segments as needed
-            if (show.matches != null)
-            {
-                foreach (var m in show.matches)
-                {
-                    if (m != null && string.IsNullOrEmpty(m.id)) { m.id = System.Guid.NewGuid().ToString("N"); changed = true; }
-                }
-            }
-            if (show.segments != null)
-            {
-                foreach (var s in show.segments)
-                {
-                    if (s != null && string.IsNullOrEmpty(s.id)) { s.id = System.Guid.NewGuid().ToString("N"); changed = true; }
-                }
-            }
-
-            // Upgrade entryOrder tokens from index to id if necessary
-            if (show.entryOrder != null && show.entryOrder.Count > 0)
-            {
-                var upgraded = new System.Collections.Generic.List<string>(show.entryOrder.Count);
-                bool localChanged = false;
-                foreach (var token in show.entryOrder)
-                {
-                    if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
-                    {
-                        continue;
-                    }
-                    char kind = token[0];
-                    string tail = token.Substring(2);
-                    // If already looks like an id (non-numeric), keep as-is
-                    if (!int.TryParse(tail, out int idx))
-                    {
-                        upgraded.Add(token);
-                        continue;
-                    }
-                    // Convert numeric index to id
-                    if (kind == 'M')
-                    {
-                        if (show.matches != null && idx >= 0 && idx < show.matches.Count)
-                        {
-                            string id = show.matches[idx]?.id;
-                            if (!string.IsNullOrEmpty(id)) { upgraded.Add($"M:{id}"); localChanged = true; }
-                        }
-                    }
-                    else if (kind == 'S')
-                    {
-                        if (show.segments != null && idx >= 0 && idx < show.segments.Count)
-                        {
-                            string id = show.segments[idx]?.id;
-                            if (!string.IsNullOrEmpty(id)) { upgraded.Add($"S:{id}"); localChanged = true; }
-                        }
-                    }
-                }
-                if (localChanged)
-                {
-                    show.entryOrder = upgraded;
-                    changed = true;
-                }
-            }
-        }
-        if (changed)
-        {
-            // Persist upgrade so future loads use IDs
-            DataManager.SavePromotion(currentPromotion);
-        }
-    }
-        private void ShowSelectedShowHistory(ShowData show)
-        {
-        if (historyResultsPanel == null || historyShowMatchesList == null)
-        return;
-        historyShowsPanel?.AddToClassList("hidden");
-        historyResultsPanel.RemoveFromClassList("hidden");
-        if (historyResultsHeader != null)
-        {
-        string date = string.IsNullOrEmpty(show?.date) ? "" : $" - {show.date}";
-        historyResultsHeader.text = $"Results: {show?.showName}{date}";
-        }
-        historyShowMatchesList.Clear();
-        bool anyEntries = false;
-        if (show != null && show.entryOrder != null && show.entryOrder.Count > 0)
-        {
-            foreach (var token in show.entryOrder)
-            {
-                if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
-                    continue;
-                char kind = token[0];
-                var key = token.Substring(2);
-                int idx = -1;
-                if (!int.TryParse(key, out idx))
-                {
-                    // treat as ID
-                    if (kind == 'M') idx = FindMatchIndexById(show, key);
-                    else if (kind == 'S') idx = FindSegmentIndexById(show, key);
-                }
-                if (idx < 0) continue;
-                if (kind == 'M')
-                {
-                    if (show.matches == null || idx < 0 || idx >= show.matches.Count) continue;
-                    var match = show.matches[idx];
-                    var entry = new VisualElement();
-                    entry.style.marginBottom = 6;
-                    var parts = new List<string>();
-                    if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
-                    if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
-                    if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
-                    if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-                    entry.Add(new Label(match.matchName));
-                    if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
-                    if (!string.IsNullOrEmpty(match.winner)) entry.Add(new Label($"Winner: {match.winner}"));
-                    if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName)) entry.Add(new Label($"Title: {match.titleName}"));
-                    historyShowMatchesList.Add(entry);
-                    anyEntries = true;
-                }
-                else if (kind == 'S')
-                {
-                    if (show.segments == null || idx < 0 || idx >= show.segments.Count) continue;
-                    var segment = show.segments[idx];
-                    var entry = new VisualElement();
-                    entry.style.marginBottom = 6;
-                    entry.Add(new Label("Segment:"));
-                    entry.Add(new Label(segment.text));
-                    historyShowMatchesList.Add(entry);
-                    anyEntries = true;
-                }
-            }
-        }
-        else
-        {
-            if (show != null && show.matches != null && show.matches.Count > 0)
-            {
-                foreach (var match in show.matches)
-                {
-                    var entry = new VisualElement();
-                    entry.style.marginBottom = 6;
-                    var parts = new List<string>();
-                    if (!string.IsNullOrEmpty(match.wrestlerA)) parts.Add(match.wrestlerA);
-                    if (!string.IsNullOrEmpty(match.wrestlerB)) parts.Add(match.wrestlerB);
-                    if (!string.IsNullOrEmpty(match.wrestlerC)) parts.Add(match.wrestlerC);
-                    if (!string.IsNullOrEmpty(match.wrestlerD)) parts.Add(match.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-                    entry.Add(new Label(match.matchName));
-                    if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
-                    if (!string.IsNullOrEmpty(match.winner)) entry.Add(new Label($"Winner: {match.winner}"));
-                    if (match.isTitleMatch && !string.IsNullOrEmpty(match.titleName)) entry.Add(new Label($"Title: {match.titleName}"));
-                    historyShowMatchesList.Add(entry);
-                    anyEntries = true;
-                }
-            }
-            if (show != null && show.segments != null && show.segments.Count > 0)
-            {
-                foreach (var segment in show.segments)
-                {
-                    var entry = new VisualElement();
-                    entry.style.marginBottom = 6;
-                    entry.Add(new Label("Segment:"));
-                    entry.Add(new Label(segment.text));
-                    historyShowMatchesList.Add(entry);
-                    anyEntries = true;
-                }
-            }
-        }
-        if (!anyEntries)
-        {
-        historyShowMatchesList.Add(new Label("No results for this show yet.") { style = { color = Color.gray } });
-        }
-        FocusPanel(historyResultsPanel);
-        }
-        private void RegisterMainPanel(VisualElement panel)
-        {
-        if (panel == null)
-        return;
-        if (!mainPanels.Contains(panel))
-        mainPanels.Add(panel);
+        if (panel == null) return;
+        if (!mainPanels.Contains(panel)) mainPanels.Add(panel);
         RegisterFocusablePanel(panel);
+    }
+
+    private void RegisterFocusablePanel(params VisualElement[] panels)
+    {
+        if (panels == null) return;
+        foreach (var p in panels)
+        {
+            if (p == null) continue;
+            if (!focusablePanels.Contains(p)) focusablePanels.Add(p);
         }
-        private void RegisterFocusablePanel(params VisualElement[] panels)
+    }
+
+    private void SetActivePanel(VisualElement panel)
+    {
+        if (panel == null) return;
+        foreach (var p in mainPanels)
         {
-        if (panels == null)
-        return;
-        foreach (var panel in panels)
-        {
-        if (panel == null)
-        continue;
-        if (!focusablePanels.Contains(panel))
-        focusablePanels.Add(panel);
-        }
-        }
-        private void EnterWrestlerEditMode()
-        {
-        root?.AddToClassList("editing-wrestler");
-        dashboardChrome?.AddToClassList("hidden");
-        }
-        private void ExitWrestlerEditMode()
-        {
-        root?.RemoveFromClassList("editing-wrestler");
-        dashboardChrome?.RemoveFromClassList("hidden");
-        }
-        private void SetActivePanel(VisualElement panel)
-        {
-        if (panel == null)
-        return;
-        foreach (var mainPanel in mainPanels)
-        {
-        if (mainPanel == null)
-        continue;
-        if (mainPanel == panel)
-        mainPanel.RemoveFromClassList("hidden");
-        else
-        mainPanel.AddToClassList("hidden");
+            if (p == null) continue;
+            if (p == panel) p.RemoveFromClassList("hidden"); else p.AddToClassList("hidden");
         }
         FocusPanel(panel);
-        }
-        private void FocusPanel(VisualElement panel)
-        {
-        if (panel == null)
-        return;
-        if (!focusablePanels.Contains(panel))
-        focusablePanels.Add(panel);
-        foreach (var element in focusablePanels)
-        element?.RemoveFromClassList("focused-panel");
-        panel.AddToClassList("focused-panel");
-        if (root == null)
-        return;
-        root.schedule.Execute(() =>
-        {
-        var scrollParent = panel.GetFirstAncestorOfType<ScrollView>();
-        if (scrollParent != null)
-        scrollParent.ScrollTo(panel);
-        panel.Focus();
-        });
-        }
-        // ---------------- Wrestlers Logic ----------------
-    private void RefreshWrestlerList()
-    {
-        EnsureWrestlerListView();
-        if (wrestlerCollection == null || wrestlerCollection.wrestlers == null)
-        {
-            if (wrestlerListView != null)
-            {
-                wrestlerListView.itemsSource = System.Array.Empty<WrestlerData>();
-                wrestlerListView.Rebuild();
-            }
-            return;
-        }
-        wrestlerListView.itemsSource = wrestlerCollection.wrestlers;
-        wrestlerListView.Rebuild();
     }
 
+    private void FocusPanel(VisualElement panel)
+    {
+        if (panel == null) return;
+        foreach (var p in focusablePanels) p?.RemoveFromClassList("focused-panel");
+        panel.AddToClassList("focused-panel");
+        var scrollParent = panel.GetFirstAncestorOfType<ScrollView>();
+        scrollParent?.ScrollTo(panel);
+        panel.Focus();
+    }
+
+    // Navigation handlers
+    private void ShowPromotionPanel() => SetActivePanel(promotionInfoPanel);
+    private void ShowWrestlersPanel() => SetActivePanel(wrestlersPanel);
+    private void ShowTitlesPanel() => SetActivePanel(titlesPanel);
+    private void ShowShowsPanel() => SetActivePanel(showsPanel);
+    private void ShowHistoryPanel() => SetActivePanel(historyPanel);
+    private void ShowRankingsPanel() => SetActivePanel(rankingsPanel);
+
+    // ----- Virtualized List helpers -----
     private void EnsureWrestlerListView()
     {
-        if (wrestlerListView != null)
-            return;
-
-        var parent = wrestlerList != null ? wrestlerList.parent : wrestlersPanel;
+        if (wrestlerListView != null) return;
+        var parent = wrestlerListScroll != null ? wrestlerListScroll.parent : wrestlersPanel;
         wrestlerListView = new ListView
         {
             name = "wrestlerListView",
-            selectionType = SelectionType.None
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
         };
         wrestlerListView.style.flexGrow = 1;
-        wrestlerListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
-        wrestlerListView.makeItem = () =>{ var b = new Button(); b.AddToClassList("list-entry");
-            b.RegisterCallback<ClickEvent>(_ =>
-            {
-                if (b.userData is int idx)
-                    SelectWrestler(idx);
-            });
+        wrestlerListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
             return b;
         };
         wrestlerListView.bindItem = (ve, i) =>
         {
             var b = (Button)ve;
-            if (wrestlerCollection != null && wrestlerCollection.wrestlers != null && i >= 0 && i < wrestlerCollection.wrestlers.Count)
-            {
-                b.text = $"• {wrestlerCollection.wrestlers[i].name}";
-                b.userData = i;
-            }
-            else
-            {
-                b.text = string.Empty;
-                b.userData = -1;
-            }
+            var list = wrestlerCollection?.wrestlers;
+            if (list != null && i >= 0 && i < list.Count) b.text = list[i].name; else b.text = string.Empty;
         };
-
         parent?.Add(wrestlerListView);
-        if (wrestlerList != null)
-            wrestlerList.style.display = DisplayStyle.None;
+        if (wrestlerListScroll != null) wrestlerListScroll.style.display = DisplayStyle.None;
     }
-        private void AddWrestler()
-        {
-        string name = newWrestlerField.value.Trim();
-        if (string.IsNullOrEmpty(name))
-        {
-        statusLabel.text = "Enter a name first.";
-        return;
-        }
-        if (wrestlerCollection == null)
-        wrestlerCollection = new WrestlerCollection { promotionName = currentPromotion.promotionName };
-        wrestlerCollection.wrestlers.Add(new WrestlerData { name = name, isFemale = (newWrestlerIsFemaleToggle != null && newWrestlerIsFemaleToggle.value), isTagTeam = (newWrestlerIsTagTeamToggle != null && newWrestlerIsTagTeamToggle.value) });
-        newWrestlerField.value = "";
-        if (newWrestlerIsFemaleToggle != null) newWrestlerIsFemaleToggle.value = false;
-        if (newWrestlerIsTagTeamToggle != null) newWrestlerIsTagTeamToggle.value = false;
-        RefreshWrestlerList();
-        FocusPanel(wrestlerAddPanel ?? wrestlersPanel);
-        }
-        private void SelectWrestler(int index)
-        {
-        if (wrestlerCollection == null || index < 0 || index >= wrestlerCollection.wrestlers.Count)
-        return;
-        selectedIndex = index;
-        SetActivePanel(wrestlersPanel);
-        var w = wrestlerCollection.wrestlers[index];
-        promotionInfoPanel.AddToClassList("hidden");
-        titlesPanel.AddToClassList("hidden");
-        wrestlerNameField.value = w.name;
-        if (wrestlerIsTagTeamToggle != null)
-        wrestlerIsTagTeamToggle.value = w.isTagTeam;
-        wrestlerHometownField.value = w.hometown;
-        wrestlerIsFemaleToggle.value = w.isFemale;
-        wrestlerHeightField.value = w.height;
-        wrestlerWeightField.value = w.weight;
-        wrestlerAddPanel.AddToClassList("hidden");
-        wrestlerDetails.RemoveFromClassList("hidden");
-        EnterWrestlerEditMode();
-        FocusPanel(wrestlerDetails);
-        }
-        private void HideWrestlerDetails()
-        {
-        wrestlerDetails.AddToClassList("hidden");
-        wrestlerAddPanel.RemoveFromClassList("hidden");
-        selectedIndex = -1;
-        SetActivePanel(wrestlersPanel);
-        EnterWrestlerEditMode();
-        FocusPanel(wrestlerDetails);
-        }
-        private void SaveSelectedWrestler()
-        {
-        if (selectedIndex < 0 || wrestlerCollection == null) return; if (selectedIndex >= (wrestlerCollection?.wrestlers?.Count ?? 0)) return;
-        var w = wrestlerCollection.wrestlers[selectedIndex];
-        w.name = (wrestlerNameField?.value ?? string.Empty).Trim();
-        if (wrestlerIsTagTeamToggle != null)
-        w.isTagTeam = wrestlerIsTagTeamToggle.value;
-        w.hometown = (wrestlerHometownField?.value ?? string.Empty).Trim();
-        w.isFemale = wrestlerIsFemaleToggle != null && wrestlerIsFemaleToggle.value;
-        if (wrestlerHeightField != null) w.height = wrestlerHeightField.value;
-        if (wrestlerWeightField != null) w.weight = wrestlerWeightField.value;
-        DataManager.SaveWrestlers(wrestlerCollection);
-        RefreshWrestlerList();
-        HideWrestlerDetails();
-        statusLabel.text = "💾 Wrestler saved!";
-        }
-        private void DeleteSelectedWrestler()
-        {
-        if (selectedIndex < 0 || wrestlerCollection == null) return; if (selectedIndex >= (wrestlerCollection?.wrestlers?.Count ?? 0)) return;
-        string name = wrestlerCollection.wrestlers[selectedIndex].name;
-        wrestlerCollection.wrestlers.RemoveAt(selectedIndex);
-        selectedIndex = -1;
-        DataManager.SaveWrestlers(wrestlerCollection);
-        RefreshWrestlerList();
-        HideWrestlerDetails();
-        statusLabel.text = $"🗑️ Deleted {name}";
-        }
-        private void SaveWrestlers()
-        {
-        if (wrestlerCollection != null)
-        DataManager.SaveWrestlers(wrestlerCollection);
-        statusLabel.text = "💾 All wrestlers saved.";
-        }
-        // ---------------- Titles Logic ----------------
-        private void RefreshTitleList()
-        {
-        EnsureTitleListView();
-        if (titleListView == null)
-            return;
-        if (titleCollection == null || titleCollection.titles == null || titleCollection.titles.Count == 0)
-        {
-            titleListView.itemsSource = System.Array.Empty<TitleData>();
-            titleListView.Rebuild();
-            if (titleList != null)
-            {
-                titleList.Clear();
-                titleList.Add(new Label("No titles created yet.") { style = { color = Color.gray } });
-            }
-            PopulateTitleDropdown();
-            PopulateMatchTypeDropdown();
-            PopulateWrestlerDropdowns();
-            return;
-        }
-        titleListView.itemsSource = titleCollection.titles;
-        titleListView.Rebuild();
-        PopulateTitleDropdown();
-        PopulateMatchTypeDropdown();
-        PopulateWrestlerDropdowns();
-        }
 
-        private void EnsureTitleListView()
-        {
-            if (titleListView != null)
-                return;
+    private void RefreshWrestlerList()
+    {
+        if (wrestlerListView == null) return;
+        var src = wrestlerCollection?.wrestlers ?? new List<WrestlerData>();
+        wrestlerListView.itemsSource = src;
+        wrestlerListView.Rebuild();
+    }
 
-            var parent = titleList != null ? titleList.parent : titlesPanel;
-            titleListView = new ListView
-            {
-                name = "titleListView",
-                selectionType = SelectionType.None
-            };
-            titleListView.style.flexGrow = 1;
-            titleListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
-            titleListView.makeItem = () =>
-            {
-                var b = new Button();
-                b.AddToClassList("list-entry");
-                b.RegisterCallback<ClickEvent>(_ =>
-                {
-                    if (b.userData is int idx)
-                        SelectTitle(idx);
-                });
-                return b;
-            };
-            titleListView.bindItem = (ve, i) =>
-            {
-                var b = (Button)ve;
-                if (titleCollection != null && titleCollection.titles != null && i >= 0 && i < titleCollection.titles.Count)
-                {
-                    b.text = titleCollection.titles[i].titleName;
-                    b.userData = i;
-                }
-                else
-                {
-                    b.text = string.Empty;
-                    b.userData = -1;
-                }
-            };
-            parent?.Add(titleListView);
-            if (titleList != null)
-                titleList.style.display = DisplayStyle.None;
-        }
-        private void PopulateWrestlerDropdowns()
+    // --------- Titles (Step 4) ---------
+    private void EnsureTitleListView()
+    {
+        if (titleListView != null) return;
+        var parent = titleListScroll != null ? titleListScroll.parent : titlesPanel;
+        titleListView = new ListView
         {
-        var names = new List<string>();
-        names.Add("");
-        if (wrestlerCollection != null && wrestlerCollection.wrestlers != null)
-        {
-        foreach (var w in wrestlerCollection.wrestlers)
-        if (!string.IsNullOrEmpty(w.name)) names.Add(w.name);
-        }
-        void ApplyChoices(DropdownField dd)
-        {
-        if (dd == null) return;
-        if (dd.choices == null || dd.choices.Count != names.Count || !dd.choices.SequenceEqual(names)) dd.choices = new List<string>(names);
-        if (string.IsNullOrEmpty(dd.value) || !dd.choices.Contains(dd.value))
-        dd.SetValueWithoutNotify(dd.choices.Count > 0 ? dd.choices[0] : "");
-        }
-        ApplyChoices(wrestlerADropdown);
-        ApplyChoices(wrestlerBDropdown);
-        ApplyChoices(wrestlerCDropdown);
-        ApplyChoices(wrestlerDDropdown);
-        UpdateWinnerChoices();
-        }
-        private void UpdateWinnerChoices()
-        {
-        if (winnerDropdown == null)
-        return;
-        var choices = new List<string>();
-        choices.Add("");
-        void AddIfNotEmpty(string s)
-        {
-        if (!string.IsNullOrWhiteSpace(s) && !choices.Contains(s)) choices.Add(s);
-        }
-        AddIfNotEmpty(wrestlerADropdown != null ? wrestlerADropdown.value : null);
-        AddIfNotEmpty(wrestlerBDropdown != null ? wrestlerBDropdown.value : null);
-        AddIfNotEmpty(wrestlerCDropdown != null ? wrestlerCDropdown.value : null);
-        AddIfNotEmpty(wrestlerDDropdown != null ? wrestlerDDropdown.value : null);
-        if (winnerDropdown.choices == null || winnerDropdown.choices.Count != choices.Count || !winnerDropdown.choices.SequenceEqual(choices)) winnerDropdown.choices = choices; if (string.IsNullOrEmpty(winnerDropdown.value) || !choices.Contains(winnerDropdown.value)) winnerDropdown.SetValueWithoutNotify(choices[0]);
-        // Wire change handlers
-        void EnsureHandler(DropdownField dd)
-        {
-        if (dd == null) return;
-        dd.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
-        }
-        if (!winnerHandlersHooked) { EnsureHandler(wrestlerADropdown); EnsureHandler(wrestlerBDropdown); EnsureHandler(wrestlerCDropdown); EnsureHandler(wrestlerDDropdown); winnerHandlersHooked = true; }
-        }
-        private void ResetDropdown(DropdownField dd)
-        {
-        if (dd == null) return;
-        if (dd.choices != null && dd.choices.Count > 0) dd.SetValueWithoutNotify(dd.choices[0]); else dd.SetValueWithoutNotify("");
-        }
-        private void PopulateMatchTypeDropdown()
-        {
-        if (matchTypeDropdown == null)
-        return;
-        var types = new List<string>
-        {
-        "Singles Match",
-        "Tag Team Match",
-        "Triple Threat",
-        "Fatal 4-Way",
-        "Steel Cage",
-        "Hell in a Cell",
-        "Last Man Standing",
-        "Hardcore Match",
-        "Extreme Rules Match",
-        "Iron Man Match",
-        "First Blood Match"
+            name = "titleListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
         };
-        matchTypeDropdown.choices = types;
-        if (string.IsNullOrEmpty(matchTypeDropdown.value) || !types.Contains(matchTypeDropdown.value))
-        matchTypeDropdown.value = types[0];
-        }
-        private void PopulateTitleDropdown()
+        titleListView.style.flexGrow = 1;
+        titleListView.makeItem = () =>
         {
-        if (titleDropdown == null)
-            return;
-        var choices = new List<string>();
-        choices.Add("");
-        if (titleCollection != null && titleCollection.titles != null)
+            var b = new Button(); b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectTitle(idx); });
+            return b;
+        };
+        titleListView.bindItem = (ve, i) =>
         {
-            foreach (var t in titleCollection.titles)
-            {
-                if (!string.IsNullOrEmpty(t.titleName)) choices.Add(t.titleName);
-            }
-        }
-        if (titleDropdown.choices == null || !titleDropdown.choices.SequenceEqual(choices))
-            titleDropdown.choices = choices;
-        string championTitle = null;
-        if (titleCollection != null && titleCollection.titles != null)
-        {
-            foreach (var t in titleCollection.titles)
-            {
-                if (!string.IsNullOrEmpty(t.titleName) && !string.IsNullOrEmpty(t.currentChampion))
-                {
-                    championTitle = t.titleName;
-                    break;
-                }
-            }
-        }
-        if (string.IsNullOrEmpty(titleDropdown.value) || !choices.Contains(titleDropdown.value))
-        {
-            if (!string.IsNullOrEmpty(championTitle) && choices.Contains(championTitle))
-                titleDropdown.SetValueWithoutNotify(championTitle);
-            else
-                titleDropdown.SetValueWithoutNotify(choices.Count > 0 ? choices[0] : "");
-        }
-        if (isTitleMatchToggle != null)
-            titleDropdown.SetEnabled(isTitleMatchToggle.value);
-        }
-        private void AddTitle()
-        {
-        string name = newTitleField.value.Trim();
-        if (string.IsNullOrEmpty(name))
-        {
-        statusLabel.text = "Enter a title name first.";
-        return;
-        }
-        if (titleCollection == null)
-        titleCollection = new TitleCollection { promotionName = currentPromotion.promotionName };
-        titleCollection.titles.Add(new TitleData { titleName = name });
-        newTitleField.value = "";
-        RefreshTitleList();
-        FocusPanel(titleAddPanel ?? titlesPanel);
-        }
-        private void SelectTitle(int index)
-        {
-        if (titleCollection == null || index < 0 || index >= titleCollection.titles.Count)
-        return;
+            var b = (Button)ve;
+            var list = titleCollection?.titles;
+            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].titleName; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(titleListView);
+        if (titleListScroll != null) titleListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshTitleList()
+    {
+        if (titleListView == null) return;
+        var src = titleCollection?.titles ?? new List<TitleData>();
+        titleListView.itemsSource = src;
+        titleListView.Rebuild();
+    }
+
+    private void SelectTitle(int index)
+    {
+        if (titleCollection == null || index < 0 || index >= (titleCollection.titles?.Count ?? 0)) return;
         selectedTitleIndex = index;
-        SetActivePanel(titlesPanel);
         var t = titleCollection.titles[index];
-        promotionInfoPanel.AddToClassList("hidden");
-        wrestlersPanel.AddToClassList("hidden");
-        titleNameField.value = t.titleName;
-        titleDivisionField.value = t.division;
-        titleChampionField.value = t.currentChampion;
-        titleNotesField.value = t.notes;
-        titleAddPanel.AddToClassList("hidden");
-        titleDetails.RemoveFromClassList("hidden");
+        if (titleNameField != null) titleNameField.value = t.titleName;
+        if (titleDivisionField != null) titleDivisionField.value = t.division;
+        if (titleChampionField != null) titleChampionField.value = t.currentChampion;
+        if (titleNotesField != null) titleNotesField.value = t.notes;
+        titleAddPanel?.AddToClassList("hidden");
+        titleDetailsPanel?.RemoveFromClassList("hidden");
         titleHistoryList?.AddToClassList("hidden");
-        titleHistoryList?.Clear();
-        FocusPanel(titleDetails);
-        }
-        private void HideTitleDetails()
-        {
-        titleDetails.AddToClassList("hidden");
-        titleAddPanel.RemoveFromClassList("hidden");
-        selectedTitleIndex = -1;
-        titleHistoryList?.AddToClassList("hidden");
-        titleHistoryList?.Clear();
-        SetActivePanel(titlesPanel);
-        FocusPanel(titleAddPanel ?? titlesPanel);
-        }
-        private void SaveSelectedTitle()
-        {
-        if (selectedTitleIndex < 0 || titleCollection == null)
-        return;
-        var t = titleCollection.titles[selectedTitleIndex];
-        t.titleName = titleNameField.value.Trim();
-        t.division = titleDivisionField.value.Trim();
-        t.currentChampion = titleChampionField.value.Trim();
-        t.notes = titleNotesField.value.Trim();
-        DataManager.SaveTitles(titleCollection);
-        RefreshTitleList();
-        HideTitleDetails();
-        statusLabel.text = $"💾 Saved {t.titleName}";
-        }
-        private void DeleteSelectedTitle()
-        {
-        if (selectedTitleIndex < 0 || titleCollection == null)
-        return;
-        string name = titleCollection.titles[selectedTitleIndex].titleName;
-        titleCollection.titles.RemoveAt(selectedTitleIndex);
-        selectedTitleIndex = -1;
-        DataManager.SaveTitles(titleCollection);
-        RefreshTitleList();
-        HideTitleDetails();
-        statusLabel.text = $"🗑️ Deleted {name}";
-        }
-        private void SaveTitles()
-        {
-        if (titleCollection != null)
-        DataManager.SaveTitles(titleCollection);
-        statusLabel.text = "💾 All titles saved.";
-        }
-        private void ShowSelectedTitleHistory()
-        {
-        if (titleHistoryList == null)
-        return;
-        SetActivePanel(titlesPanel);
+        FocusPanel(titleDetailsPanel ?? titlesPanel);
+    }
+
+    private void ShowSelectedTitleHistory()
+    {
+        if (titleHistoryList == null) return;
         if (currentPromotion == null)
         {
-        statusLabel.text = "❌ No promotion loaded!";
-        return;
+            if (statusLabel != null) statusLabel.text = "No promotion loaded!";
+            return;
         }
-        if (selectedTitleIndex < 0 || titleCollection == null || selectedTitleIndex >= titleCollection.titles.Count)
+        if (selectedTitleIndex < 0 || titleCollection == null || selectedTitleIndex >= (titleCollection.titles?.Count ?? 0))
         {
-        statusLabel.text = "Select a title to view its history.";
-        return;
+            if (statusLabel != null) statusLabel.text = "Select a title to view its history.";
+            return;
         }
         var selectedTitle = titleCollection.titles[selectedTitleIndex];
         var history = TitleHistoryManager.GetHistory(currentPromotion.promotionName, selectedTitle.titleName);
         titleHistoryList.Clear();
         if (history == null || history.Count == 0)
         {
-        var emptyLabel = new Label("No title history recorded yet.") { style = { color = Color.gray } };
-        titleHistoryList.Add(emptyLabel);
+            titleHistoryList.Add(new Label("No title history recorded yet.") { style = { color = new StyleColor(new Color(0.7f,0.7f,0.7f)) } });
         }
         else
         {
-        foreach (var entry in history)
-        {
-        var entryElement = new VisualElement();
-        entryElement.style.marginBottom = 6;
-        entryElement.Add(new Label($"{entry.date} - {entry.matchName}"));
-        entryElement.Add(new Label($"Winner: {entry.winner}"));
-        titleHistoryList.Add(entryElement);
+            foreach (var entry in history)
+            {
+                var el = new VisualElement(); el.style.marginBottom = 6;
+                el.Add(new Label($"{entry.date} - {entry.matchName}"));
+                if (!string.IsNullOrEmpty(entry.winner)) el.Add(new Label($"Winner: {entry.winner}"));
+                titleHistoryList.Add(el);
+            }
         }
-        }
-        titleDetails?.AddToClassList("hidden");
+        titleDetailsPanel?.AddToClassList("hidden");
         titleAddPanel?.AddToClassList("hidden");
         titleHistoryList.RemoveFromClassList("hidden");
         FocusPanel(titleHistoryList);
-        statusLabel.text = $"📜 Showing history for {selectedTitle.titleName}.";
-        }
-        // ---------------- Shows & Matches ----------------
-        private void RefreshShowList()
-        {
-        EnsureShowsListView();
-        if (showsListView == null)
-            return;
-        if (currentPromotion == null || currentPromotion.shows == null)
-        {
-            showsListView.itemsSource = System.Array.Empty<ShowData>();
-            showsListView.Rebuild();
-            return;
-        }
-        showsListView.itemsSource = currentPromotion.shows;
-        showsListView.Rebuild();
-        }
-        private void EditShow(ShowData show)
-        {
-        currentEditingShow = show;
-        originalShowName = show.showName;
-        originalShowDate = show.date;
-        SetActivePanel(showsPanel);
-            showsPanel?.RemoveFromClassList("editor-full");
-        showsPanel?.AddToClassList("editing-show");
-        showsList?.AddToClassList("hidden");
-        showAddPanel.AddToClassList("hidden");
-        showDetails.RemoveFromClassList("hidden");
-        matchesView?.AddToClassList("hidden");
-        showNameField.value = show.showName;
-        showDateField.value = show.date;
-        RefreshMatchList();
-        FocusPanel(showDetails);
-        }
-            private void EnsureShowsListView()
+    }
+
+    private void EnsureShowsListView()
     {
-        if (showsListView != null)
-            return;
-        var parent = showsList != null ? showsList.parent : showsPanel;
+        if (showsListView != null) return;
+        var parent = showsListScroll != null ? showsListScroll.parent : showsPanel;
         showsListView = new ListView
         {
             name = "showsListView",
-            selectionType = SelectionType.None
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
         };
         showsListView.style.flexGrow = 1;
-        showsListView.fixedItemHeight = 36f; // fixed height for smooth virtualization
         showsListView.makeItem = () =>
         {
             var b = new Button();
@@ -1748,178 +396,408 @@ using UnityEngine;
         showsListView.bindItem = (ve, i) =>
         {
             var b = (Button)ve;
-            if (currentPromotion != null && currentPromotion.shows != null && i >= 0 && i < currentPromotion.shows.Count)
+            var shows = currentPromotion?.shows;
+            if (shows != null && i >= 0 && i < shows.Count)
             {
-                var s = currentPromotion.shows[i];
-                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} ({s?.date})";
+                var s = shows[i];
+                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} - {s?.date}";
                 b.userData = i;
             }
-            else
-            {
-                b.text = string.Empty;
-                b.userData = -1;
-            }
+            else { b.text = string.Empty; b.userData = -1; }
         };
         parent?.Add(showsListView);
-        if (showsList != null)
-            showsList.style.display = DisplayStyle.None;
-    }private void RefreshMatchList()
+        if (showsListScroll != null) showsListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshShowList()
+    {
+        if (showsListView == null) return;
+        var shows = currentPromotion?.shows ?? new List<ShowData>();
+        showsListView.itemsSource = shows;
+        showsListView.Rebuild();
+    }
+
+    private void EnsureHistoryShowsListView()
+    {
+        if (historyShowsListView != null) return;
+        var parent = historyShowsListScroll != null ? historyShowsListScroll.parent : historyPanel;
+        historyShowsListView = new ListView
         {
-        // Prefer ListView (drag-reorder) if available
-        if (matchesOrderView != null)
+            name = "historyShowsListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        historyShowsListView.style.flexGrow = 1;
+        historyShowsListView.makeItem = () =>
         {
-            if (currentEditingShow == null)
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ =>
             {
-                matchesOrderView.itemsSource = System.Array.Empty<string>();
-                matchesOrderView.Rebuild();
-                return;
+                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
+                    ShowSelectedShowHistory(currentPromotion.shows[idx]);
+            });
+            return b;
+        };
+        historyShowsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var shows = currentPromotion?.shows;
+            if (shows != null && i >= 0 && i < shows.Count)
+            {
+                var s = shows[i];
+                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} - {s?.date}";
+                b.userData = i;
             }
-            // Ensure entryOrder exists and uses IDs
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(historyShowsListView);
+        if (historyShowsListScroll != null) historyShowsListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void PopulateHistoryShowsList()
+    {
+        if (historyShowsListView == null) return;
+        historyShowsListView.itemsSource = currentPromotion?.shows ?? new List<ShowData>();
+        historyShowsListView.Rebuild();
+    }
+
+    // ----- Drag-and-drop reordering for matches/segments (Step 3) -----
+    private ListView matchesOrderView;
+
+    private void EnsureMatchesOrderListView()
+    {
+        if (matchesView == null) return; // UXML anchor is required
+        if (matchesOrderView != null) return;
+        matchesOrderView = new ListView
+        {
+            name = "matchesOrderView",
+            selectionType = SelectionType.None,
+            reorderable = true,
+            fixedItemHeight = 36f
+        };
+        matchesOrderView.style.flexGrow = 1;
+        matchesOrderView.makeItem = () => { var b = new Button(); b.AddToClassList("list-entry"); return b; };
+        matchesOrderView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = matchesOrderView.itemsSource as List<string>;
+            b.text = GetDisplayTextForToken(currentEditingShow, (list != null && i >= 0 && i < list.Count) ? list[i] : null);
+        };
+        matchesOrderView.itemIndexChanged += (from, to) =>
+        {
+            // itemsSource is entryOrder; Unity UI Toolkit already moved the element.
+            if (currentEditingShow != null)
+                DataManager.SavePromotion(currentPromotion);
+        };
+        matchesView.Add(matchesOrderView);
+    }
+
+    private ShowData currentEditingShow;
+
+    private void EditShow(ShowData show)
+    {
+        currentEditingShow = show;
+        // Seed entryOrder if empty using current order
+        if (currentEditingShow != null)
+        {
             if (currentEditingShow.entryOrder == null)
-                currentEditingShow.entryOrder = new System.Collections.Generic.List<string>();
-            // If empty but we have items, seed it using current order (matches then segments)
+                currentEditingShow.entryOrder = new List<string>();
             if (currentEditingShow.entryOrder.Count == 0)
             {
                 if (currentEditingShow.matches != null)
-                {
                     foreach (var m in currentEditingShow.matches)
                         if (m != null && !string.IsNullOrEmpty(m.id)) currentEditingShow.entryOrder.Add($"M:{m.id}");
-                }
                 if (currentEditingShow.segments != null)
-                {
                     foreach (var s in currentEditingShow.segments)
                         if (s != null && !string.IsNullOrEmpty(s.id)) currentEditingShow.entryOrder.Add($"S:{s.id}");
+            }
+        }
+        RefreshMatchesOrderList();
+        // Reveal the matches view panel so user can reorder
+        matchesView?.RemoveFromClassList("hidden");
+        FocusPanel(matchesView ?? showsPanel);
+    }
+
+    private void RefreshMatchesOrderList()
+    {
+        if (matchesOrderView == null) return;
+        var src = currentEditingShow?.entryOrder ?? new List<string>();
+        matchesOrderView.itemsSource = src;
+        matchesOrderView.Rebuild();
+    }
+
+    private static string GetDisplayTextForToken(ShowData show, string token)
+    {
+        if (show == null || string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') return string.Empty;
+        char kind = token[0]; string key = token.Substring(2);
+        int idx;
+        if (!int.TryParse(key, out idx)) { if (kind == 'M') idx = FindMatchIndexById(show, key); else if (kind == 'S') idx = FindSegmentIndexById(show, key); }
+        if (idx < 0) return string.Empty;
+        if (kind == 'M')
+        {
+            if (show.matches == null || idx < 0 || idx >= show.matches.Count) return string.Empty;
+            var m = show.matches[idx];
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
+            if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
+            if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
+            if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
+            string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+            return string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}";
+        }
+        else if (kind == 'S')
+        {
+            if (show.segments == null || idx < 0 || idx >= show.segments.Count) return string.Empty;
+            var s = show.segments[idx];
+            var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
+            return $"Segment: {segName}";
+        }
+        return string.Empty;
+    }
+
+    private enum RankCategory { Men, Women, TagTeam }
+
+    private void EnsureRankingsListView()
+    {
+        if (rankingsListView != null) return;
+        var parent = rankingsListScroll != null ? rankingsListScroll.parent : rankingsPanel;
+        rankingsListView = new ListView
+        {
+            name = "rankingsListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        rankingsListView.style.flexGrow = 1;
+        rankingsListView.makeItem = () => { var b = new Button(); b.AddToClassList("list-entry"); return b; };
+        rankingsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var items = rankingsListView.itemsSource as List<string>;
+            b.text = (items != null && i >= 0 && i < items.Count) ? items[i] : string.Empty;
+        };
+        parent?.Add(rankingsListView);
+        if (rankingsListScroll != null) rankingsListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void PopulateRankings(RankCategory category)
+    {
+        if (rankingsListView == null || currentPromotion == null) return;
+
+        // Build wrestler flags lookup
+        var flagByName = new Dictionary<string, (bool isFemale, bool isTagTeam)>(System.StringComparer.OrdinalIgnoreCase);
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        if (wrestlerCollection?.wrestlers != null)
+            foreach (var w in wrestlerCollection.wrestlers)
+                if (!string.IsNullOrEmpty(w.name)) flagByName[w.name] = (w.isFemale, w.isTagTeam);
+
+        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+        if (currentPromotion.shows != null)
+        {
+            foreach (var show in currentPromotion.shows)
+            {
+                if (show?.matches == null) continue;
+                foreach (var m in show.matches)
+                {
+                    var parts = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerA)) parts.Add(m.wrestlerA.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerB)) parts.Add(m.wrestlerB.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerC)) parts.Add(m.wrestlerC.Trim());
+                    if (!string.IsNullOrWhiteSpace(m.wrestlerD)) parts.Add(m.wrestlerD.Trim());
+                    if (parts.Count < 2) continue;
+                    string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
+                    foreach (var p in parts)
+                    {
+                        flagByName.TryGetValue(p, out var flags);
+                        bool include = category switch
+                        {
+                            RankCategory.Men => !flags.isFemale && !flags.isTagTeam,
+                            RankCategory.Women => flags.isFemale && !flags.isTagTeam,
+                            RankCategory.TagTeam => flags.isTagTeam,
+                            _ => false
+                        };
+                        if (!include) continue;
+                        if (!records.ContainsKey(p)) records[p] = (0, 0);
+                        var r = records[p];
+                        if (!string.IsNullOrEmpty(winner) && string.Equals(p, winner, System.StringComparison.OrdinalIgnoreCase)) r.wins++; else if (!string.IsNullOrEmpty(winner)) r.losses++;
+                        records[p] = r;
+                    }
                 }
             }
-            matchesOrderView.itemsSource = currentEditingShow.entryOrder;
-            matchesOrderView.Rebuild();
-            return;
         }
-        // Fallback ScrollView rendering if ListView is not present
-        matchesList.Clear();
-        if (currentEditingShow == null)
-            return;
 
-        bool any = false;
-        if (currentEditingShow.entryOrder != null && currentEditingShow.entryOrder.Count > 0)
-        {
-            foreach (var token in currentEditingShow.entryOrder)
+        var items = records
+            .OrderByDescending(e => e.Value.wins)
+            .ThenBy(e => e.Value.losses)
+            .ThenBy(e => e.Key)
+            .Select(e =>
             {
-                if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':')
-                    continue;
-                char kind = token[0];
-                var key = token.Substring(2);
-                int idx = -1;
-                if (!int.TryParse(key, out idx))
+                int total = e.Value.wins + e.Value.losses;
+                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
+                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
+            })
+            .ToList();
+        if (items.Count == 0) items.Add("No results yet for this category.");
+        rankingsListView.itemsSource = items;
+        rankingsListView.Rebuild();
+    }
+
+    // ----- Step 2: Stable IDs + ordered history rendering -----
+    private void EnsureStableIdsAndEntryOrder()
+    {
+        if (currentPromotion?.shows == null) return;
+        bool changed = false;
+        foreach (var show in currentPromotion.shows)
+        {
+            if (show == null) continue;
+            // Assign IDs where missing
+            if (show.matches != null)
+                foreach (var m in show.matches)
+                    if (m != null && string.IsNullOrEmpty(m.id)) { m.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+            if (show.segments != null)
+                foreach (var s in show.segments)
+                    if (s != null && string.IsNullOrEmpty(s.id)) { s.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+
+            // Upgrade numeric entryOrder tokens to IDs
+            if (show.entryOrder != null && show.entryOrder.Count > 0)
+            {
+                var upgraded = new List<string>(show.entryOrder.Count);
+                bool localChanged = false;
+                foreach (var token in show.entryOrder)
                 {
-                    // treat as ID
-                    if (kind == 'M') idx = FindMatchIndexById(currentEditingShow, key);
-                    else if (kind == 'S') idx = FindSegmentIndexById(currentEditingShow, key);
+                    if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') { upgraded.Add(token); continue; }
+                    char kind = token[0];
+                    string tail = token.Substring(2);
+                    if (!int.TryParse(tail, out int idx)) { upgraded.Add(token); continue; }
+                    if (kind == 'M')
+                    {
+                        if (show.matches != null && idx >= 0 && idx < show.matches.Count)
+                        {
+                            var id = show.matches[idx]?.id; if (!string.IsNullOrEmpty(id)) { upgraded.Add($"M:{id}"); localChanged = true; }
+                        }
+                    }
+                    else if (kind == 'S')
+                    {
+                        if (show.segments != null && idx >= 0 && idx < show.segments.Count)
+                        {
+                            var id = show.segments[idx]?.id; if (!string.IsNullOrEmpty(id)) { upgraded.Add($"S:{id}"); localChanged = true; }
+                        }
+                    }
                 }
+                if (localChanged)
+                {
+                    show.entryOrder = upgraded;
+                    changed = true;
+                }
+            }
+        }
+        if (changed)
+        {
+            DataManager.SavePromotion(currentPromotion);
+        }
+    }
+
+    private void ShowSelectedShowHistory(ShowData show)
+    {
+        if (historyResultsPanel == null || historyShowMatchesList == null) return;
+        historyShowsPanel?.AddToClassList("hidden");
+        historyResultsPanel.RemoveFromClassList("hidden");
+        if (historyResultsHeader != null)
+        {
+            string date = string.IsNullOrEmpty(show?.date) ? string.Empty : $" - {show.date}";
+            historyResultsHeader.text = $"Results: {show?.showName}{date}";
+        }
+        historyShowMatchesList.Clear();
+        bool any = false;
+        if (show != null && show.entryOrder != null && show.entryOrder.Count > 0)
+        {
+            foreach (var token in show.entryOrder)
+            {
+                if (string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') continue;
+                char kind = token[0]; string key = token.Substring(2);
+                int idx = -1;
+                if (!int.TryParse(key, out idx)) { if (kind == 'M') idx = FindMatchIndexById(show, key); else if (kind == 'S') idx = FindSegmentIndexById(show, key); }
                 if (idx < 0) continue;
                 if (kind == 'M')
                 {
-                    if (currentEditingShow.matches == null || idx < 0 || idx >= currentEditingShow.matches.Count) continue;
-                    var m = currentEditingShow.matches[idx];
+                    if (show.matches == null || idx < 0 || idx >= show.matches.Count) continue;
+                    var m = show.matches[idx];
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
                     var parts = new List<string>();
                     if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
                     if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
                     if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
                     if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-                    matchesList.Add(new Label(string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}"));
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+                    entry.Add(new Label(m.matchName));
+                    if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
+                    if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
+                    if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
+                    historyShowMatchesList.Add(entry);
                     any = true;
                 }
                 else if (kind == 'S')
                 {
-                    if (currentEditingShow.segments == null || idx < 0 || idx >= currentEditingShow.segments.Count) continue;
-                    var seg = currentEditingShow.segments[idx];
-                    var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
-                    matchesList.Add(new Label($"Segment: {segName}"));
+                    if (show.segments == null || idx < 0 || idx >= show.segments.Count) continue;
+                    var s = show.segments[idx];
+                    var entry = new VisualElement();
+                    entry.style.marginBottom = 6;
+                    var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
+                    entry.Add(new Label($"Segment: {segName}"));
+                    if (!string.IsNullOrEmpty(s?.text)) entry.Add(new Label(s.text));
+                    historyShowMatchesList.Add(entry);
                     any = true;
                 }
             }
         }
         if (!any)
         {
-            // Fallback order if no entryOrder exists
-            if (currentEditingShow.matches != null)
+            // Fallback: matches then segments
+            if (show?.matches != null)
             {
-                foreach (var m in currentEditingShow.matches)
+                foreach (var m in show.matches)
                 {
+                    var entry = new VisualElement(); entry.style.marginBottom = 6;
                     var parts = new List<string>();
                     if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
                     if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
                     if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
                     if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : "";
-                    matchesList.Add(new Label(string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}"));
+                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+                    entry.Add(new Label(m.matchName)); if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
+                    if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
+                    if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
+                    historyShowMatchesList.Add(entry);
                 }
             }
-            if (currentEditingShow.segments != null)
+            if (show?.segments != null)
             {
-                foreach (var seg in currentEditingShow.segments)
+                foreach (var s in show.segments)
                 {
-                    var segName = string.IsNullOrEmpty(seg?.name) ? "Segment" : seg.name;
-                    matchesList.Add(new Label($"Segment: {segName}"));
+                    var entry = new VisualElement(); entry.style.marginBottom = 6;
+                    var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
+                    entry.Add(new Label($"Segment: {segName}")); if (!string.IsNullOrEmpty(s?.text)) entry.Add(new Label(s.text));
+                    historyShowMatchesList.Add(entry);
                 }
             }
         }
-        }
-        private void RefreshHistoryPanel()
-        {
-        RefreshMatchHistoryList();
-        RefreshTitleLineageList();
-        }
-        private void RefreshMatchHistoryList()
-        {
-        if (matchHistoryList == null || currentPromotion == null)
-        return;
-        matchHistoryList.Clear();
-        var results = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName);
-        if (results == null || results.Count == 0)
-        {
-        matchHistoryList.Add(new Label("No match results recorded yet.") { style = { color = Color.gray } });
-        return;
-        }
-        foreach (var result in results)
-        {
-        var entry = new VisualElement();
-        entry.style.marginBottom = 6;
-        entry.Add(new Label(string.IsNullOrEmpty(result.date) ? result.showName : $"{result.date} - {result.showName}"));
-        entry.Add(new Label($"{result.matchName}: {result.wrestlerA} vs {result.wrestlerB}"));
-        if (!string.IsNullOrEmpty(result.winner))
-        entry.Add(new Label($"Winner: {result.winner}"));
-        if (result.isTitleMatch && !string.IsNullOrEmpty(result.titleInvolved))
-        entry.Add(new Label($"Title: {result.titleInvolved}"));
-        matchHistoryList.Add(entry);
-        }
-        }
-        private void RefreshTitleLineageList()
-        {
-        if (titleLineageList == null || currentPromotion == null)
-        return;
-        titleLineageList.Clear();
-        var lineages = TitleHistoryManager.GetTitleLineages(currentPromotion.promotionName);
-        if (lineages == null || lineages.Count == 0)
-        {
-        titleLineageList.Add(new Label("No title reigns recorded yet.") { style = { color = Color.gray } });
-        return;
-        }
-        foreach (var lineage in lineages)
-        {
-        var titleHeader = new Label(lineage.titleName) { style = { unityFontStyleAndWeight = FontStyle.Bold } };
-        titleLineageList.Add(titleHeader);
-        if (lineage.reigns == null || lineage.reigns.Count == 0)
-        continue;
-        foreach (var reign in lineage.reigns)
-        {
-        string reignRange = string.IsNullOrEmpty(reign.dateLost) ? $"{reign.dateWon} - Present" : $"{reign.dateWon} - {reign.dateLost}";
-        var reignLabel = new Label($"{reignRange}: {reign.championName} ({reign.eventName})");
-        reignLabel.style.marginLeft = 10;
-        titleLineageList.Add(reignLabel);
-        }
-        }
-        }
-        }
-        
+        FocusPanel(historyResultsPanel);
+    }
+
+    private static int FindMatchIndexById(ShowData show, string id)
+    {
+        if (show?.matches == null || string.IsNullOrEmpty(id)) return -1;
+        for (int i = 0; i < show.matches.Count; i++)
+            if (string.Equals(show.matches[i]?.id, id, System.StringComparison.OrdinalIgnoreCase)) return i;
+        return -1;
+    }
+
+    private static int FindSegmentIndexById(ShowData show, string id)
+    {
+        if (show?.segments == null || string.IsNullOrEmpty(id)) return -1;
+        for (int i = 0; i < show.segments.Count; i++)
+            if (string.Equals(show.segments[i]?.id, id, System.StringComparison.OrdinalIgnoreCase)) return i;
+        return -1;
+    }
+}
