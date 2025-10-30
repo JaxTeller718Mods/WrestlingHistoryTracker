@@ -33,6 +33,13 @@ public class PromotionDashboard : MonoBehaviour
     private ListView wrestlerListView, showsListView, historyShowsListView, rankingsListView;
     private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton;
     private WrestlerCollection wrestlerCollection;
+    // Wrestler UI
+    private VisualElement wrestlerDetails, wrestlerAddPanel;
+    private TextField wrestlerNameField, wrestlerHometownField, newWrestlerField;
+    private Toggle wrestlerIsTagTeamToggle, wrestlerIsFemaleToggle, newWrestlerIsFemaleToggle, newWrestlerIsTagTeamToggle;
+    private FloatField wrestlerHeightField, wrestlerWeightField;
+    private Button addWrestlerButton, saveWrestlersButton, saveWrestlerButton, deleteWrestlerButton, cancelEditButton;
+    private int selectedWrestlerIndex = -1;
     // Titles (Step 4)
     private ScrollView titleListScroll, titleHistoryList;
     private ListView titleListView;
@@ -115,6 +122,23 @@ public class PromotionDashboard : MonoBehaviour
 
         // Query list ScrollViews/buttons used as anchors in UXML
         wrestlerListScroll = root.Q<ScrollView>("wrestlerList");
+        // Wrestler details/add panel
+        wrestlerDetails = root.Q<VisualElement>("wrestlerDetails");
+        wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
+        wrestlerNameField = root.Q<TextField>("wrestlerNameField");
+        wrestlerHometownField = root.Q<TextField>("wrestlerHometownField");
+        wrestlerIsTagTeamToggle = root.Q<Toggle>("wrestlerIsTagTeamToggle");
+        wrestlerIsFemaleToggle = root.Q<Toggle>("wrestlerIsFemaleToggle");
+        wrestlerHeightField = root.Q<FloatField>("wrestlerHeightField");
+        wrestlerWeightField = root.Q<FloatField>("wrestlerWeightField");
+        newWrestlerField = root.Q<TextField>("newWrestlerField");
+        newWrestlerIsFemaleToggle = root.Q<Toggle>("newWrestlerIsFemaleToggle");
+        newWrestlerIsTagTeamToggle = root.Q<Toggle>("newWrestlerIsTagTeamToggle");
+        addWrestlerButton = root.Q<Button>("addWrestlerButton");
+        saveWrestlersButton = root.Q<Button>("saveWrestlersButton");
+        saveWrestlerButton = root.Q<Button>("saveWrestlerButton");
+        deleteWrestlerButton = root.Q<Button>("deleteWrestlerButton");
+        cancelEditButton = root.Q<Button>("cancelEditButton");
         titleListScroll = root.Q<ScrollView>("titleList");
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
         showsListScroll = root.Q<ScrollView>("showsList");
@@ -167,6 +191,12 @@ public class PromotionDashboard : MonoBehaviour
         if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
         if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
+        // Wrestlers handlers
+        if (addWrestlerButton != null) addWrestlerButton.clicked += OnAddWrestler;
+        if (saveWrestlersButton != null) saveWrestlersButton.clicked += OnSaveWrestlers;
+        if (saveWrestlerButton != null) saveWrestlerButton.clicked += OnSaveSelectedWrestler;
+        if (deleteWrestlerButton != null) deleteWrestlerButton.clicked += OnDeleteSelectedWrestler;
+        if (cancelEditButton != null) cancelEditButton.clicked += OnCancelEditWrestler;
         // Promotion info handlers
         if (editPromotionButton != null) editPromotionButton.clicked += ShowPromotionEditPanel;
         if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
@@ -337,13 +367,15 @@ public class PromotionDashboard : MonoBehaviour
         {
             var b = new Button();
             b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectWrestler(idx); });
             return b;
         };
         wrestlerListView.bindItem = (ve, i) =>
         {
             var b = (Button)ve;
             var list = wrestlerCollection?.wrestlers;
-            if (list != null && i >= 0 && i < list.Count) b.text = list[i].name; else b.text = string.Empty;
+            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].name; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
         };
         parent?.Add(wrestlerListView);
         if (wrestlerListScroll != null) wrestlerListScroll.style.display = DisplayStyle.None;
@@ -355,6 +387,93 @@ public class PromotionDashboard : MonoBehaviour
         var src = wrestlerCollection?.wrestlers ?? new List<WrestlerData>();
         wrestlerListView.itemsSource = src;
         wrestlerListView.Rebuild();
+    }
+
+    private void OnAddWrestler()
+    {
+        if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
+        var name = newWrestlerField != null ? (newWrestlerField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name)) { if (statusLabel != null) statusLabel.text = "Enter a wrestler name."; return; }
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName) ?? new WrestlerCollection { promotionName = currentPromotion.promotionName };
+        if (wrestlerCollection.promotionName != currentPromotion.promotionName)
+            wrestlerCollection.promotionName = currentPromotion.promotionName;
+
+        // Prevent duplicate names (case-insensitive)
+        if (wrestlerCollection.wrestlers != null && wrestlerCollection.wrestlers.Any(w => !string.IsNullOrEmpty(w?.name) && string.Equals(w.name.Trim(), name, System.StringComparison.OrdinalIgnoreCase)))
+        {
+            if (statusLabel != null) statusLabel.text = "Wrestler already exists.";
+            return;
+        }
+
+        var isFemale = newWrestlerIsFemaleToggle != null && newWrestlerIsFemaleToggle.value;
+        var isTag = newWrestlerIsTagTeamToggle != null && newWrestlerIsTagTeamToggle.value;
+        var newW = new WrestlerData(name) { isFemale = isFemale, isTagTeam = isTag };
+        wrestlerCollection.wrestlers ??= new List<WrestlerData>();
+        wrestlerCollection.wrestlers.Add(newW);
+
+        DataManager.SaveWrestlers(wrestlerCollection);
+        RefreshWrestlerList();
+        if (newWrestlerField != null) newWrestlerField.value = string.Empty;
+        if (newWrestlerIsFemaleToggle != null) newWrestlerIsFemaleToggle.value = false;
+        if (newWrestlerIsTagTeamToggle != null) newWrestlerIsTagTeamToggle.value = false;
+        if (statusLabel != null) statusLabel.text = "Wrestler added.";
+    }
+
+    private void OnSaveWrestlers()
+    {
+        if (currentPromotion == null || wrestlerCollection == null) return;
+        wrestlerCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveWrestlers(wrestlerCollection);
+        if (statusLabel != null) statusLabel.text = "Wrestlers saved.";
+    }
+
+    private void SelectWrestler(int index)
+    {
+        if (wrestlerCollection?.wrestlers == null || index < 0 || index >= wrestlerCollection.wrestlers.Count) return;
+        selectedWrestlerIndex = index;
+        var w = wrestlerCollection.wrestlers[index];
+        if (wrestlerDetails != null) wrestlerDetails.RemoveFromClassList("hidden");
+        if (wrestlerNameField != null) wrestlerNameField.value = w.name;
+        if (wrestlerHometownField != null) wrestlerHometownField.value = w.hometown;
+        if (wrestlerIsFemaleToggle != null) wrestlerIsFemaleToggle.value = w.isFemale;
+        if (wrestlerIsTagTeamToggle != null) wrestlerIsTagTeamToggle.value = w.isTagTeam;
+        if (wrestlerHeightField != null) wrestlerHeightField.value = w.height;
+        if (wrestlerWeightField != null) wrestlerWeightField.value = w.weight;
+        FocusPanel(wrestlerDetails ?? wrestlersPanel);
+    }
+
+    private void OnSaveSelectedWrestler()
+    {
+        if (wrestlerCollection?.wrestlers == null || selectedWrestlerIndex < 0 || selectedWrestlerIndex >= wrestlerCollection.wrestlers.Count) return;
+        var w = wrestlerCollection.wrestlers[selectedWrestlerIndex];
+        if (wrestlerNameField != null) w.name = wrestlerNameField.value;
+        if (wrestlerHometownField != null) w.hometown = wrestlerHometownField.value;
+        if (wrestlerIsFemaleToggle != null) w.isFemale = wrestlerIsFemaleToggle.value;
+        if (wrestlerIsTagTeamToggle != null) w.isTagTeam = wrestlerIsTagTeamToggle.value;
+        if (wrestlerHeightField != null) w.height = wrestlerHeightField.value;
+        if (wrestlerWeightField != null) w.weight = wrestlerWeightField.value;
+        DataManager.SaveWrestlers(wrestlerCollection);
+        RefreshWrestlerList();
+        if (statusLabel != null) statusLabel.text = "Wrestler updated.";
+    }
+
+    private void OnDeleteSelectedWrestler()
+    {
+        if (wrestlerCollection?.wrestlers == null || selectedWrestlerIndex < 0 || selectedWrestlerIndex >= wrestlerCollection.wrestlers.Count) return;
+        wrestlerCollection.wrestlers.RemoveAt(selectedWrestlerIndex);
+        selectedWrestlerIndex = -1;
+        DataManager.SaveWrestlers(wrestlerCollection);
+        RefreshWrestlerList();
+        if (wrestlerDetails != null) wrestlerDetails.AddToClassList("hidden");
+        if (statusLabel != null) statusLabel.text = "Wrestler deleted.";
+    }
+
+    private void OnCancelEditWrestler()
+    {
+        if (wrestlerDetails != null) wrestlerDetails.AddToClassList("hidden");
+        selectedWrestlerIndex = -1;
+        FocusPanel(wrestlersPanel);
     }
 
     // --------- Titles (Step 4) ---------
