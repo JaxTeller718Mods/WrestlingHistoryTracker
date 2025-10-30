@@ -883,6 +883,10 @@ public class PromotionDashboard : MonoBehaviour
         UpdateWinnerChoices();
         matchEditor?.RemoveFromClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
+        // Hide redundant panels while editing
+        showDetailsPanel?.AddToClassList("hidden");
+        showsListView?.AddToClassList("hidden");
+        showAddPanel?.AddToClassList("hidden");
         FocusPanel(matchEditor ?? showDetailsPanel ?? showsPanel);
         RegisterWinnerAutoUpdate(wrestlerADropdown);
         RegisterWinnerAutoUpdate(wrestlerBDropdown);
@@ -904,6 +908,10 @@ public class PromotionDashboard : MonoBehaviour
         if (segmentTextField != null) segmentTextField.value = string.Empty;
         segmentEditor?.RemoveFromClassList("hidden");
         matchEditor?.AddToClassList("hidden");
+        // Hide redundant panels while editing
+        showDetailsPanel?.AddToClassList("hidden");
+        showsListView?.AddToClassList("hidden");
+        showAddPanel?.AddToClassList("hidden");
         FocusPanel(segmentEditor ?? showDetailsPanel ?? showsPanel);
     }
 
@@ -943,6 +951,9 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SavePromotion(currentPromotion);
         if (statusLabel != null) statusLabel.text = "Match added.";
         matchEditor?.AddToClassList("hidden");
+        // Restore panels
+        showDetailsPanel?.RemoveFromClassList("hidden");
+        showsListView?.RemoveFromClassList("hidden");
         FocusPanel(showDetailsPanel ?? showsPanel);
         PopulateHistoryShowsList();
         RefreshShowList();
@@ -963,6 +974,9 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SavePromotion(currentPromotion);
         if (statusLabel != null) statusLabel.text = "Segment added.";
         segmentEditor?.AddToClassList("hidden");
+        // Restore panels
+        showDetailsPanel?.RemoveFromClassList("hidden");
+        showsListView?.RemoveFromClassList("hidden");
         FocusPanel(showDetailsPanel ?? showsPanel);
         PopulateHistoryShowsList();
         RefreshShowList();
