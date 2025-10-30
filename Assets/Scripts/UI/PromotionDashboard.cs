@@ -57,9 +57,15 @@ public class PromotionDashboard : MonoBehaviour
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
 
-    // Shows add/save UI (basic)
-    private TextField newShowField, newShowDateField;
-    private Button addShowButton, saveShowsButton;
+    // Shows UI (details + editors)
+    private VisualElement showDetailsPanel, matchEditor, segmentEditor;
+    private TextField newShowField, newShowDateField, showNameField, showDateField;
+    private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
+    private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
+    private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
+    private Toggle isTitleMatchToggle;
+    private TextField segmentNameField, segmentTextField;
+    private int selectedShowIndex = -1;
 
     private void OnEnable()
     {
@@ -167,6 +173,32 @@ public class PromotionDashboard : MonoBehaviour
         newShowDateField = root.Q<TextField>("newShowDateField");
         addShowButton = root.Q<Button>("addShowButton");
         saveShowsButton = root.Q<Button>("saveShowsButton");
+        // Show details and editors
+        showDetailsPanel = root.Q<VisualElement>("showDetails");
+        showNameField = root.Q<TextField>("showNameField");
+        showDateField = root.Q<TextField>("showDateField");
+        saveShowButton = root.Q<Button>("saveShowButton");
+        deleteShowButton = root.Q<Button>("deleteShowButton");
+        cancelShowButton = root.Q<Button>("cancelShowButton");
+        viewMatchesButton = root.Q<Button>("viewMatchesButton");
+        addMatchButton = root.Q<Button>("addMatchButton");
+        addSegmentButton = root.Q<Button>("addSegmentButton");
+        matchEditor = root.Q<VisualElement>("matchEditor");
+        segmentEditor = root.Q<VisualElement>("segmentEditor");
+        matchTypeDropdown = root.Q<DropdownField>("matchTypeDropdown");
+        wrestlerADropdown = root.Q<DropdownField>("wrestlerADropdown");
+        wrestlerBDropdown = root.Q<DropdownField>("wrestlerBDropdown");
+        wrestlerCDropdown = root.Q<DropdownField>("wrestlerCDropdown");
+        wrestlerDDropdown = root.Q<DropdownField>("wrestlerDDropdown");
+        isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
+        titleDropdown = root.Q<DropdownField>("titleDropdown");
+        winnerDropdown = root.Q<DropdownField>("winnerDropdown");
+        saveMatchButton = root.Q<Button>("saveMatchButton");
+        cancelMatchButton = root.Q<Button>("cancelMatchButton");
+        segmentNameField = root.Q<TextField>("segmentNameField");
+        segmentTextField = root.Q<TextField>("segmentTextField");
+        saveSegmentButton = root.Q<Button>("saveSegmentButton");
+        cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
         newTitleField = root.Q<TextField>("newTitleField");
         addTitleButton = root.Q<Button>("addTitleButton");
         saveTitlesButton = root.Q<Button>("saveTitlesButton");
@@ -227,6 +259,23 @@ public class PromotionDashboard : MonoBehaviour
         if (editPromotionButton != null) editPromotionButton.clicked += ShowPromotionEditPanel;
         if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
         if (cancelPromotionButton != null) cancelPromotionButton.clicked += HidePromotionEditPanel;
+        // Shows handlers
+        if (addShowButton != null) addShowButton.clicked += OnAddShow;
+        if (saveShowsButton != null) saveShowsButton.clicked += OnSaveShows;
+        if (saveShowButton != null) saveShowButton.clicked += OnSaveSelectedShow;
+        if (deleteShowButton != null) deleteShowButton.clicked += OnDeleteSelectedShow;
+        if (cancelShowButton != null) cancelShowButton.clicked += OnCancelEditShow;
+        if (viewMatchesButton != null) viewMatchesButton.clicked += () =>
+        {
+            if (selectedShowIndex >= 0 && currentPromotion?.shows != null && selectedShowIndex < currentPromotion.shows.Count)
+                EditShow(currentPromotion.shows[selectedShowIndex]);
+        };
+        if (addMatchButton != null) addMatchButton.clicked += ShowMatchEditor;
+        if (addSegmentButton != null) addSegmentButton.clicked += ShowSegmentEditor;
+        if (saveMatchButton != null) saveMatchButton.clicked += SaveMatch;
+        if (cancelMatchButton != null) cancelMatchButton.clicked += () => { matchEditor?.AddToClassList("hidden"); FocusPanel(showDetailsPanel ?? showsPanel); };
+        if (saveSegmentButton != null) saveSegmentButton.clicked += SaveSegment;
+        if (cancelSegmentButton != null) cancelSegmentButton.clicked += () => { segmentEditor?.AddToClassList("hidden"); FocusPanel(showDetailsPanel ?? showsPanel); };
         if (returnButton != null)
         {
             returnButton.clicked += () =>
@@ -679,8 +728,7 @@ public class PromotionDashboard : MonoBehaviour
             b.AddToClassList("list-entry");
             b.RegisterCallback<ClickEvent>(_ =>
             {
-                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
-                    EditShow(currentPromotion.shows[idx]);
+                if (b.userData is int idx) SelectShow(idx);
             });
             return b;
         };
@@ -744,6 +792,185 @@ public class PromotionDashboard : MonoBehaviour
         if (currentPromotion == null) return;
         DataManager.SavePromotion(currentPromotion);
         if (statusLabel != null) statusLabel.text = "Shows saved.";
+    }
+
+    private void SelectShow(int index)
+    {
+        if (currentPromotion?.shows == null || index < 0 || index >= currentPromotion.shows.Count) return;
+        selectedShowIndex = index;
+        var s = currentPromotion.shows[index];
+        showDetailsPanel?.RemoveFromClassList("hidden");
+        matchEditor?.AddToClassList("hidden");
+        segmentEditor?.AddToClassList("hidden");
+        if (showNameField != null) showNameField.value = s.showName;
+        if (showDateField != null) showDateField.value = s.date;
+        FocusPanel(showDetailsPanel ?? showsPanel);
+    }
+
+    private void OnSaveSelectedShow()
+    {
+        if (currentPromotion?.shows == null || selectedShowIndex < 0 || selectedShowIndex >= currentPromotion.shows.Count) return;
+        var s = currentPromotion.shows[selectedShowIndex];
+        if (showNameField != null) s.showName = showNameField.value;
+        if (showDateField != null) s.date = showDateField.value;
+        DataManager.SavePromotion(currentPromotion);
+        RefreshShowList();
+        if (statusLabel != null) statusLabel.text = "Show updated.";
+    }
+
+    private void OnDeleteSelectedShow()
+    {
+        if (currentPromotion?.shows == null || selectedShowIndex < 0 || selectedShowIndex >= currentPromotion.shows.Count) return;
+        currentPromotion.shows.RemoveAt(selectedShowIndex);
+        selectedShowIndex = -1;
+        DataManager.SavePromotion(currentPromotion);
+        RefreshShowList();
+        showDetailsPanel?.AddToClassList("hidden");
+        if (statusLabel != null) statusLabel.text = "Show deleted.";
+    }
+
+    private void OnCancelEditShow()
+    {
+        showDetailsPanel?.AddToClassList("hidden");
+        selectedShowIndex = -1;
+        FocusPanel(showsPanel);
+    }
+
+    private void ShowMatchEditor()
+    {
+        if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        EnsureRosterAndTitlesLoaded();
+        var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
+        if (names.Count == 0) names.Add(string.Empty);
+        SetChoices(wrestlerADropdown, names);
+        SetChoices(wrestlerBDropdown, names);
+        var optNames = new List<string>(names); if (!optNames.Contains(string.Empty)) optNames.Insert(0, string.Empty);
+        SetChoices(wrestlerCDropdown, optNames);
+        SetChoices(wrestlerDDropdown, optNames);
+        var titleNames = titleCollection?.titles?.Where(t => !string.IsNullOrEmpty(t?.titleName))?.Select(t => t.titleName).OrderBy(n => n).ToList() ?? new List<string>();
+        if (!titleNames.Contains(string.Empty)) titleNames.Insert(0, string.Empty);
+        SetChoices(titleDropdown, titleNames);
+        if (isTitleMatchToggle != null) isTitleMatchToggle.value = false;
+        if (titleDropdown != null) titleDropdown.SetEnabled(false);
+        UpdateWinnerChoices();
+        matchEditor?.RemoveFromClassList("hidden");
+        segmentEditor?.AddToClassList("hidden");
+        FocusPanel(matchEditor ?? showDetailsPanel ?? showsPanel);
+        RegisterWinnerAutoUpdate(wrestlerADropdown);
+        RegisterWinnerAutoUpdate(wrestlerBDropdown);
+        RegisterWinnerAutoUpdate(wrestlerCDropdown);
+        RegisterWinnerAutoUpdate(wrestlerDDropdown);
+        if (isTitleMatchToggle != null)
+        {
+            isTitleMatchToggle.RegisterValueChangedCallback(evt =>
+            {
+                titleDropdown?.SetEnabled(evt.newValue);
+            });
+        }
+    }
+
+    private void ShowSegmentEditor()
+    {
+        if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        if (segmentNameField != null) segmentNameField.value = string.Empty;
+        if (segmentTextField != null) segmentTextField.value = string.Empty;
+        segmentEditor?.RemoveFromClassList("hidden");
+        matchEditor?.AddToClassList("hidden");
+        FocusPanel(segmentEditor ?? showDetailsPanel ?? showsPanel);
+    }
+
+    private void SaveMatch()
+    {
+        if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        var A = wrestlerADropdown?.value?.Trim();
+        var B = wrestlerBDropdown?.value?.Trim();
+        var C = wrestlerCDropdown?.value?.Trim();
+        var D = wrestlerDDropdown?.value?.Trim();
+        var have = new List<string>();
+        if (!string.IsNullOrEmpty(A)) have.Add(A);
+        if (!string.IsNullOrEmpty(B)) have.Add(B);
+        if (!string.IsNullOrEmpty(C)) have.Add(C);
+        if (!string.IsNullOrEmpty(D)) have.Add(D);
+        if (have.Count < 2) { if (statusLabel != null) statusLabel.text = "Select at least two wrestlers."; return; }
+        string type = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
+        string matchName = $"{type}: {string.Join(" vs ", have)}";
+        string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
+        var m = new MatchData
+        {
+            id = System.Guid.NewGuid().ToString("N"),
+            matchName = matchName,
+            wrestlerA = A,
+            wrestlerB = B,
+            wrestlerC = C,
+            wrestlerD = D,
+            isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value,
+            titleName = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? titleDropdown.value : null,
+            winner = winner
+        };
+        var show = currentPromotion.shows[selectedShowIndex];
+        show.matches ??= new List<MatchData>();
+        show.matches.Add(m);
+        show.entryOrder ??= new List<string>();
+        show.entryOrder.Add($"M:{m.id}");
+        DataManager.SavePromotion(currentPromotion);
+        if (statusLabel != null) statusLabel.text = "Match added.";
+        matchEditor?.AddToClassList("hidden");
+        FocusPanel(showDetailsPanel ?? showsPanel);
+        PopulateHistoryShowsList();
+        RefreshShowList();
+    }
+
+    private void SaveSegment()
+    {
+        if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        var name = segmentNameField != null ? (segmentNameField.value ?? string.Empty).Trim() : string.Empty;
+        var text = segmentTextField != null ? (segmentTextField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(text)) { if (statusLabel != null) statusLabel.text = "Enter a segment name or text."; return; }
+        var s = new SegmentData { id = System.Guid.NewGuid().ToString("N"), name = name, text = text };
+        var show = currentPromotion.shows[selectedShowIndex];
+        show.segments ??= new List<SegmentData>();
+        show.segments.Add(s);
+        show.entryOrder ??= new List<string>();
+        show.entryOrder.Add($"S:{s.id}");
+        DataManager.SavePromotion(currentPromotion);
+        if (statusLabel != null) statusLabel.text = "Segment added.";
+        segmentEditor?.AddToClassList("hidden");
+        FocusPanel(showDetailsPanel ?? showsPanel);
+        PopulateHistoryShowsList();
+        RefreshShowList();
+    }
+
+    private void RegisterWinnerAutoUpdate(DropdownField field)
+    {
+        if (field == null) return;
+        field.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
+    }
+
+    private void UpdateWinnerChoices()
+    {
+        if (winnerDropdown == null) return;
+        var names = new List<string>();
+        void add(string v) { if (!string.IsNullOrEmpty(v) && !names.Contains(v)) names.Add(v); }
+        add(wrestlerADropdown?.value);
+        add(wrestlerBDropdown?.value);
+        add(wrestlerCDropdown?.value);
+        add(wrestlerDDropdown?.value);
+        if (names.Count == 0) names.Add(string.Empty);
+        SetChoices(winnerDropdown, names);
+    }
+
+    private void SetChoices(DropdownField dropdown, List<string> choices)
+    {
+        if (dropdown == null) return;
+        dropdown.choices = choices ?? new List<string>();
+        dropdown.value = dropdown.choices.Count > 0 ? dropdown.choices[0] : string.Empty;
+    }
+
+    private void EnsureRosterAndTitlesLoaded()
+    {
+        if (currentPromotion == null) return;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        titleCollection ??= DataManager.LoadTitles(currentPromotion.promotionName);
     }
 
     private void EnsureHistoryShowsListView()
