@@ -53,6 +53,8 @@ public class PromotionDashboard : MonoBehaviour
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    // Persist per-title match history toggle (by promotion + title)
+    private readonly Dictionary<string, bool> titleHistoryToggleByTitle = new Dictionary<string, bool>(System.StringComparer.OrdinalIgnoreCase);
     // Title stats UI
     private VisualElement titleStatsPanel; // legacy stats block under details (hidden)
     private VisualElement titleStatsView;  // standalone stats panel opened from history
@@ -828,14 +830,21 @@ public class PromotionDashboard : MonoBehaviour
             row.Add(new Label($"{s.championName} ({span})"));
             titleHistoryList.Add(row);
         }
-        // View Stats button
+        // Controls row: View Stats + toggle match history
+        var controlsRow = new VisualElement();
+        controlsRow.style.flexDirection = FlexDirection.Row;
         var statsBtn = new Button(() => ShowTitleStatsPanel(selectedTitle.titleName)) { text = "View Stats" };
+        bool showHistory = GetTitleHistoryToggle(currentPromotion.promotionName, selectedTitle.titleName);
+        var toggleBtn = new Button(() => { var nv = !GetTitleHistoryToggle(currentPromotion.promotionName, selectedTitle.titleName); SetTitleHistoryToggle(currentPromotion.promotionName, selectedTitle.titleName, nv); ShowSelectedTitleHistory(); }) { text = showHistory ? "Hide Match History" : "Show Match History" };
+        controlsRow.Add(statsBtn);
+        controlsRow.Add(new VisualElement() { style = { width = 8 } });
+        controlsRow.Add(toggleBtn);
         titleHistoryList.Add(new VisualElement() { style = { height = 6 } });
-        titleHistoryList.Add(statsBtn);
+        titleHistoryList.Add(controlsRow);
         titleHistoryList.Add(new VisualElement() { style = { height = 8 } });
 
         // Optional: Match history below lineage
-        if (history != null && history.Count > 0)
+        if (showHistory && history != null && history.Count > 0)
         {
             titleHistoryList.Add(new Label("Match History:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } });
             foreach (var entry in history)
@@ -845,6 +854,16 @@ public class PromotionDashboard : MonoBehaviour
                 if (!string.IsNullOrEmpty(entry.winner)) el.Add(new Label($"Winner: {entry.winner}"));
                 titleHistoryList.Add(el);
             }
+        }
+
+        bool GetTitleHistoryToggle(string promo, string title)
+        {
+            string key = MakeTitleToggleKey(promo, title);
+            if (titleHistoryToggleByTitle.TryGetValue(key, out var val)) return val;
+            int stored = PlayerPrefs.GetInt(key, 0);
+            bool b = stored == 1;
+            titleHistoryToggleByTitle[key] = b;
+            return b;
         }
         if (history == null || history.Count == 0)
         {
@@ -912,6 +931,17 @@ public class PromotionDashboard : MonoBehaviour
         titleHistoryList?.AddToClassList("hidden");
         titleStatsView?.RemoveFromClassList("hidden");
         FocusPanel(titleStatsView);
+    }
+
+    private static string MakeTitleToggleKey(string promo, string title)
+        => $"TitleHistoryToggle::{promo}::{title}";
+
+    private void SetTitleHistoryToggle(string promo, string title, bool value)
+    {
+        string key = MakeTitleToggleKey(promo, title);
+        titleHistoryToggleByTitle[key] = value;
+        PlayerPrefs.SetInt(key, value ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     private void EnsureShowsListView()
