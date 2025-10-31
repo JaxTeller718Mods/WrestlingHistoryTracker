@@ -112,6 +112,15 @@
             <ui:VisualElement class="row">
               <ui:Button name="viewHistoryButton" text="View Title History" />
             </ui:VisualElement>
+            <!-- Aggregated stats for this title -->
+            <ui:VisualElement name="titleStatsPanel" class="title-stats">
+              <ui:Label text="Title Stats" class="subsection-title" />
+              <ui:Label name="titleStatsCurrent" />
+              <ui:Label name="titleStatsSummary" text="No stats yet." />
+              <ui:Label name="titleStatsLongest" />
+              <ui:Label name="titleStatsShortest" />
+              <ui:Label name="titleStatsMostDefenses" />
+            </ui:VisualElement>
           </ui:VisualElement>
 
           <ui:VisualElement name="titleAddPanel" class="title-add-card">

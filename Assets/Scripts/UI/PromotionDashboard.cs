@@ -53,6 +53,9 @@ public class PromotionDashboard : MonoBehaviour
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    // Title stats UI
+    private VisualElement titleStatsPanel;
+    private Label titleStatsCurrentLabel, titleStatsSummaryLabel, titleStatsLongestLabel, titleStatsShortestLabel, titleStatsMostDefensesLabel;
 
     // Promotion info widgets
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
@@ -179,6 +182,14 @@ public class PromotionDashboard : MonoBehaviour
         titleChampionField = root.Q<TextField>("titleChampionField");
         titleNotesField = root.Q<TextField>("titleNotesField");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
+        titleStatsPanel = root.Q<VisualElement>("titleStatsPanel");
+        titleStatsCurrentLabel = root.Q<Label>("titleStatsCurrent");
+        titleStatsSummaryLabel = root.Q<Label>("titleStatsSummary");
+        titleStatsLongestLabel = root.Q<Label>("titleStatsLongest");
+        titleStatsShortestLabel = root.Q<Label>("titleStatsShortest");
+        titleStatsMostDefensesLabel = root.Q<Label>("titleStatsMostDefenses");
+        // Hide stats panel on details by default; stats will render in history view
+        titleStatsPanel?.AddToClassList("hidden");
         // Shows add/save widgets
         newShowField = root.Q<TextField>("newShowField");
         newShowDateField = root.Q<TextField>("newShowDateField");
@@ -648,10 +659,57 @@ public class PromotionDashboard : MonoBehaviour
         if (titleDivisionField != null) titleDivisionField.value = t.division;
         if (titleChampionField != null) titleChampionField.value = t.currentChampion;
         if (titleNotesField != null) titleNotesField.value = t.notes;
+        // Keep stats out of the edit panel
+        titleStatsPanel?.AddToClassList("hidden");
         titleAddPanel?.AddToClassList("hidden");
         titleDetailsPanel?.RemoveFromClassList("hidden");
         titleHistoryList?.AddToClassList("hidden");
         FocusPanel(titleDetailsPanel ?? titlesPanel);
+    }
+
+    private void UpdateTitleStats()
+    {
+        if (currentPromotion == null || selectedTitleIndex < 0 || titleCollection == null || selectedTitleIndex >= (titleCollection.titles?.Count ?? 0))
+        {
+            if (titleStatsCurrentLabel != null) titleStatsCurrentLabel.text = string.Empty;
+            if (titleStatsSummaryLabel != null) titleStatsSummaryLabel.text = "No stats yet.";
+            if (titleStatsLongestLabel != null) titleStatsLongestLabel.text = string.Empty;
+            if (titleStatsShortestLabel != null) titleStatsShortestLabel.text = string.Empty;
+            if (titleStatsMostDefensesLabel != null) titleStatsMostDefensesLabel.text = string.Empty;
+            return;
+        }
+        var t = titleCollection.titles[selectedTitleIndex];
+        var summaries = TitleHistoryManager.GetTitleReignSummaries(currentPromotion.promotionName, t.titleName) ?? new List<TitleReignSummary>();
+        int totalReigns = summaries.Count;
+        int totalDefenses = summaries.Sum(s => s.defenses);
+        var current = summaries.FirstOrDefault(s => string.IsNullOrEmpty(s.dateLost));
+        if (titleStatsCurrentLabel != null)
+            titleStatsCurrentLabel.text = current != null ? $"Current champion: {current.championName} — {current.daysHeld} days" : "Current champion: (unknown)";
+        if (titleStatsSummaryLabel != null)
+            titleStatsSummaryLabel.text = totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet.";
+        var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
+        var shortest = summaries.OrderBy(s => s.daysHeld).FirstOrDefault();
+        if (titleStatsLongestLabel != null)
+        {
+            titleStatsLongestLabel.text = longest != null ?
+                $"Longest: {longest.championName} — {longest.daysHeld} days ({SpanText(longest)})" : string.Empty;
+        }
+        if (titleStatsShortestLabel != null)
+        {
+            titleStatsShortestLabel.text = shortest != null ?
+                $"Shortest: {shortest.championName} — {shortest.daysHeld} days ({SpanText(shortest)})" : string.Empty;
+        }
+        var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
+        if (titleStatsMostDefensesLabel != null)
+        {
+            titleStatsMostDefensesLabel.text = mostDef != null ?
+                $"Most defenses in a reign: {mostDef.championName} — {mostDef.defenses}" : string.Empty;
+        }
+
+        string SpanText(TitleReignSummary s)
+        {
+            return string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} – present" : $"{s.dateWon} – {s.dateLost}";
+        }
     }
 
     private void OnAddTitle()
@@ -743,6 +801,25 @@ public class PromotionDashboard : MonoBehaviour
         var history = TitleHistoryManager.GetHistory(currentPromotion.promotionName, selectedTitle.titleName);
         var summaries = TitleHistoryManager.GetTitleReignSummaries(currentPromotion.promotionName, selectedTitle.titleName);
         titleHistoryList.Clear();
+        // Aggregated Title Stats at top of history view
+        if (summaries != null)
+        {
+            int totalReigns = summaries.Count;
+            int totalDefenses = summaries.Sum(s => s.defenses);
+            var current = summaries.FirstOrDefault(s => string.IsNullOrEmpty(s.dateLost));
+            var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
+            var shortest = summaries.OrderBy(s => s.daysHeld).FirstOrDefault();
+            var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
+
+            titleHistoryList.Add(new Label("Title Stats:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } });
+            titleHistoryList.Add(new Label(current != null ? $"Current champion: {current.championName} — {current.daysHeld} days" : "Current champion: (unknown)"));
+            titleHistoryList.Add(new Label(totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet."));
+            if (longest != null) titleHistoryList.Add(new Label($"Longest: {longest.championName} — {longest.daysHeld} days ({(string.IsNullOrEmpty(longest.dateLost) ? $"{longest.dateWon} – present" : $"{longest.dateWon} – {longest.dateLost}")})"));
+            if (shortest != null) titleHistoryList.Add(new Label($"Shortest: {shortest.championName} — {shortest.daysHeld} days ({(string.IsNullOrEmpty(shortest.dateLost) ? $"{shortest.dateWon} – present" : $"{shortest.dateWon} – {shortest.dateLost}")})"));
+            if (mostDef != null) titleHistoryList.Add(new Label($"Most defenses in a reign: {mostDef.championName} — {mostDef.defenses}"));
+            titleHistoryList.Add(new VisualElement() { style = { height = 8 } });
+        }
+        // Reign summaries list
         if (summaries != null && summaries.Count > 0)
         {
             titleHistoryList.Add(new Label("Reign Summaries:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 6 } });
@@ -757,7 +834,6 @@ public class PromotionDashboard : MonoBehaviour
                 }
                 titleHistoryList.Add(row);
             }
-            // spacer
             titleHistoryList.Add(new VisualElement() { style = { height = 8 } });
             titleHistoryList.Add(new Label("Match History:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } });
         }
