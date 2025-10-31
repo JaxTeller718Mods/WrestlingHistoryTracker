@@ -1153,6 +1153,7 @@ public class PromotionDashboard : MonoBehaviour
         var m = new MatchData
         {
             id = System.Guid.NewGuid().ToString("N"),
+            matchType = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match",
             matchName = matchName,
             wrestlerA = A,
             wrestlerB = B,
@@ -1601,14 +1602,20 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (rankingsListView == null || currentPromotion == null) return;
 
-        // Build wrestler flags lookup
-        var flagByName = new Dictionary<string, (bool isFemale, bool isTagTeam)>(System.StringComparer.OrdinalIgnoreCase);
+        if (category == RankCategory.TagTeam)
+        {
+            PopulateTagTeamRankings();
+            return;
+        }
+
+        // Singles (Men/Women)
+        var flagByName = new Dictionary<string, bool>(System.StringComparer.OrdinalIgnoreCase);
         wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
         if (wrestlerCollection?.wrestlers != null)
             foreach (var w in wrestlerCollection.wrestlers)
-                if (!string.IsNullOrEmpty(w.name)) flagByName[w.name] = (w.isFemale, w.isTagTeam);
+                if (!string.IsNullOrEmpty(w.name)) flagByName[w.name] = w.isFemale;
 
-        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+        var singles = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
         if (currentPromotion.shows != null)
         {
             foreach (var show in currentPromotion.shows)
@@ -1625,20 +1632,79 @@ public class PromotionDashboard : MonoBehaviour
                     string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
                     foreach (var p in parts)
                     {
-                        flagByName.TryGetValue(p, out var flags);
-                        bool include = category switch
-                        {
-                            RankCategory.Men => !flags.isFemale && !flags.isTagTeam,
-                            RankCategory.Women => flags.isFemale && !flags.isTagTeam,
-                            RankCategory.TagTeam => flags.isTagTeam,
-                            _ => false
-                        };
+                        flagByName.TryGetValue(p, out var isFemale);
+                        bool include = category == RankCategory.Women ? isFemale : !isFemale;
                         if (!include) continue;
-                        if (!records.ContainsKey(p)) records[p] = (0, 0);
-                        var r = records[p];
+                        if (!singles.ContainsKey(p)) singles[p] = (0, 0);
+                        var r = singles[p];
                         if (!string.IsNullOrEmpty(winner) && string.Equals(p, winner, System.StringComparison.OrdinalIgnoreCase)) r.wins++; else if (!string.IsNullOrEmpty(winner)) r.losses++;
-                        records[p] = r;
+                        singles[p] = r;
                     }
+                }
+            }
+        }
+
+        var itemsSingles = singles
+            .OrderByDescending(e => e.Value.wins)
+            .ThenBy(e => e.Value.losses)
+            .ThenBy(e => e.Key)
+            .Select(e =>
+            {
+                int total = e.Value.wins + e.Value.losses;
+                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
+                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
+            })
+            .ToList();
+        if (itemsSingles.Count == 0) itemsSingles.Add("No results yet for this category.");
+        rankingsListView.itemsSource = itemsSingles;
+        rankingsListView.Rebuild();
+    }
+
+    private void PopulateTagTeamRankings()
+    {
+        var teams = DataManager.LoadTagTeams(currentPromotion.promotionName);
+        var teamByMembers = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase); // key: A|B -> teamName
+        foreach (var t in teams.teams ?? new List<TagTeamData>())
+        {
+            if (string.IsNullOrEmpty(t?.teamName) || string.IsNullOrEmpty(t.memberA) || string.IsNullOrEmpty(t.memberB)) continue;
+            string key = MakeTeamKey(t.memberA, t.memberB);
+            teamByMembers[key] = t.teamName;
+        }
+
+        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var show in currentPromotion.shows ?? new List<ShowData>())
+        {
+            foreach (var m in show.matches ?? new List<MatchData>())
+            {
+                // Consider only tag matches (by type if set, else by 4 participants)
+                bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) ||
+                             (!string.IsNullOrWhiteSpace(m.wrestlerA) && !string.IsNullOrWhiteSpace(m.wrestlerB) && !string.IsNullOrWhiteSpace(m.wrestlerC) && !string.IsNullOrWhiteSpace(m.wrestlerD));
+                if (!isTag) continue;
+
+                string key1 = MakeTeamKey(m.wrestlerA, m.wrestlerB);
+                string key2 = MakeTeamKey(m.wrestlerC, m.wrestlerD);
+                bool hasTeam1 = teamByMembers.TryGetValue(key1, out var team1);
+                bool hasTeam2 = teamByMembers.TryGetValue(key2, out var team2);
+                if (!hasTeam1 && !hasTeam2) continue; // skip if neither side is a defined team
+
+                string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
+                // Determine which side won by winner membership
+                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, m.wrestlerA) || StringEquals(winner, m.wrestlerB));
+                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, m.wrestlerC) || StringEquals(winner, m.wrestlerD));
+
+                if (hasTeam1)
+                {
+                    if (!records.ContainsKey(team1)) records[team1] = (0, 0);
+                    var r = records[team1];
+                    if (side1Win) r.wins++; else if (side2Win) r.losses++;
+                    records[team1] = r;
+                }
+                if (hasTeam2)
+                {
+                    if (!records.ContainsKey(team2)) records[team2] = (0, 0);
+                    var r = records[team2];
+                    if (side2Win) r.wins++; else if (side1Win) r.losses++;
+                    records[team2] = r;
                 }
             }
         }
@@ -1654,9 +1720,19 @@ public class PromotionDashboard : MonoBehaviour
                 return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
             })
             .ToList();
-        if (items.Count == 0) items.Add("No results yet for this category.");
+        if (items.Count == 0) items.Add("No team results yet.");
         rankingsListView.itemsSource = items;
         rankingsListView.Rebuild();
+
+        static string MakeTeamKey(string a, string b)
+        {
+            string s1 = (a ?? string.Empty).Trim();
+            string s2 = (b ?? string.Empty).Trim();
+            if (string.Compare(s1, s2, System.StringComparison.OrdinalIgnoreCase) > 0) { var tmp = s1; s1 = s2; s2 = tmp; }
+            return $"{s1}|{s2}";
+        }
+
+        static bool StringEquals(string a, string b) => string.Equals(a ?? string.Empty, b ?? string.Empty, System.StringComparison.OrdinalIgnoreCase);
     }
 
     // ----- Step 2: Stable IDs + ordered history rendering -----

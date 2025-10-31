@@ -15,6 +15,7 @@ public static class DataManager
     private static readonly string promotionFolder = Path.Combine(baseFolder, "Promotions");
     private static readonly string wrestlerFolder  = Path.Combine(baseFolder, "Wrestlers");
     private static readonly string titleFolder = Path.Combine(baseFolder, "Titles");
+    private static readonly string tagTeamFolder = Path.Combine(baseFolder, "TagTeams");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
 
     // ------------------------
@@ -224,6 +225,57 @@ public static class DataManager
         {
             Debug.LogError($"❌ Error loading titles: {ex.Message}");
             return new TitleCollection { promotionName = promotionName };
+        }
+    }
+    
+    // ------------------------
+    // TAG TEAM MANAGEMENT
+    // ------------------------
+    public static void SaveTagTeams(TagTeamCollection collection)
+    {
+        if (collection == null || string.IsNullOrEmpty(collection.promotionName))
+        {
+            Debug.LogError("Cannot save tag teams: collection or promotion name is null.");
+            return;
+        }
+        if (!Directory.Exists(tagTeamFolder))
+            Directory.CreateDirectory(tagTeamFolder);
+        string safeName = MakeSafeFileName(collection.promotionName);
+        string filePath = Path.Combine(tagTeamFolder, $"{safeName}_TagTeams.json");
+        try
+        {
+            string json = JsonUtility.ToJson(collection, true);
+            File.WriteAllText(filePath, json);
+            Debug.Log($"Tag teams saved for {collection.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error saving tag teams: {ex.Message}");
+        }
+    }
+
+    public static TagTeamCollection LoadTagTeams(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName))
+            return new TagTeamCollection { promotionName = promotionName };
+        string safeName = MakeSafeFileName(promotionName);
+        string filePath = Path.Combine(tagTeamFolder, $"{safeName}_TagTeams.json");
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"No tag teams found for {promotionName}");
+            return new TagTeamCollection { promotionName = promotionName };
+        }
+        try
+        {
+            string json = File.ReadAllText(filePath);
+            var data = JsonUtility.FromJson<TagTeamCollection>(json);
+            if (data == null) data = new TagTeamCollection { promotionName = promotionName };
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error loading tag teams: {ex.Message}");
+            return new TagTeamCollection { promotionName = promotionName };
         }
     }
     

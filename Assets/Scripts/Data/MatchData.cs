@@ -8,6 +8,7 @@ using UnityEngine;
 public class MatchData
 {
     public string id; // stable identifier for entryOrder
+    public string matchType; // e.g., Singles, Tag Team, etc.
     public string matchName;
     public string wrestlerA;
     public string wrestlerB;
