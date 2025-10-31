@@ -70,6 +70,11 @@
     max-width: 1100px;
 }
 
+/* Give Titles panel extra width to fit lineage */
+#titlesPanel {
+    max-width: 900px;
+}
+
 /* ===== HIDDEN STATE ===== */
 .hidden {
     display: none;
@@ -186,6 +191,16 @@ FloatField > .unity-float-field__input {
     max-width: 260px;
     min-height: 260px;
     height: 260px; /* ensures internal scrolling is available */
+}
+
+/* Title history lineage sizing */
+#titleHistoryList {
+    width: 100%;
+    max-width: 720px;   /* give it more room horizontally */
+    min-height: 360px;  /* taller to show more entries */
+    height: 420px;
+    align-self: flex-start;
+    margin-top: 8px;
 }
 
 .wrestler-detail-column {
