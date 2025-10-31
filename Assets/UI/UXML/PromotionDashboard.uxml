@@ -133,6 +133,15 @@
 
           <!-- Removed main panel View Title History button; button now lives inside titleDetails -->
           <ui:ScrollView name="titleHistoryList" class="hidden list" />
+
+          <!-- Title Stats view (shown from history via View Stats button) -->
+          <ui:VisualElement name="titleStatsView" class="hidden title-detail-card">
+            <ui:Label text="Title Stats" class="subsection-title" />
+            <ui:ScrollView name="titleStatsList" class="list" />
+            <ui:VisualElement class="row">
+              <ui:Button name="titleStatsCloseButton" text="Close" />
+            </ui:VisualElement>
+          </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
 
