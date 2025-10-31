@@ -1,11 +1,14 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class PromotionDashboard : MonoBehaviour
 {
+    private const string DateFormat = "MM/dd/yyyy";
     // Data
     private PromotionData currentPromotion;
 
@@ -66,6 +69,14 @@ public class PromotionDashboard : MonoBehaviour
     private Toggle isTitleMatchToggle;
     private TextField segmentNameField, segmentTextField;
     private int selectedShowIndex = -1;
+
+    // Date picker (for show dates)
+    private VisualElement datePickerOverlay, datePickerPopup, datePickerGrid;
+    private Label datePickerMonthLabel;
+    private Button datePrevButton, dateNextButton;
+    private DateTime datePickerMonth = DateTime.Today;
+    private TextField activeDateField;
+    private Button showDatePickButton, newShowDatePickButton;
 
     private void OnEnable()
     {
@@ -200,6 +211,22 @@ public class PromotionDashboard : MonoBehaviour
         segmentTextField = root.Q<TextField>("segmentTextField");
         saveSegmentButton = root.Q<Button>("saveSegmentButton");
         cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
+
+        // Attach date picker buttons and normalization to date fields
+        if (showDateField != null)
+        {
+            showDatePickButton = new Button(() => OpenDatePicker(showDateField)) { text = "\U0001F4C5" };
+            showDatePickButton.style.width = 28; showDatePickButton.style.height = 22; showDatePickButton.style.marginLeft = 6;
+            showDateField.parent?.Add(showDatePickButton);
+            showDateField.RegisterCallback<FocusOutEvent>(_ => { NormalizeDateField(showDateField); });
+        }
+        if (newShowDateField != null)
+        {
+            newShowDatePickButton = new Button(() => OpenDatePicker(newShowDateField)) { text = "\U0001F4C5" };
+            newShowDatePickButton.style.width = 28; newShowDatePickButton.style.height = 22; newShowDatePickButton.style.marginLeft = 6;
+            newShowDateField.parent?.Add(newShowDatePickButton);
+            newShowDateField.RegisterCallback<FocusOutEvent>(_ => { NormalizeDateField(newShowDateField); });
+        }
         newTitleField = root.Q<TextField>("newTitleField");
         addTitleButton = root.Q<Button>("addTitleButton");
         saveTitlesButton = root.Q<Button>("saveTitlesButton");
@@ -789,6 +816,7 @@ public class PromotionDashboard : MonoBehaviour
         }
         string name = newShowField != null ? (newShowField.value ?? string.Empty).Trim() : string.Empty;
         string date = newShowDateField != null ? (newShowDateField.value ?? string.Empty).Trim() : string.Empty;
+        date = NormalizeDateString(date);
         if (string.IsNullOrEmpty(name))
         {
             if (statusLabel != null) statusLabel.text = "Enter a show name.";
@@ -838,7 +866,7 @@ public class PromotionDashboard : MonoBehaviour
         if (currentPromotion?.shows == null || selectedShowIndex < 0 || selectedShowIndex >= currentPromotion.shows.Count) return;
         var s = currentPromotion.shows[selectedShowIndex];
         if (showNameField != null) s.showName = showNameField.value;
-        if (showDateField != null) s.date = showDateField.value;
+        if (showDateField != null) { s.date = NormalizeDateString(showDateField.value); showDateField.value = s.date; }
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
         if (statusLabel != null) statusLabel.text = "Show updated.";
@@ -1017,6 +1045,152 @@ public class PromotionDashboard : MonoBehaviour
         if (currentPromotion == null) return;
         wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
         titleCollection ??= DataManager.LoadTitles(currentPromotion.promotionName);
+    }
+
+    // ===== Date Picker helpers =====
+    private void NormalizeDateField(TextField tf)
+    {
+        if (tf == null) return;
+        tf.value = NormalizeDateString(tf.value);
+    }
+
+    private string NormalizeDateString(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        DateTime dt;
+        if (DateTime.TryParse(input, CultureInfo.CurrentCulture, DateTimeStyles.None, out dt) ||
+            DateTime.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt) ||
+            DateTime.TryParseExact(input, new[] { "M/d/yyyy", "MM/dd/yyyy", "yyyy-MM-dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+        {
+            return dt.ToString(DateFormat, CultureInfo.InvariantCulture);
+        }
+        return input.Trim();
+    }
+
+    private void OpenDatePicker(TextField target)
+    {
+        if (target == null || root == null) return;
+        activeDateField = target;
+        DateTime init;
+        if (!DateTime.TryParseExact(target.value ?? string.Empty, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out init))
+            init = DateTime.Today;
+        datePickerMonth = new DateTime(init.Year, init.Month, 1);
+
+        if (datePickerOverlay == null)
+            CreateDatePickerUI();
+
+        BuildCalendarGrid(datePickerMonth);
+        datePickerOverlay.RemoveFromClassList("hidden");
+        datePickerPopup.RemoveFromClassList("hidden");
+        FocusPanel(datePickerPopup);
+    }
+
+    private void CreateDatePickerUI()
+    {
+        datePickerOverlay = new VisualElement { name = "datePickerOverlay" };
+        datePickerOverlay.style.position = Position.Absolute;
+        datePickerOverlay.style.left = 0; datePickerOverlay.style.top = 0;
+        datePickerOverlay.style.right = 0; datePickerOverlay.style.bottom = 0;
+        datePickerOverlay.style.backgroundColor = new Color(0, 0, 0, 0.3f);
+        root.Add(datePickerOverlay);
+        datePickerOverlay.AddToClassList("hidden");
+        datePickerOverlay.RegisterCallback<MouseDownEvent>(_ => CloseDatePicker());
+
+        datePickerPopup = new VisualElement { name = "datePickerPopup" };
+        datePickerPopup.style.position = Position.Absolute;
+        datePickerPopup.style.left = new Length(50, LengthUnit.Percent);
+        datePickerPopup.style.top = new Length(45, LengthUnit.Percent);
+        datePickerPopup.style.translate = new Translate(-50, -50, 0);
+        datePickerPopup.style.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.98f);
+        datePickerPopup.style.paddingLeft = 10; datePickerPopup.style.paddingRight = 10;
+        datePickerPopup.style.paddingTop = 8; datePickerPopup.style.paddingBottom = 10;
+        datePickerPopup.style.borderTopLeftRadius = 8; datePickerPopup.style.borderTopRightRadius = 8;
+        datePickerPopup.style.borderBottomLeftRadius = 8; datePickerPopup.style.borderBottomRightRadius = 8;
+        datePickerOverlay.Add(datePickerPopup);
+        datePickerPopup.AddToClassList("hidden");
+        datePickerPopup.RegisterCallback<MouseDownEvent>(evt => evt.StopPropagation());
+
+        var header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row; header.style.alignItems = Align.Center; header.style.justifyContent = Justify.SpaceBetween; header.style.marginBottom = 6;
+        datePrevButton = new Button(() => { datePickerMonth = datePickerMonth.AddMonths(-1); BuildCalendarGrid(datePickerMonth); }) { text = "<" };
+        dateNextButton = new Button(() => { datePickerMonth = datePickerMonth.AddMonths(1); BuildCalendarGrid(datePickerMonth); }) { text = ">" };
+        datePickerMonthLabel = new Label("");
+        datePickerMonthLabel.style.unityFontStyleAndWeight = FontStyle.Bold; datePickerMonthLabel.style.fontSize = 14; datePickerMonthLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        header.Add(datePrevButton);
+        header.Add(datePickerMonthLabel);
+        header.Add(dateNextButton);
+        datePickerPopup.Add(header);
+
+        var dow = new VisualElement();
+        dow.style.flexDirection = FlexDirection.Row; dow.style.marginBottom = 4;
+        foreach (var d in new[] { "Su","Mo","Tu","We","Th","Fr","Sa" })
+        {
+            var l = new Label(d);
+            l.style.width = 28; l.style.unityTextAlign = TextAnchor.MiddleCenter; l.style.color = new StyleColor(new Color(0.85f,0.85f,0.85f));
+            dow.Add(l);
+        }
+        datePickerPopup.Add(dow);
+
+        datePickerGrid = new VisualElement();
+        datePickerGrid.style.flexDirection = FlexDirection.Column;
+        datePickerPopup.Add(datePickerGrid);
+
+        var closeRow = new VisualElement();
+        closeRow.style.flexDirection = FlexDirection.Row; closeRow.style.justifyContent = Justify.Center; closeRow.style.marginTop = 8;
+        var closeBtn = new Button(CloseDatePicker) { text = "Cancel" };
+        closeRow.Add(closeBtn);
+        datePickerPopup.Add(closeRow);
+    }
+
+    private void BuildCalendarGrid(DateTime month)
+    {
+        if (datePickerGrid == null) return;
+        datePickerGrid.Clear();
+        datePickerMonthLabel.text = month.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+        int daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        int startOffset = (int)new DateTime(month.Year, month.Month, 1).DayOfWeek; // 0 = Sunday
+        int day = 1;
+        for (int row = 0; row < 6; row++)
+        {
+            var rowEl = new VisualElement();
+            rowEl.style.flexDirection = FlexDirection.Row;
+            for (int col = 0; col < 7; col++)
+            {
+                var cell = new Button();
+                cell.style.width = 28; cell.style.height = 24; cell.style.marginRight = 2; cell.style.marginBottom = 2;
+                if ((row == 0 && col < startOffset) || day > daysInMonth)
+                {
+                    cell.text = string.Empty; cell.SetEnabled(false);
+                }
+                else
+                {
+                    int d = day;
+                    cell.text = d.ToString();
+                    cell.clicked += () => SelectDate(new DateTime(month.Year, month.Month, d));
+                    day++;
+                }
+                rowEl.Add(cell);
+            }
+            datePickerGrid.Add(rowEl);
+        }
+    }
+
+    private void SelectDate(DateTime date)
+    {
+        if (activeDateField != null)
+        {
+            var s = date.ToString(DateFormat, CultureInfo.InvariantCulture);
+            activeDateField.value = s;
+        }
+        CloseDatePicker();
+    }
+
+    private void CloseDatePicker()
+    {
+        datePickerPopup?.AddToClassList("hidden");
+        datePickerOverlay?.AddToClassList("hidden");
+        activeDateField = null;
     }
 
     private void EnsureHistoryShowsListView()
