@@ -365,6 +365,8 @@ MonoBehaviour:
     location: 
     foundedYear: 
     description: 
+    wrestlers: []
+    titles: []
     shows: []
 --- !u!4 &393350266
 Transform:

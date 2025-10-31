@@ -15,10 +15,10 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, showsButton, historyButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, showsPanel, historyPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
@@ -53,6 +53,15 @@ public class PromotionDashboard : MonoBehaviour
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    // Tag Teams UI
+    private ScrollView tagTeamListScroll;
+    private ListView tagTeamListView;
+    private TextField teamNameField;
+    private DropdownField teamMemberADropdown, teamMemberBDropdown;
+    private Button addTeamButton, saveTeamsButton, saveTeamButton, deleteTeamButton, cancelTeamButton;
+    private TagTeamCollection tagTeamCollection;
+    private int selectedTeamIndex = -1;
+    private Label tagTeamEmptyLabel;
     // Persist per-title match history toggle (by promotion + title)
     private readonly Dictionary<string, bool> titleHistoryToggleByTitle = new Dictionary<string, bool>(System.StringComparer.OrdinalIgnoreCase);
     // Title stats UI
@@ -133,6 +142,7 @@ public class PromotionDashboard : MonoBehaviour
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
+        tagTeamsButton = root.Q<Button>("tagTeamsButton");
         showsButton = root.Q<Button>("showsButton");
         historyButton = root.Q<Button>("historyButton");
         rankingsButton = root.Q<Button>("rankingsButton");
@@ -143,6 +153,7 @@ public class PromotionDashboard : MonoBehaviour
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
         wrestlersPanel = root.Q<VisualElement>("wrestlersPanel");
         titlesPanel = root.Q<VisualElement>("titlesPanel");
+        tagTeamsPanel = root.Q<VisualElement>("tagTeamsPanel");
         showsPanel = root.Q<VisualElement>("showsPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
         historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
@@ -172,6 +183,7 @@ public class PromotionDashboard : MonoBehaviour
         cancelEditButton = root.Q<Button>("cancelEditButton");
         titleListScroll = root.Q<ScrollView>("titleList");
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
+        tagTeamListScroll = root.Q<ScrollView>("tagTeamList");
         showsListScroll = root.Q<ScrollView>("showsList");
         historyShowsListScroll = root.Q<ScrollView>("historyShowsList");
         rankingsListScroll = root.Q<ScrollView>("rankingsList");
@@ -266,12 +278,23 @@ public class PromotionDashboard : MonoBehaviour
         foundedField = root.Q<TextField>("foundedField");
         descriptionField = root.Q<TextField>("descriptionField");
         editPanel = root.Q<VisualElement>("editPanel");
+        // Tag Teams queries
+        teamNameField = root.Q<TextField>("teamNameField");
+        teamMemberADropdown = root.Q<DropdownField>("teamMemberADropdown");
+        teamMemberBDropdown = root.Q<DropdownField>("teamMemberBDropdown");
+        addTeamButton = root.Q<Button>("addTeamButton");
+        saveTeamsButton = root.Q<Button>("saveTeamsButton");
+        saveTeamButton = root.Q<Button>("saveTeamButton");
+        deleteTeamButton = root.Q<Button>("deleteTeamButton");
+        cancelTeamButton = root.Q<Button>("cancelTeamButton");
+        tagTeamEmptyLabel = root.Q<Label>("tagTeamEmptyLabel");
 
         // Register panels
         mainPanels.Clear();
         RegisterMainPanel(promotionInfoPanel);
         RegisterMainPanel(wrestlersPanel);
         RegisterMainPanel(titlesPanel);
+        RegisterMainPanel(tagTeamsPanel);
         RegisterMainPanel(showsPanel);
         RegisterMainPanel(historyPanel);
         RegisterMainPanel(rankingsPanel);
@@ -280,6 +303,7 @@ public class PromotionDashboard : MonoBehaviour
         if (promotionButton != null) promotionButton.clicked += ShowPromotionPanel;
         if (wrestlersButton != null) wrestlersButton.clicked += ShowWrestlersPanel;
         if (titlesButton != null) titlesButton.clicked += ShowTitlesPanel;
+        if (tagTeamsButton != null) tagTeamsButton.clicked += ShowTagTeamsPanel;
         if (showsButton != null) showsButton.clicked += ShowShowsPanel;
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
@@ -300,6 +324,12 @@ public class PromotionDashboard : MonoBehaviour
         if (saveTitleButton != null) saveTitleButton.clicked += OnSaveSelectedTitle;
         if (deleteTitleButton != null) deleteTitleButton.clicked += OnDeleteSelectedTitle;
         if (cancelTitleButton != null) cancelTitleButton.clicked += OnCancelEditTitle;
+        // Tag Teams handlers
+        if (addTeamButton != null) addTeamButton.clicked += OnAddTeam;
+        if (saveTeamsButton != null) saveTeamsButton.clicked += OnSaveTeams;
+        if (saveTeamButton != null) saveTeamButton.clicked += OnSaveSelectedTeam;
+        if (deleteTeamButton != null) deleteTeamButton.clicked += OnDeleteSelectedTeam;
+        if (cancelTeamButton != null) cancelTeamButton.clicked += OnCancelEditTeam;
         // Wrestlers handlers
         if (addWrestlerButton != null) addWrestlerButton.clicked += OnAddWrestler;
         if (saveWrestlersButton != null) saveWrestlersButton.clicked += OnSaveWrestlers;
@@ -358,6 +388,7 @@ public class PromotionDashboard : MonoBehaviour
         // Ensure virtualized lists
         EnsureWrestlerListView();
         EnsureTitleListView();
+        EnsureTagTeamListView();
         EnsureShowsListView();
         EnsureHistoryShowsListView();
         EnsureRankingsListView();
@@ -369,11 +400,13 @@ public class PromotionDashboard : MonoBehaviour
         {
             wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
             titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
+            tagTeamCollection = DataManager.LoadTagTeams(currentPromotion.promotionName);
             // Step 2: ensure stable IDs and upgraded entryOrder
             EnsureStableIdsAndEntryOrder();
         }
         RefreshWrestlerList();
         RefreshTitleList();
+        RefreshTagTeamList();
         RefreshShowList();
         PopulateHistoryShowsList();
         PopulateRankings(RankCategory.Men);
@@ -499,6 +532,12 @@ public class PromotionDashboard : MonoBehaviour
     private void ShowPromotionPanel() => SetActivePanel(promotionInfoPanel);
     private void ShowWrestlersPanel() => SetActivePanel(wrestlersPanel);
     private void ShowTitlesPanel() => SetActivePanel(titlesPanel);
+    private void ShowTagTeamsPanel()
+    {
+        SetActivePanel(tagTeamsPanel);
+        RefreshTagTeamList();
+        FocusPanel(tagTeamsPanel ?? titlesPanel ?? root);
+    }
     private void ShowShowsPanel() => SetActivePanel(showsPanel);
     private void ShowHistoryPanel() => SetActivePanel(historyPanel);
     private void ShowRankingsPanel() => SetActivePanel(rankingsPanel);
@@ -655,6 +694,145 @@ public class PromotionDashboard : MonoBehaviour
         };
         parent?.Add(titleListView);
         if (titleListScroll != null) titleListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void EnsureTagTeamListView()
+    {
+        if (tagTeamListView != null) return;
+        var parent = tagTeamListScroll != null ? tagTeamListScroll.parent : tagTeamsPanel;
+        tagTeamListView = new ListView
+        {
+            name = "tagTeamListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        tagTeamListView.style.flexGrow = 1;
+        tagTeamListView.makeItem = () =>
+        {
+            var b = new Button(); b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectTeam(idx); });
+            return b;
+        };
+        tagTeamListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = tagTeamCollection?.teams;
+            if (list != null && i >= 0 && i < list.Count) { var t = list[i]; b.text = $"{t.teamName} ({t.memberA} & {t.memberB})"; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(tagTeamListView);
+        if (tagTeamListScroll != null) tagTeamListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshTagTeamList()
+    {
+        if (tagTeamListView == null) return;
+        var src = tagTeamCollection?.teams ?? new List<TagTeamData>();
+        tagTeamListView.itemsSource = src;
+        tagTeamListView.Rebuild();
+        RefreshTeamMemberChoices();
+        if (tagTeamEmptyLabel != null)
+        {
+            if (src.Count == 0) tagTeamEmptyLabel.RemoveFromClassList("hidden");
+            else tagTeamEmptyLabel.AddToClassList("hidden");
+        }
+    }
+
+    private void RefreshTeamMemberChoices()
+    {
+        if (teamMemberADropdown == null || teamMemberBDropdown == null) return;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+        var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
+        if (names.Count == 0) names.Add(string.Empty);
+        teamMemberADropdown.choices = names; teamMemberADropdown.value = names[0];
+        teamMemberBDropdown.choices = names; teamMemberBDropdown.value = names[0];
+    }
+
+    private void SelectTeam(int index)
+    {
+        if (tagTeamCollection?.teams == null || index < 0 || index >= tagTeamCollection.teams.Count) return;
+        selectedTeamIndex = index;
+        var t = tagTeamCollection.teams[index];
+        if (teamNameField != null) teamNameField.value = t.teamName;
+        if (teamMemberADropdown != null) teamMemberADropdown.value = t.memberA;
+        if (teamMemberBDropdown != null) teamMemberBDropdown.value = t.memberB;
+        FocusPanel(tagTeamsPanel ?? titlesPanel);
+    }
+
+    private void OnAddTeam()
+    {
+        if (currentPromotion == null) { statusLabel.text = "No promotion loaded."; return; }
+        tagTeamCollection ??= new TagTeamCollection { promotionName = currentPromotion.promotionName };
+        var name = (teamNameField?.value ?? string.Empty).Trim();
+        var a = (teamMemberADropdown?.value ?? string.Empty).Trim();
+        var b = (teamMemberBDropdown?.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.Equals(a,b,System.StringComparison.OrdinalIgnoreCase))
+        { statusLabel.text = "Enter a team name and two distinct members."; return; }
+        if (tagTeamCollection.teams == null) tagTeamCollection.teams = new List<TagTeamData>();
+        if (tagTeamCollection.teams.Any(t => string.Equals(t.teamName, name, System.StringComparison.OrdinalIgnoreCase)))
+        { statusLabel.text = "Team name already exists."; return; }
+        if (tagTeamCollection.teams.Any(t => SameMembers(t.memberA, t.memberB, a, b)))
+        { statusLabel.text = "A team with these members already exists."; return; }
+        tagTeamCollection.teams.Add(new TagTeamData { teamName = name, memberA = a, memberB = b, active = true });
+        DataManager.SaveTagTeams(tagTeamCollection);
+        RefreshTagTeamList();
+        statusLabel.text = "Team added.";
+    }
+
+    private void OnSaveTeams()
+    {
+        if (currentPromotion == null || tagTeamCollection == null) return;
+        tagTeamCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveTagTeams(tagTeamCollection);
+        statusLabel.text = "Teams saved.";
+    }
+
+    private void OnSaveSelectedTeam()
+    {
+        if (tagTeamCollection?.teams == null || selectedTeamIndex < 0 || selectedTeamIndex >= tagTeamCollection.teams.Count) return;
+        var t = tagTeamCollection.teams[selectedTeamIndex];
+        var name = (teamNameField?.value ?? string.Empty).Trim();
+        var a = (teamMemberADropdown?.value ?? string.Empty).Trim();
+        var b = (teamMemberBDropdown?.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.Equals(a,b,System.StringComparison.OrdinalIgnoreCase))
+        { statusLabel.text = "Enter a team name and two distinct members."; return; }
+        if (tagTeamCollection.teams.Where((x, i) => i != selectedTeamIndex).Any(x => string.Equals(x.teamName, name, System.StringComparison.OrdinalIgnoreCase)))
+        { statusLabel.text = "Team name already exists."; return; }
+        if (tagTeamCollection.teams.Where((x, i) => i != selectedTeamIndex).Any(x => SameMembers(x.memberA, x.memberB, a, b)))
+        { statusLabel.text = "A team with these members already exists."; return; }
+        t.teamName = name; t.memberA = a; t.memberB = b;
+        DataManager.SaveTagTeams(tagTeamCollection);
+        RefreshTagTeamList();
+        statusLabel.text = "Team updated.";
+    }
+
+    private void OnDeleteSelectedTeam()
+    {
+        if (tagTeamCollection?.teams == null || selectedTeamIndex < 0 || selectedTeamIndex >= tagTeamCollection.teams.Count) return;
+        tagTeamCollection.teams.RemoveAt(selectedTeamIndex);
+        selectedTeamIndex = -1;
+        DataManager.SaveTagTeams(tagTeamCollection);
+        RefreshTagTeamList();
+        statusLabel.text = "Team deleted.";
+    }
+
+    private void OnCancelEditTeam()
+    {
+        selectedTeamIndex = -1;
+        if (teamNameField != null) teamNameField.value = string.Empty;
+        RefreshTeamMemberChoices();
+        FocusPanel(tagTeamsPanel ?? titlesPanel);
+    }
+
+    private static bool SameMembers(string a1, string b1, string a2, string b2)
+    {
+        string x1 = (a1 ?? string.Empty).Trim();
+        string y1 = (b1 ?? string.Empty).Trim();
+        string x2 = (a2 ?? string.Empty).Trim();
+        string y2 = (b2 ?? string.Empty).Trim();
+        bool m1 = string.Equals(x1, x2, System.StringComparison.OrdinalIgnoreCase) && string.Equals(y1, y2, System.StringComparison.OrdinalIgnoreCase);
+        bool m2 = string.Equals(x1, y2, System.StringComparison.OrdinalIgnoreCase) && string.Equals(y1, x2, System.StringComparison.OrdinalIgnoreCase);
+        return m1 || m2;
     }
 
     private void RefreshTitleList()

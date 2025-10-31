@@ -55,6 +55,7 @@
 #promotionInfoPanel,
 #wrestlersPanel,
 #titlesPanel,
+#tagTeamsPanel,
 #showsPanel,
 #historyPanel {
     width: 100%;

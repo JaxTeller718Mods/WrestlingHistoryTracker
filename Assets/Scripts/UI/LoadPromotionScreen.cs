@@ -15,7 +15,11 @@ public class LoadPromotionScreen : MonoBehaviour
         statusLabel = root.Q<Label>("statusLabel");
         backButton = root.Q<Button>("backButton");
 
-        backButton.clicked += () => SceneLoader.Instance.LoadScene("MainMenu");
+        backButton.clicked += () =>
+        {
+            if (SceneLoader.Instance != null) SceneLoader.Instance.LoadScene("MainMenu");
+            else UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+        };
 
         PopulatePromotionList();
     }
@@ -62,10 +66,17 @@ public class LoadPromotionScreen : MonoBehaviour
 
         statusLabel.text = $"✅ Loaded: {loadedPromotion.promotionName}";
         Debug.Log($"Promotion loaded successfully: {loadedPromotion.promotionName}");
+        // Store in persistent session before switching scenes
+        if (PromotionSession.Instance != null)
+            PromotionSession.Instance.CurrentPromotion = loadedPromotion;
 
-        // ✅ Store in persistent session before switching scenes
-        PromotionSession.Instance.CurrentPromotion = loadedPromotion;
-
-        SceneLoader.Instance.LoadScene("PromotionDashboard");
+        // Load via SceneLoader if available; fallback to SceneManager
+        if (SceneLoader.Instance != null)
+            SceneLoader.Instance.LoadScene("PromotionDashboard");
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene("PromotionDashboard");
     }
 }
+
+
+
