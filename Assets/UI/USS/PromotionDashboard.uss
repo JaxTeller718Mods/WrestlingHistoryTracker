@@ -394,7 +394,16 @@ Label {
 /* ===== HISTORY RESULTS WIDTH TWEAK ===== */
 /* Widen only the History panel so Results can use more space */
 #historyPanel {
-    max-width: 700px;
+    max-width: 900px;
+}
+
+/* Make the results subpanel larger with comfortable padding */
+#historyResultsPanel {
+    width: 100%;
+    max-width: 880px; /* leave some margin within historyPanel */
+    min-height: 420px;
+    align-self: center;
+    padding: 16px;
 }
 
 /* Ensure the results list stretches within the panel */
@@ -402,6 +411,12 @@ Label {
     width: 100%;
     max-width: 100%;
     align-self: stretch;
+    min-height: 360px;
+    max-height: 560px;
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-top: 8px;
+    margin-bottom: 12px;
 }
 
 /* Wrap long text inside history results and matches list */
