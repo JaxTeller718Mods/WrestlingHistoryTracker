@@ -124,6 +124,71 @@ public static class TitleHistoryManager
             .ToList();
     }
 
+    // Summaries per title reign with duration and defense stats
+    public static List<TitleReignSummary> GetTitleReignSummaries(string promotionName, string titleName)
+    {
+        var history = GetOrLoadHistory(promotionName);
+        var result = new List<TitleReignSummary>();
+        if (history == null) return result;
+
+        var lineage = history.titleLineages?.FirstOrDefault(t => string.Equals(t.titleName, titleName, StringComparison.OrdinalIgnoreCase));
+        if (lineage == null || lineage.reigns == null) return result;
+
+        // Determine the last known event date in the history as the cap for active reigns
+        var lastDate = history.matchResults
+            .Where(r => !string.IsNullOrEmpty(r?.date))
+            .Select(r => ParseDate(r.date))
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max();
+        if (lastDate == DateTime.MinValue) lastDate = DateTime.Today;
+
+        foreach (var reign in lineage.reigns)
+        {
+            var start = ParseDate(reign.dateWon);
+            var end = string.IsNullOrEmpty(reign.dateLost) ? lastDate : ParseDate(reign.dateLost);
+            if (start == DateTime.MinValue) continue;
+
+            // Successful defenses for this reign: title matches for same title where winner == champion and date in [start, end]
+            var defenses = history.matchResults
+                .Where(r => r.isTitleMatch &&
+                            !string.IsNullOrEmpty(r.titleInvolved) &&
+                            string.Equals(r.titleInvolved, lineage.titleName, StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrEmpty(r.winner) &&
+                            string.Equals(r.winner, reign.championName, StringComparison.OrdinalIgnoreCase))
+                .Select(r => new { r.date })
+                .Select(x => ParseDate(x.date))
+                .Where(d => d != DateTime.MinValue && d >= start && d <= end)
+                .OrderBy(d => d)
+                .ToList();
+
+            var summary = new TitleReignSummary
+            {
+                titleName = lineage.titleName,
+                championName = reign.championName,
+                dateWon = reign.dateWon,
+                dateLost = reign.dateLost,
+                daysHeld = (int)Math.Max(1, (end - start).TotalDays + 1),
+                defenses = defenses.Count,
+                firstDefenseDate = defenses.Count > 0 ? defenses.First().ToString("MM/dd/yyyy") : string.Empty,
+                lastDefenseDate = defenses.Count > 0 ? defenses.Last().ToString("MM/dd/yyyy") : string.Empty
+            };
+            result.Add(summary);
+        }
+
+        return result;
+    }
+
+    // Convenience: summaries for all titles in the promotion
+    public static List<TitleReignSummary> GetAllTitleReignSummaries(string promotionName)
+    {
+        var history = GetOrLoadHistory(promotionName);
+        if (history == null) return new List<TitleReignSummary>();
+        var list = new List<TitleReignSummary>();
+        foreach (var lineage in history.titleLineages ?? Enumerable.Empty<TitleLineageData>())
+            list.AddRange(GetTitleReignSummaries(promotionName, lineage.titleName));
+        return list;
+    }
+
     private static MatchHistoryData BuildHistoryFromPromotion(PromotionData promotion)
     {
         var history = new MatchHistoryData { promotionName = promotion.promotionName };

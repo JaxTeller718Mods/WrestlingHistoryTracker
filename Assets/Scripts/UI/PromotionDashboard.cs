@@ -741,7 +741,26 @@ public class PromotionDashboard : MonoBehaviour
         }
         var selectedTitle = titleCollection.titles[selectedTitleIndex];
         var history = TitleHistoryManager.GetHistory(currentPromotion.promotionName, selectedTitle.titleName);
+        var summaries = TitleHistoryManager.GetTitleReignSummaries(currentPromotion.promotionName, selectedTitle.titleName);
         titleHistoryList.Clear();
+        if (summaries != null && summaries.Count > 0)
+        {
+            titleHistoryList.Add(new Label("Reign Summaries:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 6 } });
+            foreach (var s in summaries)
+            {
+                var row = new VisualElement(); row.style.marginBottom = 6;
+                string span = string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} - present" : $"{s.dateWon} - {s.dateLost}";
+                row.Add(new Label($"{s.championName} ({span}) • {s.daysHeld} days, {s.defenses} defenses"));
+                if (s.defenses > 0)
+                {
+                    row.Add(new Label($"First defense: {s.firstDefenseDate}  Last defense: {s.lastDefenseDate}"));
+                }
+                titleHistoryList.Add(row);
+            }
+            // spacer
+            titleHistoryList.Add(new VisualElement() { style = { height = 8 } });
+            titleHistoryList.Add(new Label("Match History:") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } });
+        }
         if (history == null || history.Count == 0)
         {
             titleHistoryList.Add(new Label("No title history recorded yet.") { style = { color = new StyleColor(new Color(0.7f,0.7f,0.7f)) } });
@@ -865,9 +884,12 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (currentPromotion?.shows == null || selectedShowIndex < 0 || selectedShowIndex >= currentPromotion.shows.Count) return;
         var s = currentPromotion.shows[selectedShowIndex];
+        string prevName = s.showName;
+        string prevDate = s.date;
         if (showNameField != null) s.showName = showNameField.value;
         if (showDateField != null) { s.date = NormalizeDateString(showDateField.value); showDateField.value = s.date; }
         DataManager.SavePromotion(currentPromotion);
+        TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
         RefreshShowList();
         if (statusLabel != null) statusLabel.text = "Show updated.";
     }
@@ -875,9 +897,11 @@ public class PromotionDashboard : MonoBehaviour
     private void OnDeleteSelectedShow()
     {
         if (currentPromotion?.shows == null || selectedShowIndex < 0 || selectedShowIndex >= currentPromotion.shows.Count) return;
+        var removed = currentPromotion.shows[selectedShowIndex];
         currentPromotion.shows.RemoveAt(selectedShowIndex);
         selectedShowIndex = -1;
         DataManager.SavePromotion(currentPromotion);
+        TitleHistoryManager.RemoveShow(currentPromotion, removed);
         RefreshShowList();
         showDetailsPanel?.AddToClassList("hidden");
         showAddPanel?.RemoveFromClassList("hidden");
@@ -981,6 +1005,7 @@ public class PromotionDashboard : MonoBehaviour
         show.entryOrder ??= new List<string>();
         show.entryOrder.Add($"M:{m.id}");
         DataManager.SavePromotion(currentPromotion);
+        TitleHistoryManager.UpdateShowResults(currentPromotion, show);
         if (statusLabel != null) statusLabel.text = "Match added.";
         matchEditor?.AddToClassList("hidden");
         // Restore panels
@@ -1004,6 +1029,7 @@ public class PromotionDashboard : MonoBehaviour
         show.entryOrder ??= new List<string>();
         show.entryOrder.Add($"S:{s.id}");
         DataManager.SavePromotion(currentPromotion);
+        TitleHistoryManager.UpdateShowResults(currentPromotion, show);
         if (statusLabel != null) statusLabel.text = "Segment added.";
         segmentEditor?.AddToClassList("hidden");
         // Restore panels
@@ -1082,6 +1108,7 @@ public class PromotionDashboard : MonoBehaviour
         BuildCalendarGrid(datePickerMonth);
         datePickerOverlay.RemoveFromClassList("hidden");
         datePickerPopup.RemoveFromClassList("hidden");
+        PositionDatePickerNear(target);
         FocusPanel(datePickerPopup);
     }
 
@@ -1098,9 +1125,10 @@ public class PromotionDashboard : MonoBehaviour
 
         datePickerPopup = new VisualElement { name = "datePickerPopup" };
         datePickerPopup.style.position = Position.Absolute;
-        datePickerPopup.style.left = new Length(50, LengthUnit.Percent);
-        datePickerPopup.style.top = new Length(45, LengthUnit.Percent);
-        datePickerPopup.style.translate = new Translate(-50, -50, 0);
+        // Position is set dynamically near the target field when opened
+        datePickerPopup.style.left = 0;
+        datePickerPopup.style.top = 0;
+        datePickerPopup.style.translate = new Translate(0, 0, 0);
         datePickerPopup.style.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.98f);
         datePickerPopup.style.paddingLeft = 10; datePickerPopup.style.paddingRight = 10;
         datePickerPopup.style.paddingTop = 8; datePickerPopup.style.paddingBottom = 10;
@@ -1191,6 +1219,35 @@ public class PromotionDashboard : MonoBehaviour
         datePickerPopup?.AddToClassList("hidden");
         datePickerOverlay?.AddToClassList("hidden");
         activeDateField = null;
+    }
+
+    private void PositionDatePickerNear(VisualElement field)
+    {
+        if (field == null || datePickerPopup == null || root == null) return;
+        var wb = field.worldBound;
+        var rootWB = root.worldBound;
+        float desiredX = wb.xMin;
+        float desiredY = wb.yMax + 4f;
+
+        // Initial placement; refine after layout to keep within bounds
+        datePickerPopup.style.left = desiredX;
+        datePickerPopup.style.top = desiredY;
+
+        datePickerPopup.schedule.Execute(() =>
+        {
+            var popupWB = datePickerPopup.worldBound;
+            float maxX = rootWB.xMax - popupWB.width - 8f;
+            float maxY = rootWB.yMax - popupWB.height - 8f;
+            float minX = rootWB.xMin + 8f;
+            float minY = rootWB.yMin + 8f;
+            float x = desiredX, y = desiredY;
+            if (x > maxX) x = maxX;
+            if (y > maxY) y = maxY;
+            if (x < minX) x = minX;
+            if (y < minY) y = minY;
+            datePickerPopup.style.left = x;
+            datePickerPopup.style.top = y;
+        });
     }
 
     private void EnsureHistoryShowsListView()
