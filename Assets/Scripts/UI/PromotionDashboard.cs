@@ -711,7 +711,12 @@ public class PromotionDashboard : MonoBehaviour
         if (wrestlerWeightField != null) w.weight = wrestlerWeightField.value;
         DataManager.SaveWrestlers(wrestlerCollection);
         RefreshWrestlerList();
+        // After saving, return to add mode: hide details, show add panel
+        if (wrestlerDetails != null) wrestlerDetails.AddToClassList("hidden");
+        selectedWrestlerIndex = -1;
+        if (wrestlerAddPanel != null) wrestlerAddPanel.RemoveFromClassList("hidden");
         if (statusLabel != null) statusLabel.text = "Wrestler updated.";
+        FocusPanel(wrestlersPanel);
     }
 
     private void OnDeleteSelectedWrestler()
