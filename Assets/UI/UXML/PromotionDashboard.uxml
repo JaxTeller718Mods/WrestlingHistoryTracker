@@ -67,7 +67,6 @@
           <ui:VisualElement name="wrestlerDetails" class="hidden wrestler-detail-card">
             <ui:Label text="Wrestler Details" class="subsection-title" />
             <ui:TextField name="wrestlerNameField" label="Name" />
-            <ui:Toggle name="wrestlerIsTagTeamToggle" label="Tag Team" />
             <ui:TextField name="wrestlerHometownField" label="Hometown" />
             <ui:Toggle name="wrestlerIsFemaleToggle" label="Female" />
             <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
@@ -82,7 +81,6 @@
           <ui:VisualElement name="wrestlerAddPanel" class="wrestler-add-card">
             <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
             <ui:Toggle name="newWrestlerIsFemaleToggle" label="Female" />
-            <ui:Toggle name="newWrestlerIsTagTeamToggle" label="Tag Team" />
             <ui:VisualElement class="row">
               <ui:Button name="addWrestlerButton" text="Add Wrestler" />
               <ui:Button name="saveWrestlersButton" text="Save All" />
