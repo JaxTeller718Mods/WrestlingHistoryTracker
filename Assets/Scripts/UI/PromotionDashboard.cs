@@ -1801,12 +1801,19 @@ public class PromotionDashboard : MonoBehaviour
                 if (show?.matches == null) continue;
                 foreach (var m in show.matches)
                 {
+                    // Consider only true singles matches for singles rankings
                     var parts = new List<string>();
                     if (!string.IsNullOrWhiteSpace(m.wrestlerA)) parts.Add(m.wrestlerA.Trim());
                     if (!string.IsNullOrWhiteSpace(m.wrestlerB)) parts.Add(m.wrestlerB.Trim());
                     if (!string.IsNullOrWhiteSpace(m.wrestlerC)) parts.Add(m.wrestlerC.Trim());
                     if (!string.IsNullOrWhiteSpace(m.wrestlerD)) parts.Add(m.wrestlerD.Trim());
-                    if (parts.Count < 2) continue;
+
+                    // Identify tag matches either by type or by having 4 participants
+                    bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) ||
+                                 (parts.Count >= 4);
+
+                    // Only include matches that are strictly 1v1 and not tag
+                    if (isTag || parts.Count != 2) continue;
                     string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
                     foreach (var p in parts)
                     {
