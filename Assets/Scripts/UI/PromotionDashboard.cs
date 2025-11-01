@@ -691,6 +691,7 @@ public class PromotionDashboard : MonoBehaviour
         selectedWrestlerIndex = index;
         var w = wrestlerCollection.wrestlers[index];
         if (wrestlerDetails != null) wrestlerDetails.RemoveFromClassList("hidden");
+        if (wrestlerAddPanel != null) wrestlerAddPanel.AddToClassList("hidden");
         if (wrestlerNameField != null) wrestlerNameField.value = w.name;
         if (wrestlerHometownField != null) wrestlerHometownField.value = w.hometown;
         if (wrestlerIsFemaleToggle != null) wrestlerIsFemaleToggle.value = w.isFemale;
@@ -721,6 +722,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveWrestlers(wrestlerCollection);
         RefreshWrestlerList();
         if (wrestlerDetails != null) wrestlerDetails.AddToClassList("hidden");
+        if (wrestlerAddPanel != null) wrestlerAddPanel.RemoveFromClassList("hidden");
         if (statusLabel != null) statusLabel.text = "Wrestler deleted.";
     }
 
@@ -728,6 +730,7 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (wrestlerDetails != null) wrestlerDetails.AddToClassList("hidden");
         selectedWrestlerIndex = -1;
+        if (wrestlerAddPanel != null) wrestlerAddPanel.RemoveFromClassList("hidden");
         FocusPanel(wrestlersPanel);
     }
 
