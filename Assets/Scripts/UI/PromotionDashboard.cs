@@ -15,14 +15,15 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
     private ScrollView historyShowMatchesList;
+    private TextField historyLocationFilterField;
     // Shows subpanels (for reordering)
     private VisualElement matchesView;
 
@@ -53,6 +54,17 @@ public class PromotionDashboard : MonoBehaviour
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    // Tournaments UI
+    private ScrollView tournamentListScroll;
+    private ListView tournamentListView;
+    private VisualElement tournamentDetailsPanel;
+    private TextField tournamentNameField;
+    private DropdownField tournamentTypeDropdown, tournamentEntrantDropdown;
+    private ScrollView tournamentEntrantsList, tournamentMatchesList;
+    private Button addTournamentButton, saveTournamentsButton, saveTournamentButton, deleteTournamentButton, cancelTournamentButton;
+    private Button addEntrantButton, removeEntrantButton, generateBracketButton, advanceRoundButton, clearBracketButton;
+    private TournamentCollection tournamentCollection;
+    private int selectedTournamentIndex = -1;
     // Tag Teams UI
     private ScrollView tagTeamListScroll;
     private ListView tagTeamListView;
@@ -80,6 +92,9 @@ public class PromotionDashboard : MonoBehaviour
     // Shows UI (details + editors)
     private VisualElement showDetailsPanel, showAddPanel, matchEditor, segmentEditor;
     private TextField newShowField, newShowDateField, showNameField, showDateField;
+    private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
+    private IntegerField showAttendanceField, newShowAttendanceField;
+    private FloatField showRatingField, newShowRatingField;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
@@ -142,6 +157,7 @@ public class PromotionDashboard : MonoBehaviour
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
+        tournamentsButton = root.Q<Button>("tournamentsButton");
         tagTeamsButton = root.Q<Button>("tagTeamsButton");
         showsButton = root.Q<Button>("showsButton");
         historyButton = root.Q<Button>("historyButton");
@@ -153,6 +169,7 @@ public class PromotionDashboard : MonoBehaviour
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
         wrestlersPanel = root.Q<VisualElement>("wrestlersPanel");
         titlesPanel = root.Q<VisualElement>("titlesPanel");
+        tournamentsPanel = root.Q<VisualElement>("tournamentsPanel");
         tagTeamsPanel = root.Q<VisualElement>("tagTeamsPanel");
         showsPanel = root.Q<VisualElement>("showsPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
@@ -160,6 +177,7 @@ public class PromotionDashboard : MonoBehaviour
         historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
         historyResultsHeader = root.Q<Label>("historyResultsHeader");
         historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
+        historyLocationFilterField = root.Q<TextField>("historyLocationFilterField");
         rankingsPanel = root.Q<VisualElement>("rankingsPanel");
 
         // Query list ScrollViews/buttons used as anchors in UXML
@@ -181,6 +199,24 @@ public class PromotionDashboard : MonoBehaviour
         cancelEditButton = root.Q<Button>("cancelEditButton");
         titleListScroll = root.Q<ScrollView>("titleList");
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
+        // Tournaments queries
+        tournamentListScroll = root.Q<ScrollView>("tournamentList");
+        tournamentDetailsPanel = tournamentsPanel; // container
+        tournamentNameField = root.Q<TextField>("tournamentNameField");
+        tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
+        tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
+        tournamentEntrantsList = root.Q<ScrollView>("tournamentEntrantsList");
+        tournamentMatchesList = root.Q<ScrollView>("tournamentMatchesList");
+        addTournamentButton = root.Q<Button>("addTournamentButton");
+        saveTournamentsButton = root.Q<Button>("saveTournamentsButton");
+        saveTournamentButton = root.Q<Button>("saveTournamentButton");
+        deleteTournamentButton = root.Q<Button>("deleteTournamentButton");
+        cancelTournamentButton = root.Q<Button>("cancelTournamentButton");
+        addEntrantButton = root.Q<Button>("addEntrantButton");
+        removeEntrantButton = root.Q<Button>("removeEntrantButton");
+        generateBracketButton = root.Q<Button>("generateBracketButton");
+        advanceRoundButton = root.Q<Button>("advanceRoundButton");
+        clearBracketButton = root.Q<Button>("clearBracketButton");
         tagTeamListScroll = root.Q<ScrollView>("tagTeamList");
         showsListScroll = root.Q<ScrollView>("showsList");
         historyShowsListScroll = root.Q<ScrollView>("historyShowsList");
@@ -211,6 +247,10 @@ public class PromotionDashboard : MonoBehaviour
         // Shows add/save widgets
         newShowField = root.Q<TextField>("newShowField");
         newShowDateField = root.Q<TextField>("newShowDateField");
+        newShowVenueField = root.Q<TextField>("newShowVenueField");
+        newShowCityField = root.Q<TextField>("newShowCityField");
+        newShowAttendanceField = root.Q<IntegerField>("newShowAttendanceField");
+        newShowRatingField = root.Q<FloatField>("newShowRatingField");
         addShowButton = root.Q<Button>("addShowButton");
         saveShowsButton = root.Q<Button>("saveShowsButton");
         // Show details and editors
@@ -218,6 +258,10 @@ public class PromotionDashboard : MonoBehaviour
         showAddPanel = root.Q<VisualElement>("showAddPanel");
         showNameField = root.Q<TextField>("showNameField");
         showDateField = root.Q<TextField>("showDateField");
+        showVenueField = root.Q<TextField>("showVenueField");
+        showCityField = root.Q<TextField>("showCityField");
+        showAttendanceField = root.Q<IntegerField>("showAttendanceField");
+        showRatingField = root.Q<FloatField>("showRatingField");
         saveShowButton = root.Q<Button>("saveShowButton");
         deleteShowButton = root.Q<Button>("deleteShowButton");
         cancelShowButton = root.Q<Button>("cancelShowButton");
@@ -256,6 +300,11 @@ public class PromotionDashboard : MonoBehaviour
             newShowDateField.parent?.Add(newShowDatePickButton);
             newShowDateField.RegisterCallback<FocusOutEvent>(_ => { NormalizeDateField(newShowDateField); });
         }
+
+        if (historyLocationFilterField != null)
+        {
+            historyLocationFilterField.RegisterValueChangedCallback(_ => PopulateHistoryShowsList());
+        }
         newTitleField = root.Q<TextField>("newTitleField");
         addTitleButton = root.Q<Button>("addTitleButton");
         saveTitlesButton = root.Q<Button>("saveTitlesButton");
@@ -292,6 +341,7 @@ public class PromotionDashboard : MonoBehaviour
         RegisterMainPanel(promotionInfoPanel);
         RegisterMainPanel(wrestlersPanel);
         RegisterMainPanel(titlesPanel);
+        RegisterMainPanel(tournamentsPanel);
         RegisterMainPanel(tagTeamsPanel);
         RegisterMainPanel(showsPanel);
         RegisterMainPanel(historyPanel);
@@ -305,9 +355,21 @@ public class PromotionDashboard : MonoBehaviour
         if (showsButton != null) showsButton.clicked += ShowShowsPanel;
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        if (tournamentsButton != null) tournamentsButton.clicked += ShowTournamentsPanel;
         if (rankingsMenButton != null) rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
         if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
         if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
+        // Tournaments handlers
+        if (addTournamentButton != null) addTournamentButton.clicked += OnAddTournament;
+        if (saveTournamentsButton != null) saveTournamentsButton.clicked += OnSaveTournaments;
+        if (saveTournamentButton != null) saveTournamentButton.clicked += OnSaveSelectedTournament;
+        if (deleteTournamentButton != null) deleteTournamentButton.clicked += OnDeleteSelectedTournament;
+        if (cancelTournamentButton != null) cancelTournamentButton.clicked += OnCancelEditTournament;
+        if (addEntrantButton != null) addEntrantButton.clicked += OnAddEntrant;
+        if (removeEntrantButton != null) removeEntrantButton.clicked += OnRemoveEntrant;
+        if (generateBracketButton != null) generateBracketButton.clicked += OnGenerateBracket;
+        if (advanceRoundButton != null) advanceRoundButton.clicked += OnAdvanceRound;
+        if (clearBracketButton != null) clearBracketButton.clicked += OnClearBracket;
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
         if (titleStatsCloseButton != null) titleStatsCloseButton.clicked += () =>
         {
@@ -386,12 +448,16 @@ public class PromotionDashboard : MonoBehaviour
         // Ensure virtualized lists
         EnsureWrestlerListView();
         EnsureTitleListView();
+        EnsureTournamentListView();
         EnsureTagTeamListView();
         EnsureShowsListView();
         EnsureHistoryShowsListView();
         EnsureRankingsListView();
         EnsureMatchesOrderListView();
         EnsureDefaultMatchTypes();
+        EnsureTournamentTypeChoices();
+        if (tournamentTypeDropdown != null)
+            tournamentTypeDropdown.RegisterValueChangedCallback(_ => PopulateEntrantChoices(tournamentTypeDropdown.value));
 
         // Load data for lists
         if (currentPromotion != null)
@@ -399,12 +465,14 @@ public class PromotionDashboard : MonoBehaviour
             wrestlerCollection = DataManager.LoadWrestlers(currentPromotion.promotionName);
             titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
             tagTeamCollection = DataManager.LoadTagTeams(currentPromotion.promotionName);
+            tournamentCollection = DataManager.LoadTournaments(currentPromotion.promotionName);
             // Step 2: ensure stable IDs and upgraded entryOrder
             EnsureStableIdsAndEntryOrder();
         }
         RefreshWrestlerList();
         RefreshTitleList();
         RefreshTagTeamList();
+        RefreshTournamentList();
         RefreshShowList();
         PopulateHistoryShowsList();
         PopulateRankings(RankCategory.Men);
@@ -530,6 +598,7 @@ public class PromotionDashboard : MonoBehaviour
     private void ShowPromotionPanel() => SetActivePanel(promotionInfoPanel);
     private void ShowWrestlersPanel() => SetActivePanel(wrestlersPanel);
     private void ShowTitlesPanel() => SetActivePanel(titlesPanel);
+    private void ShowTournamentsPanel() => SetActivePanel(tournamentsPanel);
     private void ShowTagTeamsPanel()
     {
         SetActivePanel(tagTeamsPanel);
@@ -689,6 +758,302 @@ public class PromotionDashboard : MonoBehaviour
         };
         parent?.Add(titleListView);
         if (titleListScroll != null) titleListScroll.style.display = DisplayStyle.None;
+    }
+
+    // --------- Tournaments ---------
+    private void EnsureTournamentListView()
+    {
+        if (tournamentListView != null) return;
+        var parent = tournamentListScroll != null ? tournamentListScroll.parent : tournamentsPanel;
+        tournamentListView = new ListView
+        {
+            name = "tournamentListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        tournamentListView.style.flexGrow = 1;
+        tournamentListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectTournament(idx); });
+            return b;
+        };
+        tournamentListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = tournamentCollection?.tournaments;
+            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].name; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(tournamentListView);
+        if (tournamentListScroll != null) tournamentListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshTournamentList()
+    {
+        if (tournamentListView == null) return;
+        var src = tournamentCollection?.tournaments ?? new List<TournamentData>();
+        tournamentListView.itemsSource = src;
+        tournamentListView.Rebuild();
+    }
+
+    private void SelectTournament(int index)
+    {
+        if (tournamentCollection?.tournaments == null || index < 0 || index >= tournamentCollection.tournaments.Count) return;
+        selectedTournamentIndex = index;
+        var t = tournamentCollection.tournaments[index];
+        if (tournamentNameField != null) tournamentNameField.value = t.name;
+        EnsureTournamentTypeChoices();
+        if (tournamentTypeDropdown != null) tournamentTypeDropdown.value = string.IsNullOrEmpty(t.type) ? "Singles" : t.type;
+        PopulateEntrantsUI(t);
+        PopulateMatchesUI(t);
+        SetActivePanel(tournamentsPanel);
+    }
+
+    private void EnsureTournamentTypeChoices()
+    {
+        if (tournamentTypeDropdown == null) return;
+        if (tournamentTypeDropdown.choices == null || tournamentTypeDropdown.choices.Count == 0)
+            tournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team" };
+    }
+
+    private void PopulateEntrantChoices(string type)
+    {
+        if (tournamentEntrantDropdown == null) return;
+        var choices = new List<string>();
+        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        {
+            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+            foreach (var g in tagTeamCollection?.teams ?? new List<TagTeamData>())
+                if (!string.IsNullOrEmpty(g?.teamName)) choices.Add(g.teamName);
+        }
+        else
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+                if (!string.IsNullOrEmpty(w?.name)) choices.Add(w.name);
+        }
+        if (choices.Count == 0) choices.Add(string.Empty);
+        tournamentEntrantDropdown.choices = choices;
+        tournamentEntrantDropdown.value = choices[0];
+    }
+
+    private void PopulateEntrantsUI(TournamentData t)
+    {
+        if (tournamentEntrantsList == null) return;
+        tournamentEntrantsList.Clear();
+        foreach (var e in t.entrants ?? new List<TournamentEntry>())
+        {
+            var label = new Label(e?.name ?? "");
+            tournamentEntrantsList.Add(label);
+        }
+        PopulateEntrantChoices(t.type);
+    }
+
+    private void PopulateMatchesUI(TournamentData t)
+    {
+        if (tournamentMatchesList == null) return;
+        tournamentMatchesList.Clear();
+        if (t.rounds == null || t.rounds.Count == 0) return;
+
+        var currentRound = t.rounds[^1];
+        int i = 1;
+        var nameById = BuildTournamentNameMap(t);
+        foreach (var m in currentRound.matches ?? new List<TournamentMatch>())
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.justifyContent = Justify.SpaceBetween;
+            var lbl = new Label($"Match {i++}");
+            var dd = new DropdownField();
+            var p1 = nameById.TryGetValue(m.participant1Id ?? string.Empty, out var n1) ? n1 : "";
+            var p2 = nameById.TryGetValue(m.participant2Id ?? string.Empty, out var n2) ? n2 : "";
+            var choices = new List<string>(); if (!string.IsNullOrEmpty(p1)) choices.Add(p1); if (!string.IsNullOrEmpty(p2)) choices.Add(p2); if (choices.Count == 0) choices.Add(string.Empty);
+            dd.choices = choices; dd.value = (m.winnerId == m.participant2Id) ? p2 : (m.winnerId == m.participant1Id ? p1 : dd.choices[0]);
+            dd.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.newValue == p1) m.winnerId = m.participant1Id; else if (evt.newValue == p2) m.winnerId = m.participant2Id; else m.winnerId = null;
+            });
+            row.Add(lbl); row.Add(dd);
+            tournamentMatchesList.Add(row);
+        }
+    }
+
+    private Dictionary<string, string> BuildTournamentNameMap(TournamentData t)
+    {
+        var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        if (string.Equals(t.type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        {
+            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+            foreach (var g in tagTeamCollection?.teams ?? new List<TagTeamData>())
+                if (!string.IsNullOrEmpty(g?.id) && !string.IsNullOrEmpty(g.teamName)) map[g.id] = g.teamName;
+        }
+        else
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+                if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) map[w.id] = w.name;
+        }
+        return map;
+    }
+
+    private void OnAddTournament()
+    {
+        if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
+        tournamentCollection ??= DataManager.LoadTournaments(currentPromotion.promotionName);
+        tournamentCollection.promotionName = currentPromotion.promotionName;
+        var t = new TournamentData { id = System.Guid.NewGuid().ToString("N"), name = (tournamentNameField?.value ?? "New Tournament").Trim(), type = (tournamentTypeDropdown?.value ?? "Singles") };
+        t.entrants = new List<TournamentEntry>();
+        t.rounds = new List<TournamentRound>();
+        tournamentCollection.tournaments ??= new List<TournamentData>();
+        tournamentCollection.tournaments.Add(t);
+        DataManager.SaveTournaments(tournamentCollection);
+        RefreshTournamentList();
+        if (statusLabel != null) statusLabel.text = "Tournament added.";
+    }
+
+    private void OnSaveTournaments()
+    {
+        if (currentPromotion == null || tournamentCollection == null) return;
+        tournamentCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveTournaments(tournamentCollection);
+        if (statusLabel != null) statusLabel.text = "Tournaments saved.";
+    }
+
+    private void OnSaveSelectedTournament()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        if (tournamentNameField != null) t.name = tournamentNameField.value;
+        if (tournamentTypeDropdown != null) t.type = tournamentTypeDropdown.value;
+        DataManager.SaveTournaments(tournamentCollection);
+        RefreshTournamentList();
+        if (statusLabel != null) statusLabel.text = "Tournament updated.";
+    }
+
+    private void OnDeleteSelectedTournament()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        tournamentCollection.tournaments.RemoveAt(selectedTournamentIndex);
+        selectedTournamentIndex = -1;
+        DataManager.SaveTournaments(tournamentCollection);
+        RefreshTournamentList();
+        if (statusLabel != null) statusLabel.text = "Tournament deleted.";
+    }
+
+    private void OnCancelEditTournament()
+    {
+        selectedTournamentIndex = -1;
+        if (tournamentNameField != null) tournamentNameField.value = string.Empty;
+        SetActivePanel(tournamentsPanel);
+    }
+
+    private void OnAddEntrant()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        EnsureTournamentTypeChoices();
+        string type = tournamentTypeDropdown != null ? tournamentTypeDropdown.value : (t.type ?? "Singles");
+        var name = tournamentEntrantDropdown != null ? (tournamentEntrantDropdown.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name)) return;
+        var entry = new TournamentEntry();
+        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        {
+            var team = (tagTeamCollection?.teams ?? new List<TagTeamData>()).FirstOrDefault(x => string.Equals(x?.teamName, name, StringComparison.OrdinalIgnoreCase));
+            entry.id = team?.id; entry.name = team?.teamName;
+        }
+        else
+        {
+            var w = (wrestlerCollection?.wrestlers ?? new List<WrestlerData>()).FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
+            entry.id = w?.id; entry.name = w?.name;
+        }
+        if (string.IsNullOrEmpty(entry?.id) || string.IsNullOrEmpty(entry.name)) return;
+        t.entrants ??= new List<TournamentEntry>();
+        if (t.entrants.Any(e => string.Equals(e?.id, entry.id, StringComparison.OrdinalIgnoreCase))) return; // no duplicates
+        t.entrants.Add(entry);
+        DataManager.SaveTournaments(tournamentCollection);
+        PopulateEntrantsUI(t);
+        if (statusLabel != null) statusLabel.text = "Entrant added.";
+    }
+
+    private void OnGenerateBracket()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        if (t.entrants == null || t.entrants.Count < 2) { if (statusLabel != null) statusLabel.text = "Add at least 2 entrants."; return; }
+        var seeds = new List<TournamentEntry>(t.entrants);
+        var round = new TournamentRound { roundNumber = (t.rounds?.Count ?? 0) + 1, matches = new List<TournamentMatch>() };
+        for (int i = 0; i < seeds.Count; i += 2)
+        {
+            var m = new TournamentMatch { id = System.Guid.NewGuid().ToString("N") };
+            m.participant1Id = seeds[i].id;
+            m.participant2Id = (i + 1 < seeds.Count) ? seeds[i + 1].id : null; // bye if null
+            if (m.participant2Id == null) m.winnerId = m.participant1Id; // automatic advance on bye
+            round.matches.Add(m);
+        }
+        t.rounds ??= new List<TournamentRound>();
+        t.rounds.Add(round);
+        DataManager.SaveTournaments(tournamentCollection);
+        PopulateMatchesUI(t);
+        if (statusLabel != null) statusLabel.text = $"Round {round.roundNumber} generated.";
+    }
+
+    private void OnAdvanceRound()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        if (t.rounds == null || t.rounds.Count == 0) return;
+        var currentRound = t.rounds[^1];
+        if (currentRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId))) { if (statusLabel != null) statusLabel.text = "Select winners for all matches."; return; }
+        var winners = currentRound.matches.Select(m => new TournamentEntry { id = m.winnerId, name = null }).ToList();
+        if (winners.Count <= 1)
+        {
+            // Tournament winner decided
+            DataManager.SaveTournaments(tournamentCollection);
+            if (statusLabel != null) statusLabel.text = "Tournament complete!";
+            return;
+        }
+        var round = new TournamentRound { roundNumber = currentRound.roundNumber + 1, matches = new List<TournamentMatch>() };
+        for (int i = 0; i < winners.Count; i += 2)
+        {
+            var m = new TournamentMatch { id = System.Guid.NewGuid().ToString("N") };
+            m.participant1Id = winners[i].id;
+            m.participant2Id = (i + 1 < winners.Count) ? winners[i + 1].id : null;
+            if (m.participant2Id == null) m.winnerId = m.participant1Id;
+            round.matches.Add(m);
+        }
+        t.rounds.Add(round);
+        DataManager.SaveTournaments(tournamentCollection);
+        PopulateMatchesUI(t);
+        if (statusLabel != null) statusLabel.text = $"Advanced to Round {round.roundNumber}.";
+    }
+
+    private void OnRemoveEntrant()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        if (tournamentEntrantDropdown == null) return;
+        var name = (tournamentEntrantDropdown.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(name) || t.entrants == null || t.entrants.Count == 0) return;
+        int removed = t.entrants.RemoveAll(e => string.Equals(e?.name, name, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+        {
+            DataManager.SaveTournaments(tournamentCollection);
+            PopulateEntrantsUI(t);
+            if (statusLabel != null) statusLabel.text = "Entrant removed.";
+        }
+    }
+
+    private void OnClearBracket()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        t.rounds = new List<TournamentRound>();
+        DataManager.SaveTournaments(tournamentCollection);
+        PopulateMatchesUI(t);
+        if (statusLabel != null) statusLabel.text = "Bracket cleared.";
     }
 
     private void EnsureTagTeamListView()
@@ -1186,11 +1551,19 @@ public class PromotionDashboard : MonoBehaviour
             return;
         }
         var show = new ShowData(name, date);
+        if (newShowVenueField != null) show.venue = (newShowVenueField.value ?? string.Empty).Trim();
+        if (newShowCityField != null) show.city = (newShowCityField.value ?? string.Empty).Trim();
+        if (newShowAttendanceField != null) show.attendance = newShowAttendanceField.value;
+        if (newShowRatingField != null) show.rating = newShowRatingField.value;
         currentPromotion.shows.Add(show);
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
         if (newShowField != null) newShowField.value = string.Empty;
         if (newShowDateField != null) newShowDateField.value = string.Empty;
+        if (newShowVenueField != null) newShowVenueField.value = string.Empty;
+        if (newShowCityField != null) newShowCityField.value = string.Empty;
+        if (newShowAttendanceField != null) newShowAttendanceField.value = 0;
+        if (newShowRatingField != null) newShowRatingField.value = 0f;
         if (statusLabel != null) statusLabel.text = "Show added.";
     }
 
@@ -1213,6 +1586,10 @@ public class PromotionDashboard : MonoBehaviour
         segmentEditor?.AddToClassList("hidden");
         if (showNameField != null) showNameField.value = s.showName;
         if (showDateField != null) showDateField.value = s.date;
+        if (showVenueField != null) showVenueField.value = s.venue;
+        if (showCityField != null) showCityField.value = s.city;
+        if (showAttendanceField != null) showAttendanceField.value = s.attendance;
+        if (showRatingField != null) showRatingField.value = s.rating;
         FocusPanel(showDetailsPanel ?? showsPanel);
     }
 
@@ -1224,6 +1601,10 @@ public class PromotionDashboard : MonoBehaviour
         string prevDate = s.date;
         if (showNameField != null) s.showName = showNameField.value;
         if (showDateField != null) { s.date = NormalizeDateString(showDateField.value); showDateField.value = s.date; }
+        if (showVenueField != null) s.venue = showVenueField.value;
+        if (showCityField != null) s.city = showCityField.value;
+        if (showAttendanceField != null) s.attendance = showAttendanceField.value;
+        if (showRatingField != null) s.rating = showRatingField.value;
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
         RefreshShowList();
@@ -1323,6 +1704,18 @@ public class PromotionDashboard : MonoBehaviour
         string type = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
         string matchName = $"{type}: {string.Join(" vs ", have)}";
         string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
+        // Build id maps
+        EnsureRosterAndTitlesLoaded();
+        var idByName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.name) && !string.IsNullOrEmpty(w.id)) idByName[w.name.Trim()] = w.id;
+        var titleIdByName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var t in titleCollection?.titles ?? new List<TitleData>())
+            if (!string.IsNullOrEmpty(t?.titleName) && !string.IsNullOrEmpty(t.id)) titleIdByName[t.titleName.Trim()] = t.id;
+
+        string GetId(string nm) { return (!string.IsNullOrEmpty(nm) && idByName.TryGetValue(nm.Trim(), out var v)) ? v : null; }
+        string GetTitleId(string nm) { return (!string.IsNullOrEmpty(nm) && titleIdByName.TryGetValue(nm.Trim(), out var v)) ? v : null; }
+
         var m = new MatchData
         {
             id = System.Guid.NewGuid().ToString("N"),
@@ -1334,7 +1727,13 @@ public class PromotionDashboard : MonoBehaviour
             wrestlerD = D,
             isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value,
             titleName = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? titleDropdown.value : null,
-            winner = winner
+            winner = winner,
+            wrestlerAId = GetId(A),
+            wrestlerBId = GetId(B),
+            wrestlerCId = GetId(C),
+            wrestlerDId = GetId(D),
+            winnerId = GetId(winner),
+            titleId = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? GetTitleId(titleDropdown.value) : null
         };
         var show = currentPromotion.shows[selectedShowIndex];
         show.matches ??= new List<MatchData>();
@@ -1604,19 +2003,23 @@ public class PromotionDashboard : MonoBehaviour
             b.AddToClassList("list-entry");
             b.RegisterCallback<ClickEvent>(_ =>
             {
-                if (b.userData is int idx && currentPromotion?.shows != null && idx >= 0 && idx < currentPromotion.shows.Count)
-                    ShowSelectedShowHistory(currentPromotion.shows[idx]);
+                var list = historyShowsListView.itemsSource as List<ShowData>;
+                if (b.userData is int idx && list != null && idx >= 0 && idx < list.Count)
+                    ShowSelectedShowHistory(list[idx]);
             });
             return b;
         };
         historyShowsListView.bindItem = (ve, i) =>
         {
             var b = (Button)ve;
-            var shows = currentPromotion?.shows;
+            var shows = historyShowsListView.itemsSource as List<ShowData>;
             if (shows != null && i >= 0 && i < shows.Count)
             {
                 var s = shows[i];
-                b.text = string.IsNullOrEmpty(s?.date) ? s?.showName : $"{s?.showName} - {s?.date}";
+                var loc = string.IsNullOrEmpty(s?.city) ? s?.venue : s.city;
+                var datePart = string.IsNullOrEmpty(s?.date) ? string.Empty : $" - {s.date}";
+                var locPart = string.IsNullOrEmpty(loc) ? string.Empty : $" ({loc})";
+                b.text = $"{s?.showName}{datePart}{locPart}";
                 b.userData = i;
             }
             else { b.text = string.Empty; b.userData = -1; }
@@ -1628,7 +2031,17 @@ public class PromotionDashboard : MonoBehaviour
     private void PopulateHistoryShowsList()
     {
         if (historyShowsListView == null) return;
-        historyShowsListView.itemsSource = currentPromotion?.shows ?? new List<ShowData>();
+        var all = currentPromotion?.shows ?? new List<ShowData>();
+        string filter = historyLocationFilterField != null ? (historyLocationFilterField.value ?? string.Empty).Trim() : string.Empty;
+        if (!string.IsNullOrEmpty(filter))
+        {
+            string f = filter.ToLowerInvariant();
+            all = all.Where(s =>
+                (!string.IsNullOrEmpty(s?.city) && s.city.ToLowerInvariant().Contains(f)) ||
+                (!string.IsNullOrEmpty(s?.venue) && s.venue.ToLowerInvariant().Contains(f))
+            ).ToList();
+        }
+        historyShowsListView.itemsSource = all;
         historyShowsListView.Rebuild();
     }
 
@@ -1789,6 +2202,12 @@ public class PromotionDashboard : MonoBehaviour
                 if (!string.IsNullOrEmpty(w.name)) flagByName[w.name] = w.isFemale;
 
         var singles = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+        // Build resolver for ID -> current name
+        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
+        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && nameById.TryGetValue(id, out var nm)) ? nm : fallback;
+
         if (currentPromotion.shows != null)
         {
             foreach (var show in currentPromotion.shows)
@@ -1798,10 +2217,11 @@ public class PromotionDashboard : MonoBehaviour
                 {
                     // Consider only true singles matches for singles rankings
                     var parts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(m.wrestlerA)) parts.Add(m.wrestlerA.Trim());
-                    if (!string.IsNullOrWhiteSpace(m.wrestlerB)) parts.Add(m.wrestlerB.Trim());
-                    if (!string.IsNullOrWhiteSpace(m.wrestlerC)) parts.Add(m.wrestlerC.Trim());
-                    if (!string.IsNullOrWhiteSpace(m.wrestlerD)) parts.Add(m.wrestlerD.Trim());
+                    void addPart(string id, string name) { var v = NameOf(id, name); if (!string.IsNullOrWhiteSpace(v)) parts.Add(v.Trim()); }
+                    addPart(m.wrestlerAId, m.wrestlerA);
+                    addPart(m.wrestlerBId, m.wrestlerB);
+                    addPart(m.wrestlerCId, m.wrestlerC);
+                    addPart(m.wrestlerDId, m.wrestlerD);
 
                     // Identify tag matches either by type or by having 4 participants
                     bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) ||
@@ -1809,7 +2229,8 @@ public class PromotionDashboard : MonoBehaviour
 
                     // Only include matches that are strictly 1v1 and not tag
                     if (isTag || parts.Count != 2) continue;
-                    string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
+                    string winner = NameOf(m.winnerId, m.winner);
+                    winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
                     foreach (var p in parts)
                     {
                         flagByName.TryGetValue(p, out var isFemale);
@@ -1852,6 +2273,13 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+        // Name resolver for wrestler IDs
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
+        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && nameById.TryGetValue(id, out var nm)) ? nm : fallback;
+
         foreach (var show in currentPromotion.shows ?? new List<ShowData>())
         {
             foreach (var m in show.matches ?? new List<MatchData>())
@@ -1861,16 +2289,21 @@ public class PromotionDashboard : MonoBehaviour
                              (!string.IsNullOrWhiteSpace(m.wrestlerA) && !string.IsNullOrWhiteSpace(m.wrestlerB) && !string.IsNullOrWhiteSpace(m.wrestlerC) && !string.IsNullOrWhiteSpace(m.wrestlerD));
                 if (!isTag) continue;
 
-                string key1 = MakeTeamKey(m.wrestlerA, m.wrestlerB);
-                string key2 = MakeTeamKey(m.wrestlerC, m.wrestlerD);
+                string a = NameOf(m.wrestlerAId, m.wrestlerA);
+                string b = NameOf(m.wrestlerBId, m.wrestlerB);
+                string c = NameOf(m.wrestlerCId, m.wrestlerC);
+                string d = NameOf(m.wrestlerDId, m.wrestlerD);
+                string key1 = MakeTeamKey(a, b);
+                string key2 = MakeTeamKey(c, d);
                 bool hasTeam1 = teamByMembers.TryGetValue(key1, out var team1);
                 bool hasTeam2 = teamByMembers.TryGetValue(key2, out var team2);
                 if (!hasTeam1 && !hasTeam2) continue; // skip if neither side is a defined team
 
-                string winner = string.IsNullOrWhiteSpace(m.winner) ? null : m.winner.Trim();
+                string winner = NameOf(m.winnerId, m.winner);
+                winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
                 // Determine which side won by winner membership
-                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, m.wrestlerA) || StringEquals(winner, m.wrestlerB));
-                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, m.wrestlerC) || StringEquals(winner, m.wrestlerD));
+                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, a) || StringEquals(winner, b));
+                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, c) || StringEquals(winner, d));
 
                 if (hasTeam1)
                 {

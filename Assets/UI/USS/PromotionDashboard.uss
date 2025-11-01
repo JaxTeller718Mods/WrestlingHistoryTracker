@@ -254,6 +254,28 @@ FloatField > .unity-float-field__input {
     min-height: 260px;
 }
 
+/* ===== TOURNAMENTS LAYOUT ===== */
+.tournament-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.tournament-layout > * { margin-right: 20px; margin-bottom: 20px; }
+
+#tournamentList {
+    max-width: 260px;
+    min-height: 260px;
+}
+
+.tournament-detail-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.tournament-detail-column > * { margin-bottom: 16px; }
+
 .tag-team-layout {}
 
 /* ===== TAG TEAM LAYOUT ===== */

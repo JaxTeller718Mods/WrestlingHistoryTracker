@@ -5,6 +5,7 @@ using UnityEngine;
 [Serializable]
 public class TitleData
 {
+    public string id; // stable identifier
     public string titleName;
     public string division;
     public string establishedYear;

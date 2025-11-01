@@ -8,6 +8,7 @@ using UnityEngine;
 [Serializable]
 public class WrestlerData
 {
+    public string id; // stable identifier
     public string name;
     public string hometown;
     public string debutYear;

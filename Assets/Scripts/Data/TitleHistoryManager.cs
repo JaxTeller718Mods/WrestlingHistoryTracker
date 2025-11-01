@@ -55,7 +55,7 @@ public static class TitleHistoryManager
             return;
 
         RemoveResultsForShow(history, show, previousShowName, previousShowDate);
-        AppendShowMatches(history, show);
+        AppendShowMatches(history, show, promotion.promotionName);
         RebuildTitleLineages(history);
 
         DataManager.SaveMatchHistory(history);
@@ -196,17 +196,32 @@ public static class TitleHistoryManager
         if (promotion.shows != null)
         {
             foreach (var show in promotion.shows)
-                AppendShowMatches(history, show);
+                AppendShowMatches(history, show, promotion.promotionName);
         }
 
         RebuildTitleLineages(history);
         return history;
     }
 
-    private static void AppendShowMatches(MatchHistoryData history, ShowData show)
+    private static void AppendShowMatches(MatchHistoryData history, ShowData show, string promotionName)
     {
         if (history == null || show == null || show.matches == null)
             return;
+
+        // Build name indexes for ID->current name resolution
+        var wrestlers = DataManager.LoadWrestlers(promotionName);
+        var titles = DataManager.LoadTitles(promotionName);
+        var nameByWrestlerId = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlers.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameByWrestlerId[w.id] = w.name;
+        var titleNameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var t in titles.titles ?? new List<TitleData>())
+            if (!string.IsNullOrEmpty(t?.id) && !string.IsNullOrEmpty(t.titleName)) titleNameById[t.id] = t.titleName;
+
+        string ResolveWrestler(string id, string fallback)
+            => !string.IsNullOrEmpty(id) && nameByWrestlerId.TryGetValue(id, out var nm) ? nm : fallback;
+        string ResolveTitle(string id, string fallback)
+            => !string.IsNullOrEmpty(id) && titleNameById.TryGetValue(id, out var nm) ? nm : fallback;
 
         foreach (var match in show.matches)
         {
@@ -218,11 +233,11 @@ public static class TitleHistoryManager
                 showName = show.showName,
                 date = show.date,
                 matchName = match.matchName,
-                wrestlerA = match.wrestlerA,
-                wrestlerB = match.wrestlerB,
-                winner = match.winner,
+                wrestlerA = ResolveWrestler(match.wrestlerAId, match.wrestlerA),
+                wrestlerB = ResolveWrestler(match.wrestlerBId, match.wrestlerB),
+                winner = ResolveWrestler(match.winnerId, match.winner),
                 isTitleMatch = match.isTitleMatch,
-                titleInvolved = match.titleName
+                titleInvolved = ResolveTitle(match.titleId, match.titleName)
             };
 
             history.matchResults.Add(result);

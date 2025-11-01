@@ -13,6 +13,7 @@
         <ui:Button name="promotionButton" text="Promotion Info" />
         <ui:Button name="wrestlersButton" text="Wrestlers" />
         <ui:Button name="titlesButton" text="Titles" />
+        <ui:Button name="tournamentsButton" text="Tournaments" />
         <ui:Button name="tagTeamsButton" text="Tag Teams" />
         <ui:Button name="showsButton" text="Shows" />
         <ui:Button name="historyButton" text="History" />
@@ -145,6 +146,46 @@
       </ui:VisualElement>
     </ui:VisualElement>
 
+    <!-- ===== TOURNAMENTS PANEL ===== -->
+    <ui:VisualElement name="tournamentsPanel" class="hidden">
+      <ui:Label text="Tournaments" class="section-title" />
+      <ui:VisualElement class="tournament-layout">
+        <ui:ScrollView name="tournamentList" class="list" />
+
+        <ui:VisualElement class="tournament-detail-column">
+          <ui:VisualElement class="title-detail-card">
+            <ui:Label text="Manage Tournament" class="subsection-title" />
+            <ui:TextField name="tournamentNameField" label="Tournament Name" />
+            <ui:DropdownField name="tournamentTypeDropdown" label="Type" />
+
+            <ui:VisualElement class="row">
+              <ui:DropdownField name="tournamentEntrantDropdown" label="Add/Select Entrant" />
+              <ui:Button name="addEntrantButton" text="Add" />
+              <ui:Button name="removeEntrantButton" text="Remove" />
+            </ui:VisualElement>
+            <ui:Label text="Entrants" />
+            <ui:ScrollView name="tournamentEntrantsList" class="list" />
+
+            <ui:VisualElement class="row">
+              <ui:Button name="generateBracketButton" text="Generate Bracket" />
+              <ui:Button name="advanceRoundButton" text="Advance Round" />
+              <ui:Button name="clearBracketButton" text="Clear Bracket" />
+            </ui:VisualElement>
+            <ui:Label text="Current Round" />
+            <ui:ScrollView name="tournamentMatchesList" class="list" />
+
+            <ui:VisualElement class="row">
+              <ui:Button name="addTournamentButton" text="Add Tournament" />
+              <ui:Button name="saveTournamentsButton" text="Save All" />
+              <ui:Button name="saveTournamentButton" text="Save Changes" />
+              <ui:Button name="deleteTournamentButton" text="Delete" />
+              <ui:Button name="cancelTournamentButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
     <!-- ===== TAG TEAMS PANEL ===== -->
     <ui:VisualElement name="tagTeamsPanel" class="hidden">
       <ui:Label text="Tag Teams" class="section-title" />
@@ -180,17 +221,21 @@
         <ui:ScrollView name="showsList" class="list" />
 
         <ui:VisualElement class="show-detail-column">
-          <ui:VisualElement class="show-edit-columns">
-            <!-- Details of the selected show -->
-            <ui:VisualElement name="showDetails" class="hidden show-detail-card">
-              <ui:Label text="Show Details" class="subsection-title" />
-              <ui:TextField name="showNameField" label="Show Name" />
-              <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-              <ui:VisualElement class="row">
-                <ui:Button name="addMatchButton" text="Add Match" />
-                <ui:Button name="addSegmentButton" text="Add Segment" />
-                <ui:Button name="viewMatchesButton" text="View Matches" />
-              </ui:VisualElement>
+        <ui:VisualElement class="show-edit-columns">
+          <!-- Details of the selected show -->
+          <ui:VisualElement name="showDetails" class="hidden show-detail-card">
+            <ui:Label text="Show Details" class="subsection-title" />
+            <ui:TextField name="showNameField" label="Show Name" />
+            <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
+            <ui:TextField name="showVenueField" label="Venue" />
+            <ui:TextField name="showCityField" label="City" />
+            <ui:IntegerField name="showAttendanceField" label="Attendance" />
+            <ui:FloatField name="showRatingField" label="Buyrate / TV Rating" />
+            <ui:VisualElement class="row">
+              <ui:Button name="addMatchButton" text="Add Match" />
+              <ui:Button name="addSegmentButton" text="Add Segment" />
+              <ui:Button name="viewMatchesButton" text="View Matches" />
+            </ui:VisualElement>
               <ui:VisualElement class="row">
                 <ui:Button name="saveShowButton" text="Save Show" />
                 <ui:Button name="deleteShowButton" text="Delete" />
@@ -237,6 +282,10 @@
           <ui:VisualElement name="showAddPanel" class="show-add-card">
             <ui:TextField name="newShowField" label="New Show Name" />
             <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
+            <ui:TextField name="newShowVenueField" label="Venue" />
+            <ui:TextField name="newShowCityField" label="City" />
+            <ui:IntegerField name="newShowAttendanceField" label="Attendance" />
+            <ui:FloatField name="newShowRatingField" label="Buyrate / TV Rating" />
             <ui:VisualElement class="row">
               <ui:Button name="addShowButton" text="Add Show" />
               <ui:Button name="saveShowsButton" text="Save All" />
@@ -253,6 +302,7 @@
       <!-- Primary: list of shows to browse results -->
       <ui:VisualElement name="historyShowsPanel">
         <ui:Label text="Shows" class="subsection-title" />
+        <ui:TextField name="historyLocationFilterField" label="Filter by City/Venue" />
         <ui:ScrollView name="historyShowsList" class="list" />
       </ui:VisualElement>
 

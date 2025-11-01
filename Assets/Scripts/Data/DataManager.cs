@@ -16,6 +16,7 @@ public static class DataManager
     private static readonly string wrestlerFolder  = Path.Combine(baseFolder, "Wrestlers");
     private static readonly string titleFolder = Path.Combine(baseFolder, "Titles");
     private static readonly string tagTeamFolder = Path.Combine(baseFolder, "TagTeams");
+    private static readonly string tournamentsFolder = Path.Combine(baseFolder, "Tournaments");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
 
     // ------------------------
@@ -160,7 +161,10 @@ public static class DataManager
         try
         {
             string json = File.ReadAllText(filePath);
-            WrestlerCollection data = JsonUtility.FromJson<WrestlerCollection>(json);
+            WrestlerCollection data = JsonUtility.FromJson<WrestlerCollection>(json) ?? new WrestlerCollection { promotionName = promotionName };
+            bool upgradedW = EnsureIds(data?.wrestlers);
+            if (data != null) data.promotionName = promotionName;
+            if (upgradedW) SaveWrestlers(data);
             Debug.Log($"✅ Wrestlers loaded for {promotionName}");
             return data;
         }
@@ -217,7 +221,10 @@ public static class DataManager
         try
         {
             string json = File.ReadAllText(filePath);
-            TitleCollection data = JsonUtility.FromJson<TitleCollection>(json);
+            TitleCollection data = JsonUtility.FromJson<TitleCollection>(json) ?? new TitleCollection { promotionName = promotionName };
+            bool upgradedT = EnsureIds(data?.titles);
+            if (data != null) data.promotionName = promotionName;
+            if (upgradedT) SaveTitles(data);
             Debug.Log($"✅ Titles loaded for {promotionName}");
             return data;
         }
@@ -254,6 +261,60 @@ public static class DataManager
         }
     }
 
+    // ------------------------
+    // TOURNAMENT MANAGEMENT
+    // ------------------------
+    public static void SaveTournaments(TournamentCollection collection)
+    {
+        if (collection == null || string.IsNullOrEmpty(collection.promotionName))
+        {
+            Debug.LogError("Cannot save tournaments: collection or promotion name is null.");
+            return;
+        }
+        if (!Directory.Exists(tournamentsFolder))
+            Directory.CreateDirectory(tournamentsFolder);
+        string safeName = MakeSafeFileName(collection.promotionName);
+        string filePath = Path.Combine(tournamentsFolder, $"{safeName}_Tournaments.json");
+        try
+        {
+            string json = JsonUtility.ToJson(collection, true);
+            File.WriteAllText(filePath, json);
+            Debug.Log($"Tournaments saved for {collection.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error saving tournaments: {ex.Message}");
+        }
+    }
+
+    public static TournamentCollection LoadTournaments(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName))
+            return new TournamentCollection { promotionName = promotionName };
+        string safeName = MakeSafeFileName(promotionName);
+        string filePath = Path.Combine(tournamentsFolder, $"{safeName}_Tournaments.json");
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"No tournaments found for {promotionName}");
+            return new TournamentCollection { promotionName = promotionName };
+        }
+        try
+        {
+            string json = File.ReadAllText(filePath);
+            var data = JsonUtility.FromJson<TournamentCollection>(json) ?? new TournamentCollection { promotionName = promotionName };
+            // Ensure tournaments have IDs
+            bool changed = EnsureIds(data?.tournaments);
+            if (changed) SaveTournaments(data);
+            if (data != null) data.promotionName = promotionName;
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error loading tournaments: {ex.Message}");
+            return new TournamentCollection { promotionName = promotionName };
+        }
+    }
+
     public static TagTeamCollection LoadTagTeams(string promotionName)
     {
         if (string.IsNullOrEmpty(promotionName))
@@ -268,8 +329,10 @@ public static class DataManager
         try
         {
             string json = File.ReadAllText(filePath);
-            var data = JsonUtility.FromJson<TagTeamCollection>(json);
-            if (data == null) data = new TagTeamCollection { promotionName = promotionName };
+            var data = JsonUtility.FromJson<TagTeamCollection>(json) ?? new TagTeamCollection { promotionName = promotionName };
+            bool upgradedG = EnsureIds(data?.teams);
+            if (data != null) data.promotionName = promotionName;
+            if (upgradedG) SaveTagTeams(data);
             return data;
         }
         catch (Exception ex)
@@ -349,5 +412,30 @@ public static class DataManager
         foreach (char c in Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
         return name;
+    }
+
+    // ------------------------
+    // ID Utilities
+    // ------------------------
+    private static bool EnsureIds<T>(List<T> list) where T : class
+    {
+        if (list == null) return false;
+        bool changed = false;
+        foreach (var item in list)
+        {
+            if (item == null) continue;
+            var type = item.GetType();
+            var field = type.GetField("id");
+            if (field != null)
+            {
+                var val = field.GetValue(item) as string;
+                if (string.IsNullOrEmpty(val))
+                {
+                    field.SetValue(item, System.Guid.NewGuid().ToString("N"));
+                    changed = true;
+                }
+            }
+        }
+        return changed;
     }
 }
