@@ -18,6 +18,4 @@ public class MatchData
     public string titleName;
     public string winner;
     public string notes;
-    // If a tag match, optionally store the winning team label/name for context
-    public string winnerTeam;
 }

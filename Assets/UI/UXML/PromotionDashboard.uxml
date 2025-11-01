@@ -150,15 +150,15 @@
     <!-- ===== TAG TEAMS PANEL ===== -->
     <ui:VisualElement name="tagTeamsPanel" class="hidden">
       <ui:Label text="Tag Teams" class="section-title" />
-      <ui:VisualElement class="tagteams-layout">
-        <!-- Left column: manage team form -->
-        <ui:VisualElement class="title-detail-column">
-          <ui:VisualElement class="title-detail-card">
-            <ui:Label text="Manage Team" class="subsection-title" />
-            <ui:Label name="tagTeamEmptyLabel" text="No teams yet - add your first team." />
-            <ui:VisualElement class="row">
-              <ui:TextField name="teamNameField" label="Team Name" />
-            </ui:VisualElement>
+      <ui:VisualElement class="titles-layout">
+        <ui:ScrollView name="tagTeamList" class="list" />
+          <ui:VisualElement class="title-detail-column">
+            <ui:VisualElement class="title-detail-card">
+              <ui:Label text="Manage Team" class="subsection-title" />
+              <ui:Label name="tagTeamEmptyLabel" text="No teams yet add your first team." />
+              <ui:VisualElement class="row">
+                <ui:TextField name="teamNameField" label="Team Name" />
+              </ui:VisualElement>
             <ui:VisualElement class="row">
               <ui:DropdownField name="teamMemberADropdown" label="Member A" />
               <ui:DropdownField name="teamMemberBDropdown" label="Member B" />
@@ -172,10 +172,7 @@
             </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>
-        <!-- Right column: team list -->
-        <ui:ScrollView name="tagTeamList" class="list" />
       </ui:VisualElement>
-    </ui:VisualElement>
     </ui:VisualElement>
 
     <!-- ===== SHOWS PANEL ===== -->
@@ -213,7 +210,6 @@
               <ui:DropdownField name="wrestlerDDropdown" label="Wrestler D (optional)" />
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
               <ui:DropdownField name="titleDropdown" label="Title (optional)" />
-              <ui:DropdownField name="winnerTeamDropdown" label="Winning Team" class="hidden" />
               <ui:DropdownField name="winnerDropdown" label="Winner" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveMatchButton" text="Save Match" />
@@ -274,6 +270,5 @@
       <!-- Aggregated sections removed per request -->
     </ui:VisualElement>
 
+  </ui:VisualElement>
 </ui:UXML>
-
-

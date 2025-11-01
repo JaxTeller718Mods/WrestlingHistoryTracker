@@ -1328,9 +1328,6 @@ public class PromotionDashboard : MonoBehaviour
         string type = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
         string matchName = $"{type}: {string.Join(" vs ", have)}";
         string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
-        // Auto-select winner when exactly two participants are chosen and no winner picked yet
-        if (string.IsNullOrEmpty(winner) && have.Count == 2)
-            winner = have[0];
         var m = new MatchData
         {
             id = System.Guid.NewGuid().ToString("N"),
@@ -1400,22 +1397,8 @@ public class PromotionDashboard : MonoBehaviour
         add(wrestlerBDropdown?.value);
         add(wrestlerCDropdown?.value);
         add(wrestlerDDropdown?.value);
-        if (names.Count == 0)
-        {
-            // No participants chosen: clear and disable
-            winnerDropdown.choices = new List<string>();
-            winnerDropdown.value = string.Empty;
-            winnerDropdown.SetEnabled(false);
-            return;
-        }
-        winnerDropdown.SetEnabled(true);
+        if (names.Count == 0) names.Add(string.Empty);
         SetChoices(winnerDropdown, names);
-        // If exactly two participants are chosen, auto-select the first for convenience
-        if (names.Count == 2)
-        {
-            if (!names.Contains(winnerDropdown.value))
-                winnerDropdown.value = names[0];
-        }
     }
 
     private void SetChoices(DropdownField dropdown, List<string> choices)
