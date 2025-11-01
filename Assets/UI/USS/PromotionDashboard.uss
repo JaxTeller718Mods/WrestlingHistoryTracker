@@ -254,8 +254,36 @@ FloatField > .unity-float-field__input {
     min-height: 260px;
 }
 
+.tag-team-layout {}
+
+/* ===== TAG TEAM LAYOUT ===== */
+.tag-team-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: nowrap; /* keep two columns on one row */
+}
+.tag-team-layout > * { margin-right: 20px; margin-bottom: 20px; }
+
+.tag-team-detail-column {
+    flex: 1 1 520px; /* main column grows, but leaves room for list */
+    min-width: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+#tagTeamList {
+    width: 280px;
+    max-width: 280px;
+    min-width: 240px;
+    min-height: 260px;
+    flex: 0 0 280px; /* fixed sidebar width */
+    align-self: flex-start;
+}
+
 .title-detail-column {
-    flex-grow: 1;
+    flex: 1 1 420px; /* ensure it doesn't consume full row */
     display: flex;
     flex-direction: column;
     /* emulate gap */
