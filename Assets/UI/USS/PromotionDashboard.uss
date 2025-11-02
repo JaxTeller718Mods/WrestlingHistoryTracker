@@ -260,21 +260,51 @@ FloatField > .unity-float-field__input {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* keep side-by-side on wide panels */
 }
-.tournament-layout > * { margin-right: 20px; margin-bottom: 20px; }
+.tournament-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
 #tournamentList {
-    max-width: 260px;
+    width: 360px;
+    max-width: 360px;
+    min-width: 300px;
     min-height: 260px;
 }
 
 .tournament-detail-column {
-    flex-grow: 1;
+    flex: 1 1 560px; /* slimmer middle panel so three columns fit */
+    min-width: 520px;
     display: flex;
     flex-direction: column;
 }
 .tournament-detail-column > * { margin-bottom: 16px; }
+
+/* Widen panels that use tournament/stable two-column layouts */
+#tournamentsPanel {
+    max-width: 1300px;
+}
+
+#stablesPanel {
+    max-width: 1200px;
+}
+
+/* Stable list width similar to tournaments */
+#stableList {
+    width: 320px;
+    max-width: 360px;
+    min-width: 280px;
+    min-height: 260px;
+}
+
+/* Entrants column sizing */
+.tournament-entrants-column {
+    width: 320px;
+    max-width: 360px;
+    min-width: 280px;
+}
+
+/* Ensure hidden overrides layout display on complex containers */
+.tournament-layout.hidden { display: none; }
 
 .tag-team-layout {}
 

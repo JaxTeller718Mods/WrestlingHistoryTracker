@@ -14,6 +14,7 @@
         <ui:Button name="wrestlersButton" text="Wrestlers" />
         <ui:Button name="titlesButton" text="Titles" />
         <ui:Button name="tournamentsButton" text="Tournaments" />
+        <ui:Button name="stablesButton" text="Stables" />
         <ui:Button name="tagTeamsButton" text="Tag Teams" />
         <ui:Button name="showsButton" text="Shows" />
         <ui:Button name="historyButton" text="History" />
@@ -30,6 +31,7 @@
           <ui:Button name="rankingsMenButton" text="Men's" />
           <ui:Button name="rankingsWomenButton" text="Women's" />
           <ui:Button name="rankingsTagButton" text="Tag Team" />
+          <ui:Button name="rankingsStableButton" text="Stables" />
         </ui:VisualElement>
         <ui:ScrollView name="rankingsList" class="list rankings-list" />
       </ui:VisualElement>
@@ -149,9 +151,27 @@
     <!-- ===== TOURNAMENTS PANEL ===== -->
     <ui:VisualElement name="tournamentsPanel" class="hidden">
       <ui:Label text="Tournaments" class="section-title" />
-      <ui:VisualElement class="tournament-layout">
-        <ui:ScrollView name="tournamentList" class="list" />
 
+      <!-- Create/Add panel (default visible) -->
+      <ui:VisualElement name="tournamentAddPanel" class="title-add-card">
+        <ui:TextField name="newTournamentNameField" label="Tournament Name" />
+        <ui:DropdownField name="newTournamentTypeDropdown" label="Type" />
+        <ui:VisualElement class="row">
+          <ui:Button name="addTournamentButton" text="Add Tournament" />
+          <ui:Button name="saveTournamentsButton" text="Save Tournaments" />
+          <ui:Button name="viewTournamentsButton" text="View Tournaments" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <!-- Manage/Edit panel (three columns) -->
+      <ui:VisualElement name="tournamentManagePanel" class="hidden tournament-layout">
+        <!-- Entrants column (left) -->
+        <ui:VisualElement class="tournament-entrants-column">
+          <ui:Label text="Entrants" class="subsection-title" />
+          <ui:ScrollView name="tournamentEntrantsList" class="list" />
+        </ui:VisualElement>
+
+        <!-- Manage column (middle) -->
         <ui:VisualElement class="tournament-detail-column">
           <ui:VisualElement class="title-detail-card">
             <ui:Label text="Manage Tournament" class="subsection-title" />
@@ -163,8 +183,6 @@
               <ui:Button name="addEntrantButton" text="Add" />
               <ui:Button name="removeEntrantButton" text="Remove" />
             </ui:VisualElement>
-            <ui:Label text="Entrants" />
-            <ui:ScrollView name="tournamentEntrantsList" class="list" />
 
             <ui:VisualElement class="row">
               <ui:Button name="generateBracketButton" text="Generate Bracket" />
@@ -175,14 +193,15 @@
             <ui:ScrollView name="tournamentMatchesList" class="list" />
 
             <ui:VisualElement class="row">
-              <ui:Button name="addTournamentButton" text="Add Tournament" />
-              <ui:Button name="saveTournamentsButton" text="Save All" />
               <ui:Button name="saveTournamentButton" text="Save Changes" />
               <ui:Button name="deleteTournamentButton" text="Delete" />
               <ui:Button name="cancelTournamentButton" text="Cancel" />
             </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>
+
+        <!-- List column (right) -->
+        <ui:ScrollView name="tournamentList" class="list" />
       </ui:VisualElement>
     </ui:VisualElement>
 
@@ -318,5 +337,35 @@
       <!-- Aggregated sections removed per request -->
     </ui:VisualElement>
 
+  
+    <!-- ===== STABLES PANEL ===== -->
+    <ui:VisualElement name="stablesPanel" class="hidden">
+      <ui:Label text="Stables" class="section-title" />
+      <ui:VisualElement class="tournament-layout">
+        <ui:ScrollView name="stableList" class="list" />
+
+        <ui:VisualElement class="tournament-detail-column">
+          <ui:VisualElement class="title-detail-card">
+            <ui:Label text="Manage Stable" class="subsection-title" />
+            <ui:TextField name="stableNameField" label="Stable Name" />
+            <ui:VisualElement class="row">
+              <ui:DropdownField name="stableMemberDropdown" label="Add Member" />
+              <ui:Button name="addStableMemberButton" text="Add" />
+              <ui:Button name="removeStableMemberButton" text="Remove" />
+            </ui:VisualElement>
+            <ui:Label text="Members" />
+            <ui:ScrollView name="stableMembersList" class="list" />
+
+            <ui:VisualElement class="row">
+              <ui:Button name="addStableButton" text="Add Stable" />
+              <ui:Button name="saveStablesButton" text="Save All" />
+              <ui:Button name="saveStableButton" text="Save Changes" />
+              <ui:Button name="deleteStableButton" text="Delete" />
+              <ui:Button name="cancelStableButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
   </ui:VisualElement>
 </ui:UXML>

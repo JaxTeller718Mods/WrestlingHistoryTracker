@@ -15,10 +15,10 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
@@ -35,7 +35,7 @@ public class PromotionDashboard : MonoBehaviour
     // Virtualized lists (Step 1)
     private ScrollView wrestlerListScroll, showsListScroll, historyShowsListScroll, rankingsListScroll;
     private ListView wrestlerListView, showsListView, historyShowsListView, rankingsListView;
-    private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton;
+    private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton, rankingsStableButton;
     private WrestlerCollection wrestlerCollection;
     // Wrestler UI
     private VisualElement wrestlerDetails, wrestlerAddPanel;
@@ -57,11 +57,11 @@ public class PromotionDashboard : MonoBehaviour
     // Tournaments UI
     private ScrollView tournamentListScroll;
     private ListView tournamentListView;
-    private VisualElement tournamentDetailsPanel;
-    private TextField tournamentNameField;
-    private DropdownField tournamentTypeDropdown, tournamentEntrantDropdown;
+    private VisualElement tournamentAddPanel, tournamentManagePanel;
+    private TextField newTournamentNameField, tournamentNameField;
+    private DropdownField newTournamentTypeDropdown, tournamentTypeDropdown, tournamentEntrantDropdown;
     private ScrollView tournamentEntrantsList, tournamentMatchesList;
-    private Button addTournamentButton, saveTournamentsButton, saveTournamentButton, deleteTournamentButton, cancelTournamentButton;
+    private Button addTournamentButton, saveTournamentsButton, viewTournamentsButton, saveTournamentButton, deleteTournamentButton, cancelTournamentButton;
     private Button addEntrantButton, removeEntrantButton, generateBracketButton, advanceRoundButton, clearBracketButton;
     private TournamentCollection tournamentCollection;
     private int selectedTournamentIndex = -1;
@@ -158,6 +158,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersButton = root.Q<Button>("wrestlersButton");
         titlesButton = root.Q<Button>("titlesButton");
         tournamentsButton = root.Q<Button>("tournamentsButton");
+        stablesButton = root.Q<Button>("stablesButton");
         tagTeamsButton = root.Q<Button>("tagTeamsButton");
         showsButton = root.Q<Button>("showsButton");
         historyButton = root.Q<Button>("historyButton");
@@ -170,6 +171,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlersPanel = root.Q<VisualElement>("wrestlersPanel");
         titlesPanel = root.Q<VisualElement>("titlesPanel");
         tournamentsPanel = root.Q<VisualElement>("tournamentsPanel");
+        stablesPanel = root.Q<VisualElement>("stablesPanel");
         tagTeamsPanel = root.Q<VisualElement>("tagTeamsPanel");
         showsPanel = root.Q<VisualElement>("showsPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
@@ -201,7 +203,10 @@ public class PromotionDashboard : MonoBehaviour
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
         // Tournaments queries
         tournamentListScroll = root.Q<ScrollView>("tournamentList");
-        tournamentDetailsPanel = tournamentsPanel; // container
+        tournamentAddPanel = root.Q<VisualElement>("tournamentAddPanel");
+        tournamentManagePanel = root.Q<VisualElement>("tournamentManagePanel");
+        newTournamentNameField = root.Q<TextField>("newTournamentNameField");
+        newTournamentTypeDropdown = root.Q<DropdownField>("newTournamentTypeDropdown");
         tournamentNameField = root.Q<TextField>("tournamentNameField");
         tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
         tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
@@ -209,6 +214,7 @@ public class PromotionDashboard : MonoBehaviour
         tournamentMatchesList = root.Q<ScrollView>("tournamentMatchesList");
         addTournamentButton = root.Q<Button>("addTournamentButton");
         saveTournamentsButton = root.Q<Button>("saveTournamentsButton");
+        viewTournamentsButton = root.Q<Button>("viewTournamentsButton");
         saveTournamentButton = root.Q<Button>("saveTournamentButton");
         deleteTournamentButton = root.Q<Button>("deleteTournamentButton");
         cancelTournamentButton = root.Q<Button>("cancelTournamentButton");
@@ -225,6 +231,7 @@ public class PromotionDashboard : MonoBehaviour
         rankingsMenButton = root.Q<Button>("rankingsMenButton");
         rankingsWomenButton = root.Q<Button>("rankingsWomenButton");
         rankingsTagButton = root.Q<Button>("rankingsTagButton");
+        rankingsStableButton = root.Q<Button>("rankingsStableButton");
         // Title edit/display widgets
         titleDetailsPanel = root.Q<VisualElement>("titleDetails");
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
@@ -336,12 +343,17 @@ public class PromotionDashboard : MonoBehaviour
         cancelTeamButton = root.Q<Button>("cancelTeamButton");
         tagTeamEmptyLabel = root.Q<Label>("tagTeamEmptyLabel");
 
+        // Ensure Tournaments default state: show Add, hide Manage
+        if (tournamentManagePanel != null) tournamentManagePanel.AddToClassList("hidden");
+        if (tournamentAddPanel != null) tournamentAddPanel.RemoveFromClassList("hidden");
+
         // Register panels
         mainPanels.Clear();
         RegisterMainPanel(promotionInfoPanel);
         RegisterMainPanel(wrestlersPanel);
         RegisterMainPanel(titlesPanel);
         RegisterMainPanel(tournamentsPanel);
+        RegisterMainPanel(stablesPanel);
         RegisterMainPanel(tagTeamsPanel);
         RegisterMainPanel(showsPanel);
         RegisterMainPanel(historyPanel);
@@ -355,10 +367,13 @@ public class PromotionDashboard : MonoBehaviour
         if (showsButton != null) showsButton.clicked += ShowShowsPanel;
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        if (stablesButton != null) stablesButton.clicked += ShowStablesPanel;
         if (tournamentsButton != null) tournamentsButton.clicked += ShowTournamentsPanel;
+        if (viewTournamentsButton != null) viewTournamentsButton.clicked += ShowTournamentManagePanel;
         if (rankingsMenButton != null) rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
         if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
         if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
+        if (rankingsStableButton != null) rankingsStableButton.clicked += () => PopulateRankings(RankCategory.Stable);
         // Tournaments handlers
         if (addTournamentButton != null) addTournamentButton.clicked += OnAddTournament;
         if (saveTournamentsButton != null) saveTournamentsButton.clicked += OnSaveTournaments;
@@ -449,6 +464,7 @@ public class PromotionDashboard : MonoBehaviour
         EnsureWrestlerListView();
         EnsureTitleListView();
         EnsureTournamentListView();
+        EnsureStableListView();
         EnsureTagTeamListView();
         EnsureShowsListView();
         EnsureHistoryShowsListView();
@@ -459,6 +475,15 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentTypeDropdown != null)
             tournamentTypeDropdown.RegisterValueChangedCallback(_ => PopulateEntrantChoices(tournamentTypeDropdown.value));
 
+        // Stables handlers
+        if (addStableButton != null) addStableButton.clicked += OnAddStable;
+        if (saveStablesButton != null) saveStablesButton.clicked += OnSaveStables;
+        if (saveStableButton != null) saveStableButton.clicked += OnSaveSelectedStable;
+        if (deleteStableButton != null) deleteStableButton.clicked += OnDeleteSelectedStable;
+        if (cancelStableButton != null) cancelStableButton.clicked += OnCancelEditStable;
+        if (addStableMemberButton != null) addStableMemberButton.clicked += OnAddStableMember;
+        if (removeStableMemberButton != null) removeStableMemberButton.clicked += OnRemoveStableMember;
+
         // Load data for lists
         if (currentPromotion != null)
         {
@@ -466,6 +491,7 @@ public class PromotionDashboard : MonoBehaviour
             titleCollection = DataManager.LoadTitles(currentPromotion.promotionName);
             tagTeamCollection = DataManager.LoadTagTeams(currentPromotion.promotionName);
             tournamentCollection = DataManager.LoadTournaments(currentPromotion.promotionName);
+            stableCollection = DataManager.LoadStables(currentPromotion.promotionName);
             // Step 2: ensure stable IDs and upgraded entryOrder
             EnsureStableIdsAndEntryOrder();
         }
@@ -473,6 +499,7 @@ public class PromotionDashboard : MonoBehaviour
         RefreshTitleList();
         RefreshTagTeamList();
         RefreshTournamentList();
+        RefreshStableList();
         RefreshShowList();
         PopulateHistoryShowsList();
         PopulateRankings(RankCategory.Men);
@@ -494,6 +521,7 @@ public class PromotionDashboard : MonoBehaviour
             {
                 "Singles",
                 "Tag Team",
+                "Trios",
                 "Triple Threat",
                 "Fatal Four Way",
                 "Ladder",
@@ -598,7 +626,12 @@ public class PromotionDashboard : MonoBehaviour
     private void ShowPromotionPanel() => SetActivePanel(promotionInfoPanel);
     private void ShowWrestlersPanel() => SetActivePanel(wrestlersPanel);
     private void ShowTitlesPanel() => SetActivePanel(titlesPanel);
-    private void ShowTournamentsPanel() => SetActivePanel(tournamentsPanel);
+    private void ShowTournamentsPanel()
+    {
+        // Default to Add view when entering the tab
+        ShowTournamentAddPanel();
+    }
+    private void ShowStablesPanel() => SetActivePanel(stablesPanel);
     private void ShowTagTeamsPanel()
     {
         SetActivePanel(tagTeamsPanel);
@@ -821,9 +854,18 @@ public class PromotionDashboard : MonoBehaviour
 
     private void EnsureTournamentTypeChoices()
     {
-        if (tournamentTypeDropdown == null) return;
-        if (tournamentTypeDropdown.choices == null || tournamentTypeDropdown.choices.Count == 0)
-            tournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team" };
+        if (tournamentTypeDropdown != null)
+        {
+            if (tournamentTypeDropdown.choices == null || tournamentTypeDropdown.choices.Count == 0)
+                tournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Trios" };
+            if (string.IsNullOrEmpty(tournamentTypeDropdown.value)) tournamentTypeDropdown.value = tournamentTypeDropdown.choices[0];
+        }
+        if (newTournamentTypeDropdown != null)
+        {
+            if (newTournamentTypeDropdown.choices == null || newTournamentTypeDropdown.choices.Count == 0)
+                newTournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Trios" };
+            if (string.IsNullOrEmpty(newTournamentTypeDropdown.value)) newTournamentTypeDropdown.value = newTournamentTypeDropdown.choices[0];
+        }
     }
 
     private void PopulateEntrantChoices(string type)
@@ -912,13 +954,14 @@ public class PromotionDashboard : MonoBehaviour
         if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
         tournamentCollection ??= DataManager.LoadTournaments(currentPromotion.promotionName);
         tournamentCollection.promotionName = currentPromotion.promotionName;
-        var t = new TournamentData { id = System.Guid.NewGuid().ToString("N"), name = (tournamentNameField?.value ?? "New Tournament").Trim(), type = (tournamentTypeDropdown?.value ?? "Singles") };
+        var t = new TournamentData { id = System.Guid.NewGuid().ToString("N"), name = (newTournamentNameField?.value ?? "New Tournament").Trim(), type = (newTournamentTypeDropdown?.value ?? "Singles") };
         t.entrants = new List<TournamentEntry>();
         t.rounds = new List<TournamentRound>();
         tournamentCollection.tournaments ??= new List<TournamentData>();
         tournamentCollection.tournaments.Add(t);
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
+        if (newTournamentNameField != null) newTournamentNameField.value = string.Empty;
         if (statusLabel != null) statusLabel.text = "Tournament added.";
     }
 
@@ -932,13 +975,18 @@ public class PromotionDashboard : MonoBehaviour
 
     private void OnSaveSelectedTournament()
     {
-        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count)
+        {
+            if (statusLabel != null) statusLabel.text = "Select a tournament first.";
+            return;
+        }
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
         if (tournamentNameField != null) t.name = tournamentNameField.value;
         if (tournamentTypeDropdown != null) t.type = tournamentTypeDropdown.value;
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
         if (statusLabel != null) statusLabel.text = "Tournament updated.";
+        ShowTournamentAddPanel();
     }
 
     private void OnDeleteSelectedTournament()
@@ -955,6 +1003,20 @@ public class PromotionDashboard : MonoBehaviour
     {
         selectedTournamentIndex = -1;
         if (tournamentNameField != null) tournamentNameField.value = string.Empty;
+        ShowTournamentAddPanel();
+    }
+
+    private void ShowTournamentManagePanel()
+    {
+        if (tournamentAddPanel != null) tournamentAddPanel.AddToClassList("hidden");
+        if (tournamentManagePanel != null) tournamentManagePanel.RemoveFromClassList("hidden");
+        SetActivePanel(tournamentsPanel);
+    }
+
+    private void ShowTournamentAddPanel()
+    {
+        if (tournamentManagePanel != null) tournamentManagePanel.AddToClassList("hidden");
+        if (tournamentAddPanel != null) tournamentAddPanel.RemoveFromClassList("hidden");
         SetActivePanel(tournamentsPanel);
     }
 
@@ -969,20 +1031,31 @@ public class PromotionDashboard : MonoBehaviour
         var entry = new TournamentEntry();
         if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
         {
+            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
             var team = (tagTeamCollection?.teams ?? new List<TagTeamData>()).FirstOrDefault(x => string.Equals(x?.teamName, name, StringComparison.OrdinalIgnoreCase));
             entry.id = team?.id; entry.name = team?.teamName;
         }
         else
         {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
             var w = (wrestlerCollection?.wrestlers ?? new List<WrestlerData>()).FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
             entry.id = w?.id; entry.name = w?.name;
         }
-        if (string.IsNullOrEmpty(entry?.id) || string.IsNullOrEmpty(entry.name)) return;
+        if (string.IsNullOrEmpty(entry?.id) || string.IsNullOrEmpty(entry.name))
+        {
+            if (statusLabel != null) statusLabel.text = "Could not resolve entrant.";
+            return;
+        }
         t.entrants ??= new List<TournamentEntry>();
-        if (t.entrants.Any(e => string.Equals(e?.id, entry.id, StringComparison.OrdinalIgnoreCase))) return; // no duplicates
+        if (t.entrants.Any(e => string.Equals(e?.id, entry.id, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (statusLabel != null) statusLabel.text = "Entrant already added.";
+            return; // no duplicates
+        }
         t.entrants.Add(entry);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateEntrantsUI(t);
+        PopulateEntrantChoices(type);
         if (statusLabel != null) statusLabel.text = "Entrant added.";
     }
 
@@ -2168,7 +2241,12 @@ public class PromotionDashboard : MonoBehaviour
         return string.Empty;
     }
 
-    private enum RankCategory { Men, Women, TagTeam }
+    private static bool StringEquals(string a, string b)
+    {
+        return string.Equals(a ?? string.Empty, b ?? string.Empty, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private enum RankCategory { Men, Women, TagTeam, Stable }
 
     private void EnsureRankingsListView()
     {
@@ -2199,6 +2277,11 @@ public class PromotionDashboard : MonoBehaviour
         if (category == RankCategory.TagTeam)
         {
             PopulateTagTeamRankings();
+            return;
+        }
+        if (category == RankCategory.Stable)
+        {
+            PopulateStableRankings();
             return;
         }
 
@@ -2352,8 +2435,93 @@ public class PromotionDashboard : MonoBehaviour
             if (string.Compare(s1, s2, System.StringComparison.OrdinalIgnoreCase) > 0) { var tmp = s1; s1 = s2; s2 = tmp; }
             return $"{s1}|{s2}";
         }
+    }
 
-        static bool StringEquals(string a, string b) => string.Equals(a ?? string.Empty, b ?? string.Empty, System.StringComparison.OrdinalIgnoreCase);
+    private void PopulateStableRankings()
+    {
+        // Load stables and map wrestlerId -> stableName
+        var stables = DataManager.LoadStables(currentPromotion.promotionName);
+        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
+
+        var stableByMemberName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var s in stables.stables ?? new List<StableData>())
+        {
+            foreach (var mid in s.memberIds ?? new List<string>())
+            {
+                if (!string.IsNullOrEmpty(mid) && nameById.TryGetValue(mid, out var nm))
+                    stableByMemberName[nm] = s.stableName;
+            }
+        }
+
+        string StableOf(params string[] names)
+        {
+            // If all provided names belong to same stable, return it; else null
+            string candidate = null;
+            foreach (var n in names)
+            {
+                if (string.IsNullOrWhiteSpace(n)) continue;
+                if (!stableByMemberName.TryGetValue(n, out var sname)) return null;
+                if (candidate == null) candidate = sname; else if (!StringEquals(candidate, sname)) return null;
+            }
+            return candidate;
+        }
+
+        // Compute records by stable for matches we can interpret as 2v2 (current data allows up to 4 participants)
+        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
+
+        // Name resolver for IDs in matches
+        var idToName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) idToName[w.id] = w.name;
+        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && idToName.TryGetValue(id, out var nm)) ? nm : fallback;
+
+        foreach (var show in currentPromotion.shows ?? new List<ShowData>())
+        {
+            foreach (var m in show.matches ?? new List<MatchData>())
+            {
+                // Treat only obvious team matches (tag/two-per-side) until participants array exists
+                var parts = new List<string>();
+                void addPart(string id, string name) { var v = NameOf(id, name); if (!string.IsNullOrWhiteSpace(v)) parts.Add(v.Trim()); }
+                addPart(m.wrestlerAId, m.wrestlerA);
+                addPart(m.wrestlerBId, m.wrestlerB);
+                addPart(m.wrestlerCId, m.wrestlerC);
+                addPart(m.wrestlerDId, m.wrestlerD);
+                if (parts.Count != 4) continue; // 2v2 only for now
+                string team1Stable = StableOf(parts[0], parts[1]);
+                string team2Stable = StableOf(parts[2], parts[3]);
+                if (string.IsNullOrEmpty(team1Stable) || string.IsNullOrEmpty(team2Stable)) continue; // require both sides be within a stable
+
+                string winner = NameOf(m.winnerId, m.winner);
+                winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
+                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, parts[0]) || StringEquals(winner, parts[1]));
+                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, parts[2]) || StringEquals(winner, parts[3]));
+
+                if (!records.ContainsKey(team1Stable)) records[team1Stable] = (0, 0);
+                if (!records.ContainsKey(team2Stable)) records[team2Stable] = (0, 0);
+                var r1 = records[team1Stable]; var r2 = records[team2Stable];
+                if (side1Win) { r1.wins++; r2.losses++; }
+                else if (side2Win) { r2.wins++; r1.losses++; }
+                records[team1Stable] = r1; records[team2Stable] = r2;
+            }
+        }
+
+        var items = records
+            .OrderByDescending(e => e.Value.wins)
+            .ThenBy(e => e.Value.losses)
+            .ThenBy(e => e.Key)
+            .Select(e =>
+            {
+                int total = e.Value.wins + e.Value.losses;
+                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
+                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
+            })
+            .ToList();
+        if (items.Count == 0) items.Add("No stables results yet.");
+        rankingsListView.itemsSource = items;
+        rankingsListView.Rebuild();
     }
 
     // ----- Step 2: Stable IDs + ordered history rendering -----
@@ -2513,5 +2681,172 @@ public class PromotionDashboard : MonoBehaviour
         for (int i = 0; i < show.segments.Count; i++)
             if (string.Equals(show.segments[i]?.id, id, System.StringComparison.OrdinalIgnoreCase)) return i;
         return -1;
+    }
+    // Stables UI
+    private ScrollView stableListScroll;
+    private ListView stableListView;
+    private TextField stableNameField;
+    private DropdownField stableMemberDropdown;
+    private ScrollView stableMembersList;
+    private Button addStableButton, saveStablesButton, saveStableButton, deleteStableButton, cancelStableButton, addStableMemberButton, removeStableMemberButton;
+    private StableCollection stableCollection;
+    private int selectedStableIndex = -1;
+    // --------- Stables ---------
+    private void EnsureStableListView()
+    {
+        if (stableListView != null) return;
+        var parent = stableListScroll != null ? stableListScroll.parent : stablesPanel;
+        stableListView = new ListView
+        {
+            name = "stableListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        stableListView.style.flexGrow = 1;
+        stableListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectStable(idx); });
+            return b;
+        };
+        stableListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = stableCollection?.stables;
+            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].stableName; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(stableListView);
+        if (stableListScroll != null) stableListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshStableList()
+    {
+        if (stableListView == null) return;
+        var src = stableCollection?.stables ?? new List<StableData>();
+        stableListView.itemsSource = src;
+        stableListView.Rebuild();
+    }
+
+    private void SelectStable(int index)
+    {
+        if (stableCollection?.stables == null || index < 0 || index >= stableCollection.stables.Count) return;
+        selectedStableIndex = index;
+        var s = stableCollection.stables[index];
+        if (stableNameField != null) stableNameField.value = s.stableName;
+        PopulateStableMemberChoices();
+        PopulateStableMembersUI(s);
+        SetActivePanel(stablesPanel);
+    }
+
+    private void PopulateStableMemberChoices()
+    {
+        if (stableMemberDropdown == null) return;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        var choices = new List<string>();
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.name)) choices.Add(w.name);
+        if (choices.Count == 0) choices.Add(string.Empty);
+        stableMemberDropdown.choices = choices;
+        stableMemberDropdown.value = choices[0];
+    }
+
+    private void PopulateStableMembersUI(StableData s)
+    {
+        if (stableMembersList == null) return;
+        stableMembersList.Clear();
+        var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) map[w.id] = w.name;
+        foreach (var id in s.memberIds ?? new List<string>())
+        {
+            map.TryGetValue(id ?? string.Empty, out var nm);
+            stableMembersList.Add(new Label(nm ?? id ?? string.Empty));
+        }
+    }
+
+    private void OnAddStable()
+    {
+        if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
+        stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
+        stableCollection.promotionName = currentPromotion.promotionName;
+        var s = new StableData { id = System.Guid.NewGuid().ToString("N"), stableName = (stableNameField?.value ?? "New Stable").Trim() };
+        s.memberIds = new List<string>();
+        stableCollection.stables ??= new List<StableData>();
+        stableCollection.stables.Add(s);
+        DataManager.SaveStables(stableCollection);
+        RefreshStableList();
+        if (statusLabel != null) statusLabel.text = "Stable added.";
+    }
+
+    private void OnSaveStables()
+    {
+        if (currentPromotion == null || stableCollection == null) return;
+        stableCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveStables(stableCollection);
+        if (statusLabel != null) statusLabel.text = "Stables saved.";
+    }
+
+    private void OnSaveSelectedStable()
+    {
+        if (stableCollection?.stables == null || selectedStableIndex < 0 || selectedStableIndex >= stableCollection.stables.Count) return;
+        var s = stableCollection.stables[selectedStableIndex];
+        if (stableNameField != null) s.stableName = stableNameField.value;
+        DataManager.SaveStables(stableCollection);
+        RefreshStableList();
+        if (statusLabel != null) statusLabel.text = "Stable updated.";
+    }
+
+    private void OnDeleteSelectedStable()
+    {
+        if (stableCollection?.stables == null || selectedStableIndex < 0 || selectedStableIndex >= stableCollection.stables.Count) return;
+        stableCollection.stables.RemoveAt(selectedStableIndex);
+        selectedStableIndex = -1;
+        DataManager.SaveStables(stableCollection);
+        RefreshStableList();
+        if (statusLabel != null) statusLabel.text = "Stable deleted.";
+    }
+
+    private void OnCancelEditStable()
+    {
+        selectedStableIndex = -1;
+        if (stableNameField != null) stableNameField.value = string.Empty;
+        SetActivePanel(stablesPanel);
+    }
+
+    private void OnAddStableMember()
+    {
+        if (stableCollection?.stables == null || selectedStableIndex < 0 || selectedStableIndex >= stableCollection.stables.Count) return;
+        var s = stableCollection.stables[selectedStableIndex];
+        var name = stableMemberDropdown != null ? (stableMemberDropdown.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name)) return;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        var w = (wrestlerCollection?.wrestlers ?? new List<WrestlerData>()).FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
+        if (w == null || string.IsNullOrEmpty(w.id)) return;
+        s.memberIds ??= new List<string>();
+        if (s.memberIds.Contains(w.id)) return;
+        s.memberIds.Add(w.id);
+        DataManager.SaveStables(stableCollection);
+        PopulateStableMembersUI(s);
+        if (statusLabel != null) statusLabel.text = "Member added.";
+    }
+
+    private void OnRemoveStableMember()
+    {
+        if (stableCollection?.stables == null || selectedStableIndex < 0 || selectedStableIndex >= stableCollection.stables.Count) return;
+        var s = stableCollection.stables[selectedStableIndex];
+        var name = stableMemberDropdown != null ? (stableMemberDropdown.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(name)) return;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        var w = (wrestlerCollection?.wrestlers ?? new List<WrestlerData>()).FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
+        if (w == null || string.IsNullOrEmpty(w.id)) return;
+        if (s.memberIds != null && s.memberIds.Remove(w.id))
+        {
+            DataManager.SaveStables(stableCollection);
+            PopulateStableMembersUI(s);
+            if (statusLabel != null) statusLabel.text = "Member removed.";
+        }
     }
 }

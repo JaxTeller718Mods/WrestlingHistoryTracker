@@ -16,6 +16,7 @@ public static class DataManager
     private static readonly string wrestlerFolder  = Path.Combine(baseFolder, "Wrestlers");
     private static readonly string titleFolder = Path.Combine(baseFolder, "Titles");
     private static readonly string tagTeamFolder = Path.Combine(baseFolder, "TagTeams");
+    private static readonly string stableFolder  = Path.Combine(baseFolder, "Stables");
     private static readonly string tournamentsFolder = Path.Combine(baseFolder, "Tournaments");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
 
@@ -258,6 +259,59 @@ public static class DataManager
         catch (Exception ex)
         {
             Debug.LogError($"Error saving tag teams: {ex.Message}");
+        }
+    }
+
+    // ------------------------
+    // STABLES/TRIOS MANAGEMENT
+    // ------------------------
+    public static void SaveStables(StableCollection collection)
+    {
+        if (collection == null || string.IsNullOrEmpty(collection.promotionName))
+        {
+            Debug.LogError("Cannot save stables: collection or promotion name is null.");
+            return;
+        }
+        if (!Directory.Exists(stableFolder))
+            Directory.CreateDirectory(stableFolder);
+        string safeName = MakeSafeFileName(collection.promotionName);
+        string filePath = Path.Combine(stableFolder, $"{safeName}_Stables.json");
+        try
+        {
+            string json = JsonUtility.ToJson(collection, true);
+            File.WriteAllText(filePath, json);
+            Debug.Log($"Stables saved for {collection.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error saving stables: {ex.Message}");
+        }
+    }
+
+    public static StableCollection LoadStables(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName))
+            return new StableCollection { promotionName = promotionName };
+        string safeName = MakeSafeFileName(promotionName);
+        string filePath = Path.Combine(stableFolder, $"{safeName}_Stables.json");
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"No stables found for {promotionName}");
+            return new StableCollection { promotionName = promotionName };
+        }
+        try
+        {
+            string json = File.ReadAllText(filePath);
+            var data = JsonUtility.FromJson<StableCollection>(json) ?? new StableCollection { promotionName = promotionName };
+            bool upgraded = EnsureIds(data?.stables);
+            if (upgraded) SaveStables(data);
+            if (data != null) data.promotionName = promotionName;
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error loading stables: {ex.Message}");
+            return new StableCollection { promotionName = promotionName };
         }
     }
 
