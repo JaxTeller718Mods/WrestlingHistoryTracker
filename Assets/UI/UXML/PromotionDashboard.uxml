@@ -346,19 +346,22 @@
     <ui:VisualElement name="stablesPanel" class="hidden">
       <ui:Label text="Stables" class="section-title" />
       <ui:VisualElement class="tournament-layout">
-        <ui:ScrollView name="stableList" class="list" />
+        <!-- Members column (left) -->
+        <ui:VisualElement class="tournament-entrants-column">
+          <ui:Label text="Members" class="subsection-title" />
+          <ui:ScrollView name="stableMembersList" class="list" />
+        </ui:VisualElement>
 
+        <!-- Manage column (middle) -->
         <ui:VisualElement class="tournament-detail-column">
           <ui:VisualElement class="title-detail-card">
             <ui:Label text="Manage Stable" class="subsection-title" />
             <ui:TextField name="stableNameField" label="Stable Name" />
             <ui:VisualElement class="row">
               <ui:DropdownField name="stableMemberDropdown" label="Add Member" />
-              <ui:Button name="addStableMemberButton" text="Add" />
-              <ui:Button name="removeStableMemberButton" text="Remove" />
+              <ui:Button name="addStableMemberButton" text="Add Member" />
+              <ui:Button name="removeStableMemberButton" text="Remove Member" />
             </ui:VisualElement>
-            <ui:Label text="Members" />
-            <ui:ScrollView name="stableMembersList" class="list" />
 
             <ui:VisualElement class="row">
               <ui:Button name="addStableButton" text="Add Stable" />
@@ -369,6 +372,9 @@
             </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>
+
+        <!-- Stables list (right) -->
+        <ui:ScrollView name="stableList" class="list" />
       </ui:VisualElement>
     </ui:VisualElement>
   </ui:VisualElement>
