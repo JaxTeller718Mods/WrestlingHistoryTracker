@@ -357,18 +357,25 @@
           <ui:VisualElement class="title-detail-card">
             <ui:Label text="Manage Stable" class="subsection-title" />
             <ui:TextField name="stableNameField" label="Stable Name" />
-            <ui:VisualElement class="row">
-              <ui:DropdownField name="stableMemberDropdown" label="Add Member" />
-              <ui:Button name="addStableMemberButton" text="Add Member" />
-              <ui:Button name="removeStableMemberButton" text="Remove Member" />
-            </ui:VisualElement>
 
-            <ui:VisualElement class="row">
+            <ui:VisualElement name="stableActionsRow" class="row">
               <ui:Button name="addStableButton" text="Add Stable" />
               <ui:Button name="saveStablesButton" text="Save All" />
               <ui:Button name="saveStableButton" text="Save Changes" />
               <ui:Button name="deleteStableButton" text="Delete" />
               <ui:Button name="cancelStableButton" text="Cancel" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Member controls (mini column) -->
+        <ui:VisualElement class="stable-controls-column">
+          <ui:VisualElement class="title-detail-card">
+            <ui:Label text="Member Controls" class="subsection-title" />
+            <ui:DropdownField name="stableMemberDropdown" label="Add Member" />
+            <ui:VisualElement class="row">
+              <ui:Button name="addStableMemberButton" text="Add Member" />
+              <ui:Button name="removeStableMemberButton" text="Remove Member" />
             </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>

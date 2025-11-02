@@ -228,6 +228,7 @@ FloatField > .unity-float-field__input {
 
 .title-detail-card {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    overflow: visible; /* allow popups (e.g., dropdown menus) to render over siblings */
 }
 
 .wrestler-detail-card .row,
@@ -276,6 +277,7 @@ FloatField > .unity-float-field__input {
     min-width: 520px;
     display: flex;
     flex-direction: column;
+    overflow: visible; /* ensure child popups are not clipped */
 }
 .tournament-detail-column > * { margin-bottom: 16px; }
 
@@ -303,11 +305,29 @@ FloatField > .unity-float-field__input {
     min-width: 280px;
 }
 
+/* Stables: narrow controls column */
+.stable-controls-column {
+    width: 340px;
+    max-width: 360px;
+    min-width: 300px;
+}
+
+/* Narrow the Manage column only on the Stables panel to make room */
+#stablesPanel .tournament-detail-column {
+    flex: 1 1 480px;
+    min-width: 460px;
+}
+
 /* Matches column sizing */
 .tournament-matches-column {
     width: 380px;
     max-width: 420px;
     min-width: 340px;
+}
+
+/* Ensure stable member dropdown menu overlays nearby buttons */
+#stableMemberDropdown {
+    z-index: 1000;
 }
 
 /* Ensure hidden overrides layout display on complex containers */

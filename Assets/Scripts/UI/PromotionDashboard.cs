@@ -223,6 +223,19 @@ public class PromotionDashboard : MonoBehaviour
         generateBracketButton = root.Q<Button>("generateBracketButton");
         advanceRoundButton = root.Q<Button>("advanceRoundButton");
         clearBracketButton = root.Q<Button>("clearBracketButton");
+        // Stables queries
+        stableListScroll = root.Q<ScrollView>("stableList");
+        stableNameField = root.Q<TextField>("stableNameField");
+        stableMemberDropdown = root.Q<DropdownField>("stableMemberDropdown");
+        stableMembersList = root.Q<ScrollView>("stableMembersList");
+        addStableButton = root.Q<Button>("addStableButton");
+        saveStablesButton = root.Q<Button>("saveStablesButton");
+        saveStableButton = root.Q<Button>("saveStableButton");
+        deleteStableButton = root.Q<Button>("deleteStableButton");
+        cancelStableButton = root.Q<Button>("cancelStableButton");
+        addStableMemberButton = root.Q<Button>("addStableMemberButton");
+        removeStableMemberButton = root.Q<Button>("removeStableMemberButton");
+        stableActionsRow = root.Q<VisualElement>("stableActionsRow");
         tagTeamListScroll = root.Q<ScrollView>("tagTeamList");
         showsListScroll = root.Q<ScrollView>("showsList");
         historyShowsListScroll = root.Q<ScrollView>("historyShowsList");
@@ -429,6 +442,14 @@ public class PromotionDashboard : MonoBehaviour
             if (selectedShowIndex >= 0 && currentPromotion?.shows != null && selectedShowIndex < currentPromotion.shows.Count)
                 EditShow(currentPromotion.shows[selectedShowIndex]);
         };
+        // Stables handlers (registered outside of other callbacks)
+        if (addStableButton != null) addStableButton.clicked += OnAddStable;
+        if (saveStablesButton != null) saveStablesButton.clicked += OnSaveStables;
+        if (saveStableButton != null) saveStableButton.clicked += OnSaveSelectedStable;
+        if (deleteStableButton != null) deleteStableButton.clicked += OnDeleteSelectedStable;
+        if (cancelStableButton != null) cancelStableButton.clicked += OnCancelEditStable;
+        if (addStableMemberButton != null) addStableMemberButton.clicked += OnAddStableMember;
+        if (removeStableMemberButton != null) removeStableMemberButton.clicked += OnRemoveStableMember;
         if (addMatchButton != null) addMatchButton.clicked += ShowMatchEditor;
         if (addSegmentButton != null) addSegmentButton.clicked += ShowSegmentEditor;
         if (saveMatchButton != null) saveMatchButton.clicked += SaveMatch;
@@ -631,7 +652,24 @@ public class PromotionDashboard : MonoBehaviour
         // Default to Add view when entering the tab
         ShowTournamentAddPanel();
     }
-    private void ShowStablesPanel() => SetActivePanel(stablesPanel);
+    private void ShowStablesPanel()
+    {
+        SetActivePanel(stablesPanel);
+        // Ensure data and views
+        stableCollection ??= DataManager.LoadStables(currentPromotion?.promotionName);
+        EnsureStableListView();
+        RefreshStableList();
+        // Auto-select first stable to populate members and dropdown
+        if ((selectedStableIndex < 0) && (stableCollection?.stables != null) && stableCollection.stables.Count > 0)
+        {
+            SelectStable(0);
+        }
+        else
+        {
+            // Populate dropdown choices even if no selection yet
+            PopulateStableMemberChoices();
+        }
+    }
     private void ShowTagTeamsPanel()
     {
         SetActivePanel(tagTeamsPanel);
@@ -2721,6 +2759,7 @@ public class PromotionDashboard : MonoBehaviour
     private TextField stableNameField;
     private DropdownField stableMemberDropdown;
     private ScrollView stableMembersList;
+    private VisualElement stableActionsRow;
     private Button addStableButton, saveStablesButton, saveStableButton, deleteStableButton, cancelStableButton, addStableMemberButton, removeStableMemberButton;
     private StableCollection stableCollection;
     private int selectedStableIndex = -1;
@@ -2811,6 +2850,9 @@ public class PromotionDashboard : MonoBehaviour
         stableCollection.stables.Add(s);
         DataManager.SaveStables(stableCollection);
         RefreshStableList();
+        // Auto-select the newly added stable to show members and controls
+        selectedStableIndex = (stableCollection.stables?.Count ?? 1) - 1;
+        SelectStable(selectedStableIndex);
         if (statusLabel != null) statusLabel.text = "Stable added.";
     }
 
