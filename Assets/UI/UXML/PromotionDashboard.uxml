@@ -189,8 +189,6 @@
               <ui:Button name="advanceRoundButton" text="Advance Round" />
               <ui:Button name="clearBracketButton" text="Clear Bracket" />
             </ui:VisualElement>
-            <ui:Label text="Current Round" />
-            <ui:ScrollView name="tournamentMatchesList" class="list" />
 
             <ui:VisualElement class="row">
               <ui:Button name="saveTournamentButton" text="Save Changes" />
@@ -198,6 +196,12 @@
               <ui:Button name="cancelTournamentButton" text="Cancel" />
             </ui:VisualElement>
           </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Current round matches (new separate column) -->
+        <ui:VisualElement class="tournament-matches-column">
+          <ui:Label text="Current Round" class="subsection-title" />
+          <ui:ScrollView name="tournamentMatchesList" class="list" />
         </ui:VisualElement>
 
         <!-- List column (right) -->

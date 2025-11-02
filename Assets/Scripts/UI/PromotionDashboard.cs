@@ -912,22 +912,53 @@ public class PromotionDashboard : MonoBehaviour
         var nameById = BuildTournamentNameMap(t);
         foreach (var m in currentRound.matches ?? new List<TournamentMatch>())
         {
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            row.style.justifyContent = Justify.SpaceBetween;
-            var lbl = new Label($"Match {i++}");
+            var card = new VisualElement();
+            card.style.flexDirection = FlexDirection.Column;
+            card.style.marginBottom = 8;
             var dd = new DropdownField();
             var p1 = nameById.TryGetValue(m.participant1Id ?? string.Empty, out var n1) ? n1 : "";
             var p2 = nameById.TryGetValue(m.participant2Id ?? string.Empty, out var n2) ? n2 : "";
-            var choices = new List<string>(); if (!string.IsNullOrEmpty(p1)) choices.Add(p1); if (!string.IsNullOrEmpty(p2)) choices.Add(p2); if (choices.Count == 0) choices.Add(string.Empty);
-            dd.choices = choices; dd.value = (m.winnerId == m.participant2Id) ? p2 : (m.winnerId == m.participant1Id ? p1 : dd.choices[0]);
+            var choices = new List<string>();
+            if (!string.IsNullOrEmpty(p1)) choices.Add(p1);
+            if (!string.IsNullOrEmpty(p2)) choices.Add(p2);
+            var placeholder = "Select Winner";
+            if (choices.Count == 0) choices.Add(string.Empty); else choices.Insert(0, placeholder);
+            dd.choices = choices;
+            if (m.winnerId == m.participant1Id) dd.value = p1;
+            else if (m.winnerId == m.participant2Id) dd.value = p2;
+            else dd.value = dd.choices[0];
             dd.RegisterValueChangedCallback(evt =>
             {
-                if (evt.newValue == p1) m.winnerId = m.participant1Id; else if (evt.newValue == p2) m.winnerId = m.participant2Id; else m.winnerId = null;
+                if (evt.newValue == p1) m.winnerId = m.participant1Id;
+                else if (evt.newValue == p2) m.winnerId = m.participant2Id;
+                else m.winnerId = null; // placeholder or cleared
             });
-            row.Add(lbl); row.Add(dd);
-            tournamentMatchesList.Add(row);
+            // Participants line above the dropdown
+            var matchTitle = new Label(string.IsNullOrEmpty(p1) && string.IsNullOrEmpty(p2) ? $"Match {i++}" : $"{p1} vs {p2}");
+            matchTitle.style.marginBottom = 2;
+            // Row with caption + dropdown
+            var winRow = new VisualElement();
+            winRow.style.flexDirection = FlexDirection.Row;
+            winRow.style.alignItems = Align.Center;
+            var winnerCaption = new Label("Match Winner:");
+            winnerCaption.style.marginRight = 8;
+            winRow.Add(winnerCaption);
+            winRow.Add(dd);
+            card.Add(matchTitle);
+            card.Add(winRow);
+            tournamentMatchesList.Add(card);
+        }
+
+        // If this is a finals round and a winner is selected, show champion message
+        if (currentRound.matches != null && currentRound.matches.Count == 1)
+        {
+            var finalMatch = currentRound.matches[0];
+            if (!string.IsNullOrEmpty(finalMatch?.winnerId) && nameById.TryGetValue(finalMatch.winnerId, out var champName))
+            {
+                var winnerNote = new Label($"{champName} has won this tournament");
+                winnerNote.style.marginTop = 8;
+                tournamentMatchesList.Add(winnerNote);
+            }
         }
     }
 
@@ -1093,6 +1124,8 @@ public class PromotionDashboard : MonoBehaviour
         {
             // Tournament winner decided
             DataManager.SaveTournaments(tournamentCollection);
+            // Refresh UI so the winner note appears
+            PopulateMatchesUI(t);
             if (statusLabel != null) statusLabel.text = "Tournament complete!";
             return;
         }

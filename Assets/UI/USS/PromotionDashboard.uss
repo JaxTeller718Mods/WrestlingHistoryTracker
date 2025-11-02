@@ -281,7 +281,7 @@ FloatField > .unity-float-field__input {
 
 /* Widen panels that use tournament/stable two-column layouts */
 #tournamentsPanel {
-    max-width: 1300px;
+    max-width: 1600px;
 }
 
 #stablesPanel {
@@ -301,6 +301,13 @@ FloatField > .unity-float-field__input {
     width: 320px;
     max-width: 360px;
     min-width: 280px;
+}
+
+/* Matches column sizing */
+.tournament-matches-column {
+    width: 380px;
+    max-width: 420px;
+    min-width: 340px;
 }
 
 /* Ensure hidden overrides layout display on complex containers */
