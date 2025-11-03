@@ -347,6 +347,35 @@ FloatField > .unity-float-field__input {
     min-width: 340px;
 }
 
+/* ===== RIVALRIES LAYOUT ===== */
+.rivalry-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+.rivalry-layout > * { margin-right: 16px; margin-bottom: 16px; }
+
+.rivalry-list-column {
+    width: 320px;
+    max-width: 360px;
+    min-width: 280px;
+}
+
+.rivalry-detail-column {
+    flex: 1 1 520px;
+    min-width: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: visible; /* ensure child popups are not clipped */
+}
+.rivalry-detail-column > * { margin-bottom: 12px; }
+
+.rivalry-timeline-column {
+    width: 360px;
+    max-width: 400px;
+    min-width: 300px;
+}
 /* Per-panel tighter layout for tournaments */
 #tournamentsPanel .tournament-entrants-column {
     width: 260px;

@@ -11,5 +11,5 @@ public class PromotionBundle
     public TagTeamCollection tagTeams;
     public StableCollection stables;
     public TournamentCollection tournaments;
+    public RivalryCollection rivalries;
 }
-

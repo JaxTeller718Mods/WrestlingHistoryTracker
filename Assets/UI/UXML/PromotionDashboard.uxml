@@ -23,6 +23,7 @@
         <ui:Button name="showsButton" text="Shows" />
         <ui:Button name="calendarButton" text="Calendar" />
         <ui:Button name="historyButton" text="History" />
+        <ui:Button name="rivalriesButton" text="Rivalries" />
         <ui:Button name="rankingsButton" text="Rankings" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
       </ui:VisualElement>
@@ -466,6 +467,58 @@
       </ui:VisualElement>
     </ui:VisualElement>
       </ui:VisualElement> <!-- end contentContainer -->
+
+    <!-- ===== RIVALRIES PANEL ===== -->
+    <ui:VisualElement name="rivalriesPanel" class="hidden">
+      <ui:Label text="Rivalries" class="section-title" />
+      <ui:VisualElement class="rivalry-layout">
+        <!-- Left: list of rivalries -->
+        <ui:ScrollView name="rivalryList" class="list rivalry-list-column" />
+
+        <!-- Middle: manage rivalry -->
+        <ui:VisualElement class="rivalry-detail-column">
+          <ui:Label text="Manage Rivalry" class="subsection-title" />
+          <ui:TextField name="rivalryNameField" label="Rivalry Title" />
+          <ui:DropdownField name="rivalryTypeDropdown" label="Type (Singles/Teams/Stables)" />
+          <ui:VisualElement class="row">
+            <ui:DropdownField name="rivalryParticipantADropdown" label="Participant A" class="overlay-dropdown" />
+            <ui:DropdownField name="rivalryParticipantBDropdown" label="Participant B" class="overlay-dropdown" />
+          </ui:VisualElement>
+          <ui:TextField name="rivalryNotesField" label="Notes" />
+          <ui:VisualElement class="row">
+            <ui:Button name="addRivalryButton" text="Add Rivalry" />
+            <ui:Button name="saveRivalriesButton" text="Save Rivalries" />
+            <ui:Button name="saveRivalryButton" text="Save Changes" />
+            <ui:Button name="deleteRivalryButton" text="Delete" />
+            <ui:Button name="cancelRivalryButton" text="Cancel" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Right: timeline/history -->
+        <ui:VisualElement class="rivalry-timeline-column">
+          <ui:Label text="Timeline" class="subsection-title" />
+          <ui:ScrollView name="rivalryEventsList" class="list" />
+          <!-- Add Event Inputs -->
+          <ui:VisualElement class="row">
+            <ui:TextField name="rivalryEventDateField" label="Date (yyyy-MM-dd)" />
+            <ui:DropdownField name="rivalryEventTypeDropdown" label="Type" class="overlay-dropdown" />
+          </ui:VisualElement>
+          <ui:VisualElement class="row">
+            <ui:DropdownField name="rivalryEventShowDropdown" label="Show" class="overlay-dropdown" />
+            <ui:DropdownField name="rivalryEventEntryDropdown" label="Match/Segment" class="overlay-dropdown" />
+            <ui:Button name="openLinkedShowButton" text="Open Linked Show" />
+          </ui:VisualElement>
+          <ui:VisualElement class="row">
+            <ui:DropdownField name="rivalryEventOutcomeDropdown" label="Outcome" class="overlay-dropdown" />
+            <ui:FloatField name="rivalryEventRatingField" label="Rating" />
+          </ui:VisualElement>
+          <ui:TextField name="rivalryEventNotesField" label="Notes" />
+          <ui:VisualElement class="row">
+            <ui:Button name="addRivalryEventButton" text="Add Event" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
     </ui:VisualElement> <!-- end dashboardBody -->
   </ui:VisualElement> <!-- end root -->
 </ui:UXML>

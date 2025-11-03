@@ -18,6 +18,7 @@ public static class DataManager
     private static readonly string tagTeamFolder = Path.Combine(baseFolder, "TagTeams");
     private static readonly string stableFolder  = Path.Combine(baseFolder, "Stables");
     private static readonly string tournamentsFolder = Path.Combine(baseFolder, "Tournaments");
+    private static readonly string rivalryFolder    = Path.Combine(baseFolder, "Rivalries");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
     private static readonly string exportFolder    = Path.Combine(baseFolder, "Exports");
 
@@ -122,6 +123,7 @@ public static class DataManager
             var tagTeams = LoadTagTeams(promotionName);
             var stables = LoadStables(promotionName);
             var tournaments = LoadTournaments(promotionName);
+            var rivalries = LoadRivalries(promotionName);
 
             var bundle = new PromotionBundle
             {
@@ -131,7 +133,8 @@ public static class DataManager
                 titles = titles,
                 tagTeams = tagTeams,
                 stables = stables,
-                tournaments = tournaments
+                tournaments = tournaments,
+                rivalries = rivalries
             };
 
             if (!Directory.Exists(exportFolder)) Directory.CreateDirectory(exportFolder);
@@ -189,6 +192,11 @@ public static class DataManager
                 bundle.tournaments.promotionName = bundle.promotionName;
                 SaveTournaments(bundle.tournaments);
             }
+            if (bundle.rivalries != null)
+            {
+                bundle.rivalries.promotionName = bundle.promotionName;
+                SaveRivalries(bundle.rivalries);
+            }
             Debug.Log($"Imported promotion bundle for {bundle.promotionName}.");
             return true;
         }
@@ -196,6 +204,71 @@ public static class DataManager
         {
             Debug.LogError($"Import failed: {ex.Message}");
             return false;
+        }
+    }
+
+    // ------------------------
+    // RIVALRIES MANAGEMENT
+    // ------------------------
+    public static void SaveRivalries(RivalryCollection collection)
+    {
+        if (collection == null || string.IsNullOrEmpty(collection.promotionName))
+        {
+            Debug.LogError("Cannot save rivalries: collection or promotion name is null.");
+            return;
+        }
+        if (!Directory.Exists(rivalryFolder))
+            Directory.CreateDirectory(rivalryFolder);
+        string safeName = MakeSafeFileName(collection.promotionName);
+        string filePath = Path.Combine(rivalryFolder, $"{safeName}_Rivalries.json");
+        try
+        {
+            // Ensure IDs on rivalries and events
+            bool upgraded = EnsureIds(collection.rivalries);
+            if (collection.rivalries != null)
+            {
+                foreach (var r in collection.rivalries)
+                    upgraded |= EnsureIds(r?.events);
+            }
+            string json = JsonUtility.ToJson(collection, true);
+            File.WriteAllText(filePath, json);
+            Debug.Log($"Rivalries saved for {collection.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error saving rivalries: {ex.Message}");
+        }
+    }
+
+    public static RivalryCollection LoadRivalries(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName))
+            return new RivalryCollection { promotionName = promotionName };
+        string safeName = MakeSafeFileName(promotionName);
+        string filePath = Path.Combine(rivalryFolder, $"{safeName}_Rivalries.json");
+        if (!File.Exists(filePath))
+        {
+            Debug.LogWarning($"No rivalries found for {promotionName}");
+            return new RivalryCollection { promotionName = promotionName };
+        }
+        try
+        {
+            string json = File.ReadAllText(filePath);
+            var data = JsonUtility.FromJson<RivalryCollection>(json) ?? new RivalryCollection { promotionName = promotionName };
+            bool upgraded = EnsureIds(data?.rivalries);
+            if (data?.rivalries != null)
+            {
+                foreach (var r in data.rivalries)
+                    upgraded |= EnsureIds(r?.events);
+            }
+            if (upgraded) SaveRivalries(data);
+            if (data != null) data.promotionName = promotionName;
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error loading rivalries: {ex.Message}");
+            return new RivalryCollection { promotionName = promotionName };
         }
     }
 

@@ -23,10 +23,10 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, returnButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rivalriesPanel, rankingsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
@@ -66,6 +66,17 @@ public class PromotionDashboard : MonoBehaviour
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
     private int selectedTitleIndex = -1;
+    // Rivalries UI
+    private ScrollView rivalryListScroll, rivalryEventsList;
+    private ListView rivalryListView;
+    private TextField rivalryNameField, rivalryNotesField;
+    private DropdownField rivalryTypeDropdown, rivalryParticipantADropdown, rivalryParticipantBDropdown;
+    private TextField rivalryEventDateField, rivalryEventNotesField;
+    private DropdownField rivalryEventTypeDropdown, rivalryEventOutcomeDropdown, rivalryEventShowDropdown, rivalryEventEntryDropdown;
+    private FloatField rivalryEventRatingField;
+    private Button addRivalryButton, saveRivalriesButton, saveRivalryButton, deleteRivalryButton, cancelRivalryButton, addRivalryEventButton, openLinkedShowButton;
+    private RivalryCollection rivalryCollection;
+    private int selectedRivalryIndex = -1;
     // Tournaments UI
     private ScrollView tournamentListScroll;
     private ListView tournamentListView;
@@ -175,6 +186,7 @@ public class PromotionDashboard : MonoBehaviour
         showsButton = root.Q<Button>("showsButton");
         calendarButton = root.Q<Button>("calendarButton");
         historyButton = root.Q<Button>("historyButton");
+        rivalriesButton = root.Q<Button>("rivalriesButton");
         rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
         statusLabel = root.Q<Label>("statusLabel");
@@ -190,12 +202,44 @@ public class PromotionDashboard : MonoBehaviour
         calendarPanel = root.Q<VisualElement>("calendarPanel");
         cardBuilderPanel = root.Q<VisualElement>("cardBuilderPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
+        rivalriesPanel = root.Q<VisualElement>("rivalriesPanel");
         historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
         historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
         historyResultsHeader = root.Q<Label>("historyResultsHeader");
         historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
         historyLocationFilterField = root.Q<TextField>("historyLocationFilterField");
         rankingsPanel = root.Q<VisualElement>("rankingsPanel");
+        // Rivalries queries
+        rivalryListScroll = root.Q<ScrollView>("rivalryList");
+        rivalryEventsList = root.Q<ScrollView>("rivalryEventsList");
+        rivalryNameField = root.Q<TextField>("rivalryNameField");
+        rivalryNotesField = root.Q<TextField>("rivalryNotesField");
+        rivalryTypeDropdown = root.Q<DropdownField>("rivalryTypeDropdown");
+        rivalryParticipantADropdown = root.Q<DropdownField>("rivalryParticipantADropdown");
+        rivalryParticipantBDropdown = root.Q<DropdownField>("rivalryParticipantBDropdown");
+        rivalryEventDateField = root.Q<TextField>("rivalryEventDateField");
+        rivalryEventNotesField = root.Q<TextField>("rivalryEventNotesField");
+        rivalryEventTypeDropdown = root.Q<DropdownField>("rivalryEventTypeDropdown");
+        rivalryEventOutcomeDropdown = root.Q<DropdownField>("rivalryEventOutcomeDropdown");
+        rivalryEventShowDropdown = root.Q<DropdownField>("rivalryEventShowDropdown");
+        rivalryEventEntryDropdown = root.Q<DropdownField>("rivalryEventEntryDropdown");
+        rivalryEventRatingField = root.Q<FloatField>("rivalryEventRatingField");
+        addRivalryButton = root.Q<Button>("addRivalryButton");
+        saveRivalriesButton = root.Q<Button>("saveRivalriesButton");
+        saveRivalryButton = root.Q<Button>("saveRivalryButton");
+        deleteRivalryButton = root.Q<Button>("deleteRivalryButton");
+        cancelRivalryButton = root.Q<Button>("cancelRivalryButton");
+        addRivalryEventButton = root.Q<Button>("addRivalryEventButton");
+        openLinkedShowButton = root.Q<Button>("openLinkedShowButton");
+        // Overlay behavior for dropdowns
+        SetupDropdownOverlay(rivalryParticipantADropdown);
+        SetupDropdownOverlay(rivalryParticipantBDropdown);
+        SetupDropdownOverlay(rivalryEventTypeDropdown);
+        SetupDropdownOverlay(rivalryEventOutcomeDropdown);
+        SetupDropdownOverlay(rivalryEventShowDropdown);
+        SetupDropdownOverlay(rivalryEventEntryDropdown);
+        if (rivalryEventShowDropdown != null)
+            rivalryEventShowDropdown.RegisterValueChangedCallback(_ => PopulateRivalryEventEntryChoices());
 
         // Query list ScrollViews/buttons used as anchors in UXML
         wrestlerListScroll = root.Q<ScrollView>("wrestlerList");
@@ -393,6 +437,7 @@ public class PromotionDashboard : MonoBehaviour
         RegisterMainPanel(calendarPanel);
         RegisterMainPanel(cardBuilderPanel);
         RegisterMainPanel(historyPanel);
+        RegisterMainPanel(rivalriesPanel);
         RegisterMainPanel(rankingsPanel);
 
         // Wire navigation
@@ -403,7 +448,16 @@ public class PromotionDashboard : MonoBehaviour
         if (showsButton != null) showsButton.clicked += ShowShowsPanel;
         if (calendarButton != null) calendarButton.clicked += ShowCalendarPanel;
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
+        if (rivalriesButton != null) rivalriesButton.clicked += ShowRivalriesPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        // Rivalries handlers
+        if (addRivalryButton != null) addRivalryButton.clicked += OnAddRivalry;
+        if (saveRivalriesButton != null) saveRivalriesButton.clicked += OnSaveRivalries;
+        if (saveRivalryButton != null) saveRivalryButton.clicked += OnSaveSelectedRivalry;
+        if (deleteRivalryButton != null) deleteRivalryButton.clicked += OnDeleteSelectedRivalry;
+        if (cancelRivalryButton != null) cancelRivalryButton.clicked += OnCancelEditRivalry;
+        if (addRivalryEventButton != null) addRivalryEventButton.clicked += OnAddRivalryEvent;
+        if (openLinkedShowButton != null) openLinkedShowButton.clicked += OnOpenLinkedShow;
         if (stablesButton != null) stablesButton.clicked += ShowStablesPanel;
         if (tournamentsButton != null) tournamentsButton.clicked += ShowTournamentsPanel;
         if (viewTournamentsButton != null) viewTournamentsButton.clicked += ShowTournamentManagePanel;
@@ -723,6 +777,393 @@ public class PromotionDashboard : MonoBehaviour
         SetActivePanel(calendarPanel);
     }
     private void ShowHistoryPanel() => SetActivePanel(historyPanel);
+    private void ShowRivalriesPanel()
+    {
+        SetActivePanel(rivalriesPanel);
+        // Load and prepare rivalry data and lists
+        rivalryCollection ??= DataManager.LoadRivalries(currentPromotion?.promotionName);
+        EnsureRivalryTypeChoices();
+        EnsureRivalryEventChoices();
+        PopulateRivalryParticipantChoices(rivalryTypeDropdown?.value);
+        EnsureRivalryListView();
+        RefreshRivalryList();
+        // Auto-select first rivalry if any
+        if ((selectedRivalryIndex < 0) && (rivalryCollection?.rivalries != null) && rivalryCollection.rivalries.Count > 0)
+        {
+            SelectRivalry(0);
+        }
+    }
+
+    // --------- Rivalries ---------
+    private void EnsureRivalryListView()
+    {
+        if (rivalryListView != null) return;
+        var parent = rivalryListScroll != null ? rivalryListScroll.parent : rivalriesPanel;
+        rivalryListView = new ListView
+        {
+            name = "rivalryListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        rivalryListView.style.flexGrow = 1;
+        rivalryListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ => { if (b.userData is int idx) SelectRivalry(idx); });
+            return b;
+        };
+        rivalryListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var list = rivalryCollection?.rivalries;
+            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].title; b.userData = i; }
+            else { b.text = string.Empty; b.userData = -1; }
+        };
+        parent?.Add(rivalryListView);
+        if (rivalryListScroll != null) rivalryListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void RefreshRivalryList()
+    {
+        if (rivalryListView == null) return;
+        var src = rivalryCollection?.rivalries ?? new List<RivalryData>();
+        rivalryListView.itemsSource = src;
+        rivalryListView.Rebuild();
+    }
+
+    private void SelectRivalry(int index)
+    {
+        if (rivalryCollection?.rivalries == null || index < 0 || index >= rivalryCollection.rivalries.Count) return;
+        selectedRivalryIndex = index;
+        var r = rivalryCollection.rivalries[index];
+        if (rivalryNameField != null) rivalryNameField.value = r.title;
+        EnsureRivalryTypeChoices();
+        if (rivalryTypeDropdown != null) rivalryTypeDropdown.value = string.IsNullOrEmpty(r.type) ? rivalryTypeDropdown.choices.FirstOrDefault() : r.type;
+        PopulateRivalryParticipantChoices(rivalryTypeDropdown?.value);
+        if (rivalryParticipantADropdown != null) rivalryParticipantADropdown.value = ResolveNameFromTypedId(r.participants.ElementAtOrDefault(0));
+        if (rivalryParticipantBDropdown != null) rivalryParticipantBDropdown.value = ResolveNameFromTypedId(r.participants.ElementAtOrDefault(1));
+        if (rivalryNotesField != null) rivalryNotesField.value = r.notes;
+        PopulateRivalryEventsUI(r);
+        FocusPanel(rivalriesPanel);
+    }
+
+    private void EnsureRivalryTypeChoices()
+    {
+        if (rivalryTypeDropdown == null) return;
+        if (rivalryTypeDropdown.choices == null || rivalryTypeDropdown.choices.Count == 0)
+            rivalryTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Stables" };
+        if (string.IsNullOrEmpty(rivalryTypeDropdown.value)) rivalryTypeDropdown.value = rivalryTypeDropdown.choices[0];
+        rivalryTypeDropdown.RegisterValueChangedCallback(_ => { PopulateRivalryParticipantChoices(rivalryTypeDropdown.value); });
+    }
+
+    private void EnsureRivalryEventChoices()
+    {
+        if (rivalryEventTypeDropdown != null)
+        {
+            if (rivalryEventTypeDropdown.choices == null || rivalryEventTypeDropdown.choices.Count == 0)
+                rivalryEventTypeDropdown.choices = new List<string> { "Match", "Segment", "Promo", "Attack", "Other" };
+            if (string.IsNullOrEmpty(rivalryEventTypeDropdown.value)) rivalryEventTypeDropdown.value = rivalryEventTypeDropdown.choices[0];
+        }
+        if (rivalryEventOutcomeDropdown != null)
+        {
+            if (rivalryEventOutcomeDropdown.choices == null || rivalryEventOutcomeDropdown.choices.Count == 0)
+                rivalryEventOutcomeDropdown.choices = new List<string> { "A wins", "B wins", "Draw", "NA" };
+            if (string.IsNullOrEmpty(rivalryEventOutcomeDropdown.value)) rivalryEventOutcomeDropdown.value = rivalryEventOutcomeDropdown.choices[0];
+        }
+        if (rivalryEventDateField != null && string.IsNullOrEmpty(rivalryEventDateField.value))
+            rivalryEventDateField.value = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        EnsureRivalryShowChoices();
+        PopulateRivalryEventEntryChoices();
+    }
+
+    private void EnsureRivalryShowChoices()
+    {
+        if (rivalryEventShowDropdown == null) return;
+        var choices = new List<string>();
+        var shows = currentPromotion?.shows ?? new List<ShowData>();
+        foreach (var s in shows)
+        {
+            if (!string.IsNullOrEmpty(s?.date))
+            {
+                var label = string.IsNullOrEmpty(s.showName) ? s.date : ($"{s.date} | {s.showName}");
+                choices.Add(label);
+            }
+        }
+        if (choices.Count == 0) choices.Add(string.Empty);
+        rivalryEventShowDropdown.choices = choices;
+        if (string.IsNullOrEmpty(rivalryEventShowDropdown.value)) rivalryEventShowDropdown.value = choices[0];
+    }
+
+    private void PopulateRivalryEventEntryChoices()
+    {
+        if (rivalryEventEntryDropdown == null) return;
+        var entries = new List<string>();
+        var show = FindShowFromChoice(rivalryEventShowDropdown?.value);
+        if (show != null)
+        {
+            foreach (var m in show.matches ?? new List<MatchData>())
+            {
+                if (!string.IsNullOrEmpty(m?.id))
+                {
+                    var name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : $"{m.matchType}";
+                    entries.Add($"M:{m.id} • Match: {name}");
+                }
+            }
+            foreach (var sg in show.segments ?? new List<SegmentData>())
+            {
+                if (!string.IsNullOrEmpty(sg?.id))
+                {
+                    var name = !string.IsNullOrEmpty(sg.name) ? sg.name : "Segment";
+                    entries.Add($"S:{sg.id} • Segment: {name}");
+                }
+            }
+        }
+        if (entries.Count == 0) entries.Add(string.Empty);
+        rivalryEventEntryDropdown.choices = entries;
+        if (string.IsNullOrEmpty(rivalryEventEntryDropdown.value)) rivalryEventEntryDropdown.value = entries[0];
+    }
+
+    private ShowData FindShowFromChoice(string choice)
+    {
+        if (string.IsNullOrEmpty(choice)) return null;
+        var parts = choice.Split('|');
+        var date = parts.Length > 0 ? parts[0].Trim() : choice.Trim();
+        return (currentPromotion?.shows ?? new List<ShowData>()).FirstOrDefault(s => string.Equals(s?.date, date, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void PopulateRivalryParticipantChoices(string type)
+    {
+        // Initial scaffold: use wrestler names for Singles; tag teams for Tag Team; stables for Stables
+        var a = new List<string>();
+        var b = new List<string>();
+        string t = type ?? "Singles";
+        if (string.Equals(t, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        {
+            var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
+            foreach (var g in tags?.teams ?? new List<TagTeamData>()) if (!string.IsNullOrEmpty(g?.teamName)) { a.Add(g.teamName); b.Add(g.teamName); }
+        }
+        else if (string.Equals(t, "Stables", StringComparison.OrdinalIgnoreCase))
+        {
+            var st = DataManager.LoadStables(currentPromotion?.promotionName);
+            foreach (var s in st?.stables ?? new List<StableData>()) if (!string.IsNullOrEmpty(s?.stableName)) { a.Add(s.stableName); b.Add(s.stableName); }
+        }
+        else
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>()) if (!string.IsNullOrEmpty(w?.name)) { a.Add(w.name); b.Add(w.name); }
+        }
+        if (a.Count == 0) a.Add(string.Empty);
+        if (b.Count == 0) b.Add(string.Empty);
+        if (rivalryParticipantADropdown != null) { rivalryParticipantADropdown.choices = a; if (string.IsNullOrEmpty(rivalryParticipantADropdown.value)) rivalryParticipantADropdown.value = a[0]; }
+        if (rivalryParticipantBDropdown != null) { rivalryParticipantBDropdown.choices = b; if (string.IsNullOrEmpty(rivalryParticipantBDropdown.value)) rivalryParticipantBDropdown.value = b[0]; }
+    }
+
+    private void PopulateRivalryEventsUI(RivalryData r)
+    {
+        if (rivalryEventsList == null) return;
+        rivalryEventsList.Clear();
+        foreach (var e in r.events ?? new List<RivalryEvent>())
+        {
+            var label = new Label($"{e.date} • {e.eventType} • {e.outcome}");
+            rivalryEventsList.Add(label);
+        }
+    }
+
+    private string ResolveNameFromTypedId(string typedId)
+    {
+        if (string.IsNullOrEmpty(typedId) || typedId.Length < 3 || typedId[1] != ':') return string.Empty;
+        char kind = typedId[0]; string id = typedId.Substring(2);
+        switch (kind)
+        {
+            case 'W':
+                wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+                return wrestlerCollection?.wrestlers?.FirstOrDefault(w => string.Equals(w?.id, id, StringComparison.OrdinalIgnoreCase))?.name ?? string.Empty;
+            case 'T':
+                var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
+                return tags?.teams?.FirstOrDefault(t => string.Equals(t?.id, id, StringComparison.OrdinalIgnoreCase))?.teamName ?? string.Empty;
+            case 'S':
+                var st = DataManager.LoadStables(currentPromotion?.promotionName);
+                return st?.stables?.FirstOrDefault(s => string.Equals(s?.id, id, StringComparison.OrdinalIgnoreCase))?.stableName ?? string.Empty;
+        }
+        return string.Empty;
+    }
+
+    private string ResolveTypedId(string type, string name)
+    {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        {
+            var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
+            var t = tags?.teams?.FirstOrDefault(x => string.Equals(x?.teamName, name, StringComparison.OrdinalIgnoreCase));
+            if (t != null && !string.IsNullOrEmpty(t.id)) return $"T:{t.id}";
+        }
+        else if (string.Equals(type, "Stables", StringComparison.OrdinalIgnoreCase))
+        {
+            var st = DataManager.LoadStables(currentPromotion?.promotionName);
+            var s = st?.stables?.FirstOrDefault(x => string.Equals(x?.stableName, name, StringComparison.OrdinalIgnoreCase));
+            if (s != null && !string.IsNullOrEmpty(s.id)) return $"S:{s.id}";
+        }
+        else
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+            var w = wrestlerCollection?.wrestlers?.FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
+            if (w != null && !string.IsNullOrEmpty(w.id)) return $"W:{w.id}";
+        }
+        return string.Empty;
+    }
+
+    private void OnAddRivalry()
+    {
+        if (currentPromotion == null) { statusLabel.text = "No promotion loaded."; return; }
+        rivalryCollection ??= new RivalryCollection { promotionName = currentPromotion.promotionName };
+        if (rivalryCollection.rivalries == null) rivalryCollection.rivalries = new List<RivalryData>();
+        EnsureRivalryTypeChoices();
+        EnsureRivalryEventChoices();
+        PopulateRivalryParticipantChoices(rivalryTypeDropdown?.value);
+        var title = (rivalryNameField?.value ?? string.Empty).Trim();
+        var type = rivalryTypeDropdown?.value ?? "Singles";
+        var aName = (rivalryParticipantADropdown?.value ?? string.Empty).Trim();
+        var bName = (rivalryParticipantBDropdown?.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(aName) || string.IsNullOrEmpty(bName)) { statusLabel.text = "Enter title and both participants."; return; }
+        var aId = ResolveTypedId(type, aName);
+        var bId = ResolveTypedId(type, bName);
+        if (string.IsNullOrEmpty(aId) || string.IsNullOrEmpty(bId) || string.Equals(aId, bId, StringComparison.OrdinalIgnoreCase)) { statusLabel.text = "Invalid participants."; return; }
+        if (rivalryCollection.rivalries.Any(r => string.Equals(r.title, title, StringComparison.OrdinalIgnoreCase))) { statusLabel.text = "Rivalry title exists."; return; }
+        var rNew = new RivalryData { title = title, type = type, status = "Active", startDate = DateTime.UtcNow.ToString("yyyy-MM-dd"), notes = rivalryNotesField?.value };
+        rNew.participants.Add(aId); rNew.participants.Add(bId);
+        rivalryCollection.rivalries.Add(rNew);
+        DataManager.SaveRivalries(rivalryCollection);
+        RefreshRivalryList();
+        statusLabel.text = "Rivalry added.";
+    }
+
+    private void OnSaveRivalries()
+    {
+        if (currentPromotion == null || rivalryCollection == null) return;
+        rivalryCollection.promotionName = currentPromotion.promotionName;
+        DataManager.SaveRivalries(rivalryCollection);
+        statusLabel.text = "Rivalries saved.";
+    }
+
+    private void OnSaveSelectedRivalry()
+    {
+        if (rivalryCollection?.rivalries == null || selectedRivalryIndex < 0 || selectedRivalryIndex >= rivalryCollection.rivalries.Count) return;
+        var r = rivalryCollection.rivalries[selectedRivalryIndex];
+        var title = (rivalryNameField?.value ?? string.Empty).Trim();
+        var type = rivalryTypeDropdown?.value ?? r.type;
+        var aName = (rivalryParticipantADropdown?.value ?? string.Empty).Trim();
+        var bName = (rivalryParticipantBDropdown?.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(aName) || string.IsNullOrEmpty(bName)) { statusLabel.text = "Enter title and both participants."; return; }
+        if (rivalryCollection.rivalries.Where((x, i) => i != selectedRivalryIndex).Any(x => string.Equals(x.title, title, StringComparison.OrdinalIgnoreCase))) { statusLabel.text = "Rivalry title exists."; return; }
+        r.title = title; r.type = type; r.notes = rivalryNotesField?.value;
+        r.participants.Clear();
+        r.participants.Add(ResolveTypedId(type, aName));
+        r.participants.Add(ResolveTypedId(type, bName));
+        DataManager.SaveRivalries(rivalryCollection);
+        RefreshRivalryList();
+        statusLabel.text = "Rivalry updated.";
+    }
+
+    private void OnDeleteSelectedRivalry()
+    {
+        if (rivalryCollection?.rivalries == null || selectedRivalryIndex < 0 || selectedRivalryIndex >= rivalryCollection.rivalries.Count) return;
+        rivalryCollection.rivalries.RemoveAt(selectedRivalryIndex);
+        selectedRivalryIndex = -1;
+        DataManager.SaveRivalries(rivalryCollection);
+        RefreshRivalryList();
+        statusLabel.text = "Rivalry deleted.";
+    }
+
+    private void OnCancelEditRivalry()
+    {
+        selectedRivalryIndex = -1;
+        if (rivalryNameField != null) rivalryNameField.value = string.Empty;
+        if (rivalryNotesField != null) rivalryNotesField.value = string.Empty;
+        SetActivePanel(rivalriesPanel);
+    }
+
+    private void OnAddRivalryEvent()
+    {
+        if (rivalryCollection?.rivalries == null || selectedRivalryIndex < 0 || selectedRivalryIndex >= rivalryCollection.rivalries.Count) { statusLabel.text = "Select a rivalry first."; return; }
+        var r = rivalryCollection.rivalries[selectedRivalryIndex];
+        EnsureRivalryEventChoices();
+        // Gather inputs
+        var sDate = (rivalryEventDateField?.value ?? string.Empty).Trim();
+        if (!DateTime.TryParseExact(sDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            sDate = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+        var eType = rivalryEventTypeDropdown?.value ?? "Match";
+        var outcome = rivalryEventOutcomeDropdown?.value ?? "NA";
+        var rating = 0f; if (rivalryEventRatingField != null) rating = rivalryEventRatingField.value;
+        var notes = rivalryEventNotesField?.value;
+
+        // Build event
+        var ev = new RivalryEvent
+        {
+            id = Guid.NewGuid().ToString("N"),
+            date = sDate,
+            eventType = eType,
+            outcome = outcome,
+            rating = rating,
+            notes = notes,
+            participants = new List<string>(r.participants)
+        };
+        // Link to selected show and entry if available
+        var selShow = FindShowFromChoice(rivalryEventShowDropdown?.value);
+        if (selShow != null) ev.showId = selShow.date; // using date as show identifier
+        var entry = rivalryEventEntryDropdown?.value ?? string.Empty;
+        if (entry.StartsWith("M:", StringComparison.OrdinalIgnoreCase))
+        {
+            var idPart = entry.Substring(2);
+            var space = idPart.IndexOf(' ');
+            ev.matchId = space > 0 ? idPart.Substring(0, space) : idPart;
+        }
+        else if (entry.StartsWith("S:", StringComparison.OrdinalIgnoreCase))
+        {
+            var idPart = entry.Substring(2);
+            var space = idPart.IndexOf(' ');
+            ev.segmentId = space > 0 ? idPart.Substring(0, space) : idPart;
+        }
+        r.events ??= new List<RivalryEvent>();
+        r.events.Add(ev);
+
+        // Update lightweight metrics
+        if (string.Equals(outcome, "A wins", StringComparison.OrdinalIgnoreCase)) r.winsA++;
+        else if (string.Equals(outcome, "B wins", StringComparison.OrdinalIgnoreCase)) r.winsB++;
+        else if (string.Equals(outcome, "Draw", StringComparison.OrdinalIgnoreCase)) r.draws++;
+        // last interaction
+        if (string.IsNullOrEmpty(r.lastInteractionDate) || string.CompareOrdinal(sDate, r.lastInteractionDate) > 0) r.lastInteractionDate = sDate;
+        // simple feud score: +1 base + rating
+        r.feudScore += 1f + Mathf.Max(0f, rating);
+
+        DataManager.SaveRivalries(rivalryCollection);
+        PopulateRivalryEventsUI(r);
+        statusLabel.text = "Event added.";
+    }
+
+    private void OnOpenLinkedShow()
+    {
+        var selShow = FindShowFromChoice(rivalryEventShowDropdown?.value);
+        if (selShow == null)
+        {
+            if (statusLabel != null) statusLabel.text = "Select a show to open.";
+            return;
+        }
+        SetActivePanel(showsPanel);
+        EnsureShowsListView();
+        RefreshShowList();
+        var shows = currentPromotion?.shows ?? new List<ShowData>();
+        int idx = -1;
+        for (int i = 0; i < shows.Count; i++)
+        {
+            if (string.Equals(shows[i]?.date ?? string.Empty, selShow.date, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
+        }
+        if (idx >= 0) SelectShow(idx);
+        else if (statusLabel != null) statusLabel.text = "Show not found in list.";
+    }
     private void ShowRankingsPanel() => SetActivePanel(rankingsPanel);
 
     private void OnCreateShowFromCalendar(DateTime date)
