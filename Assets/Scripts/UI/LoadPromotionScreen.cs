@@ -48,6 +48,8 @@ public class LoadPromotionScreen : MonoBehaviour
             button.style.height = 30;
             button.style.marginBottom = 5;
             button.style.unityTextAlign = TextAnchor.MiddleCenter;
+            button.style.alignSelf = Align.Stretch;
+            button.style.minWidth = 200;
 
             promotionList.Add(button);
         }
@@ -77,6 +79,5 @@ public class LoadPromotionScreen : MonoBehaviour
             UnityEngine.SceneManagement.SceneManager.LoadScene("PromotionDashboard");
     }
 }
-
 
 

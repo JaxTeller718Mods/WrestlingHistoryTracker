@@ -11,9 +11,11 @@ Label {
 }
 
 Button {
-    width: 200px;
+    /* Allow buttons to expand to available width */
+    min-width: 200px;
     height: 35px;
     margin-top: 5px;
+    align-self: stretch;
 }
 
 ScrollView {

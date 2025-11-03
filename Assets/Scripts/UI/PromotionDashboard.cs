@@ -966,9 +966,32 @@ public class PromotionDashboard : MonoBehaviour
         rivalryEventsList.Clear();
         foreach (var e in r.events ?? new List<RivalryEvent>())
         {
-            var label = new Label($"{e.date} • {e.eventType} • {e.outcome}");
-            rivalryEventsList.Add(label);
+            var btn = new Button(() => OpenLinkedShowFromEvent(e));
+            string showTag = string.IsNullOrEmpty(e.showId) ? string.Empty : $" • Show: {e.showId}";
+            btn.text = $"{e.date} • {e.eventType} • {e.outcome}{showTag}";
+            btn.AddToClassList("list-entry");
+            rivalryEventsList.Add(btn);
         }
+    }
+
+    private void OpenLinkedShowFromEvent(RivalryEvent ev)
+    {
+        if (ev == null || string.IsNullOrEmpty(ev.showId))
+        {
+            if (statusLabel != null) statusLabel.text = "This event is not linked to a show.";
+            return;
+        }
+        SetActivePanel(showsPanel);
+        EnsureShowsListView();
+        RefreshShowList();
+        var shows = currentPromotion?.shows ?? new List<ShowData>();
+        int idx = -1;
+        for (int i = 0; i < shows.Count; i++)
+        {
+            if (string.Equals(shows[i]?.date ?? string.Empty, ev.showId, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
+        }
+        if (idx >= 0) SelectShow(idx);
+        else if (statusLabel != null) statusLabel.text = "Linked show not found.";
     }
 
     private string ResolveNameFromTypedId(string typedId)
