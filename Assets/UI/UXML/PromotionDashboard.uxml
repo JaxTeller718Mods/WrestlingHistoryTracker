@@ -8,8 +8,12 @@
       <ui:Label text="Promotion Dashboard" class="title" />
       <ui:Label name="statusLabel" text="Ready." class="status-label" />
 
-      <!-- ===== NAV BUTTONS ===== -->
-      <ui:VisualElement name="navContainer" class="nav-buttons">
+    </ui:VisualElement>
+
+    <!-- ===== BODY: SIDEBAR + CONTENT ===== -->
+    <ui:VisualElement name="dashboardBody" class="dashboard-body">
+      <!-- Sidebar navigation (vertical) -->
+      <ui:VisualElement name="sidebar" class="sidebar nav-buttons">
         <ui:Button name="promotionButton" text="Promotion Info" />
         <ui:Button name="wrestlersButton" text="Wrestlers" />
         <ui:Button name="titlesButton" text="Titles" />
@@ -22,7 +26,9 @@
         <ui:Button name="rankingsButton" text="Rankings" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
       </ui:VisualElement>
-    </ui:VisualElement>
+
+      <!-- Main content container -->
+      <ui:VisualElement name="contentContainer" class="content-container">
 
     <!-- ===== CALENDAR PANEL ===== -->
     <ui:VisualElement name="calendarPanel" class="hidden">
@@ -459,5 +465,7 @@
         <ui:ScrollView name="stableList" class="list" />
       </ui:VisualElement>
     </ui:VisualElement>
-  </ui:VisualElement>
+      </ui:VisualElement> <!-- end contentContainer -->
+    </ui:VisualElement> <!-- end dashboardBody -->
+  </ui:VisualElement> <!-- end root -->
 </ui:UXML>

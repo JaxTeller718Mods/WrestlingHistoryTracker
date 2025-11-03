@@ -57,24 +57,25 @@
 #titlesPanel,
 #tagTeamsPanel,
 #showsPanel,
-#historyPanel {
+#historyPanel,
+#rankingsPanel,
+#tournamentsPanel,
+#calendarPanel,
+#cardBuilderPanel {
     width: 100%;
-    max-width: 700px;
+    max-width: 1500px;
     background-color: rgba(40, 40, 40, 0.8);
     border-radius: 8px;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
+    align-self: stretch;
 }
 
 /* Make Shows panel wider to accommodate side-by-side columns */
-#showsPanel {
-    max-width: 1100px;
-}
+#showsPanel { max-width: 1600px; }
 
 /* Give Titles panel extra width to fit lineage */
-#titlesPanel {
-    max-width: 900px;
-}
+#titlesPanel { max-width: 1400px; }
 
 /* ===== HIDDEN STATE ===== */
 .hidden {
@@ -123,22 +124,45 @@ button:active {
 /* ===== NAVIGATION BAR ===== */
 .dashboard-chrome {
     width: 100%;
-    max-width: 700px;
+    max-width: 1800px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-bottom: 12px;
+}
+
+/* New two-column layout */
+.dashboard-body {
+    width: 100%;
+    max-width: 1800px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.sidebar {
+    width: 240px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    margin-right: 16px;
+}
+
+.content-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .nav-buttons {
     display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 15px;
-    margin-bottom: 20px;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    margin-top: 8px;
 }
-.nav-buttons > * { margin-right: 10px; margin-bottom: 10px; }
+.nav-buttons > * { margin-bottom: 8px; }
 
 /* ===== TEXT FIELDS ===== */
 TextField, FloatField {
@@ -522,7 +546,7 @@ Label {
 /* ===== HISTORY RESULTS WIDTH TWEAK ===== */
 /* Widen only the History panel so Results can use more space */
 #historyPanel {
-    max-width: 900px;
+    max-width: 1400px;
 }
 
 /* Make the results subpanel larger with comfortable padding */
@@ -566,7 +590,7 @@ Label {
 
 /* ===== RANKINGS LAYOUT ===== */
 #rankingsPanel {
-    max-width: 900px;
+    max-width: 1400px;
 }
 
 .rankings-layout {
