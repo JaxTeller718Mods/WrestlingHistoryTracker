@@ -260,7 +260,7 @@
             <ui:DropdownField name="tournamentTypeDropdown" label="Type" />
 
             <ui:VisualElement class="row">
-              <ui:DropdownField name="tournamentEntrantDropdown" label="Add/Select Entrant" />
+              <ui:DropdownField name="tournamentEntrantDropdown" label="Add/Select Entrant" class="overlay-dropdown" />
               <ui:Button name="addEntrantButton" text="Add" />
               <ui:Button name="removeEntrantButton" text="Remove" />
             </ui:VisualElement>
@@ -453,7 +453,7 @@
         <ui:VisualElement class="stable-controls-column">
           <ui:VisualElement class="title-detail-card">
             <ui:Label text="Member Controls" class="subsection-title" />
-            <ui:DropdownField name="stableMemberDropdown" label="Add Member" />
+            <ui:DropdownField name="stableMemberDropdown" label="Add Member" class="overlay-dropdown" />
             <ui:VisualElement class="row">
               <ui:Button name="addStableMemberButton" text="Add Member" />
               <ui:Button name="removeStableMemberButton" text="Remove Member" />

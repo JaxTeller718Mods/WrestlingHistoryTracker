@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +8,12 @@ using UnityEngine.UIElements;
 
 public class PromotionDashboard : MonoBehaviour
 {
+    private void SetupDropdownOverlay(DropdownField dd)
+    {
+        if (dd == null) return;
+        dd.RegisterCallback<PointerDownEvent>(_ => { dd.parent?.BringToFront(); dd.BringToFront(); });
+        dd.RegisterCallback<FocusInEvent>(_ => { dd.parent?.BringToFront(); dd.BringToFront(); });
+    }
     private const string DateFormat = "MM/dd/yyyy";
     // Data
     private PromotionData currentPromotion;
@@ -217,6 +223,7 @@ public class PromotionDashboard : MonoBehaviour
         tournamentNameField = root.Q<TextField>("tournamentNameField");
         tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
         tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
+        SetupDropdownOverlay(tournamentEntrantDropdown);
         tournamentEntrantsList = root.Q<ScrollView>("tournamentEntrantsList");
         tournamentMatchesList = root.Q<ScrollView>("tournamentMatchesList");
         addTournamentButton = root.Q<Button>("addTournamentButton");
@@ -234,6 +241,7 @@ public class PromotionDashboard : MonoBehaviour
         stableListScroll = root.Q<ScrollView>("stableList");
         stableNameField = root.Q<TextField>("stableNameField");
         stableMemberDropdown = root.Q<DropdownField>("stableMemberDropdown");
+        SetupDropdownOverlay(stableMemberDropdown);
         stableMembersList = root.Q<ScrollView>("stableMembersList");
         addStableButton = root.Q<Button>("addStableButton");
         saveStablesButton = root.Q<Button>("saveStablesButton");
@@ -1457,7 +1465,7 @@ public class PromotionDashboard : MonoBehaviour
         int totalDefenses = summaries.Sum(s => s.defenses);
         var current = summaries.FirstOrDefault(s => string.IsNullOrEmpty(s.dateLost));
         if (titleStatsCurrentLabel != null)
-            titleStatsCurrentLabel.text = current != null ? $"Current champion: {current.championName} — {current.daysHeld} days" : "Current champion: (unknown)";
+            titleStatsCurrentLabel.text = current != null ? $"Current champion: {current.championName} â€” {current.daysHeld} days" : "Current champion: (unknown)";
         if (titleStatsSummaryLabel != null)
             titleStatsSummaryLabel.text = totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet.";
         var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
@@ -1465,23 +1473,23 @@ public class PromotionDashboard : MonoBehaviour
         if (titleStatsLongestLabel != null)
         {
             titleStatsLongestLabel.text = longest != null ?
-                $"Longest: {longest.championName} — {longest.daysHeld} days ({SpanText(longest)})" : string.Empty;
+                $"Longest: {longest.championName} â€” {longest.daysHeld} days ({SpanText(longest)})" : string.Empty;
         }
         if (titleStatsShortestLabel != null)
         {
             titleStatsShortestLabel.text = shortest != null ?
-                $"Shortest: {shortest.championName} — {shortest.daysHeld} days ({SpanText(shortest)})" : string.Empty;
+                $"Shortest: {shortest.championName} â€” {shortest.daysHeld} days ({SpanText(shortest)})" : string.Empty;
         }
         var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
         if (titleStatsMostDefensesLabel != null)
         {
             titleStatsMostDefensesLabel.text = mostDef != null ?
-                $"Most defenses in a reign: {mostDef.championName} — {mostDef.defenses}" : string.Empty;
+                $"Most defenses in a reign: {mostDef.championName} â€” {mostDef.defenses}" : string.Empty;
         }
 
         string SpanText(TitleReignSummary s)
         {
-            return string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} – present" : $"{s.dateWon} – {s.dateLost}";
+            return string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} â€“ present" : $"{s.dateWon} â€“ {s.dateLost}";
         }
     }
 
@@ -1663,11 +1671,11 @@ public class PromotionDashboard : MonoBehaviour
         var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
         var shortest = summaries.OrderBy(s => s.daysHeld).FirstOrDefault();
         var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
-        titleStatsList.Add(new Label(current != null ? $"Current champion: {current.championName} — {current.daysHeld} days" : "Current champion: (unknown)"));
+        titleStatsList.Add(new Label(current != null ? $"Current champion: {current.championName} â€” {current.daysHeld} days" : "Current champion: (unknown)"));
         titleStatsList.Add(new Label(totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet."));
-        if (longest != null) titleStatsList.Add(new Label($"Longest: {longest.championName} — {longest.daysHeld} days ({(string.IsNullOrEmpty(longest.dateLost) ? $"{longest.dateWon} – present" : $"{longest.dateWon} – {longest.dateLost}")})"));
-        if (shortest != null) titleStatsList.Add(new Label($"Shortest: {shortest.championName} — {shortest.daysHeld} days ({(string.IsNullOrEmpty(shortest.dateLost) ? $"{shortest.dateWon} – present" : $"{shortest.dateWon} – {shortest.dateLost}")})"));
-        if (mostDef != null) titleStatsList.Add(new Label($"Most defenses in a reign: {mostDef.championName} — {mostDef.defenses}"));
+        if (longest != null) titleStatsList.Add(new Label($"Longest: {longest.championName} â€” {longest.daysHeld} days ({(string.IsNullOrEmpty(longest.dateLost) ? $"{longest.dateWon} â€“ present" : $"{longest.dateWon} â€“ {longest.dateLost}")})"));
+        if (shortest != null) titleStatsList.Add(new Label($"Shortest: {shortest.championName} â€” {shortest.daysHeld} days ({(string.IsNullOrEmpty(shortest.dateLost) ? $"{shortest.dateWon} â€“ present" : $"{shortest.dateWon} â€“ {shortest.dateLost}")})"));
+        if (mostDef != null) titleStatsList.Add(new Label($"Most defenses in a reign: {mostDef.championName} â€” {mostDef.defenses}"));
         titleStatsList.Add(new VisualElement() { style = { height = 8 } });
         // Reign summaries
         if (summaries.Count > 0)
@@ -1677,7 +1685,7 @@ public class PromotionDashboard : MonoBehaviour
             {
                 var row = new VisualElement(); row.style.marginBottom = 6;
                 string span = string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} - present" : $"{s.dateWon} - {s.dateLost}";
-                row.Add(new Label($"{s.championName} ({span}) • {s.daysHeld} days, {s.defenses} defenses"));
+                row.Add(new Label($"{s.championName} ({span}) â€¢ {s.daysHeld} days, {s.defenses} defenses"));
                 if (s.defenses > 0)
                 {
                     row.Add(new Label($"First defense: {s.firstDefenseDate}  Last defense: {s.lastDefenseDate}"));

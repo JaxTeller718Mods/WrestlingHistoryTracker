@@ -247,11 +247,9 @@ FloatField > .unity-float-field__input {
 }
 
 .wrestler-detail-card {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .title-detail-card {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
     overflow: visible; /* allow popups (e.g., dropdown menus) to render over siblings */
 }
 
@@ -297,8 +295,8 @@ FloatField > .unity-float-field__input {
 }
 
 .tournament-detail-column {
-    flex: 1 1 560px; /* slimmer middle panel so three columns fit */
-    min-width: 520px;
+    flex: 1 1 520px; /* a bit slimmer so three columns fit */
+    min-width: 480px;
     display: flex;
     flex-direction: column;
     overflow: visible; /* ensure child popups are not clipped */
@@ -324,9 +322,9 @@ FloatField > .unity-float-field__input {
 
 /* Entrants column sizing */
 .tournament-entrants-column {
-    width: 320px;
-    max-width: 360px;
-    min-width: 280px;
+    width: 280px;
+    max-width: 320px;
+    min-width: 240px;
 }
 
 /* Stables: narrow controls column */
@@ -349,10 +347,24 @@ FloatField > .unity-float-field__input {
     min-width: 340px;
 }
 
-/* Ensure stable member dropdown menu overlays nearby buttons */
-#stableMemberDropdown {
-    z-index: 1000;
+/* Per-panel tighter layout for tournaments */
+#tournamentsPanel .tournament-entrants-column {
+    width: 260px;
+    max-width: 300px;
+    min-width: 220px;
 }
+#tournamentsPanel .tournament-detail-column {
+    flex: 1 1 480px;
+    min-width: 440px;
+}
+#tournamentsPanel .tournament-matches-column {
+    width: 340px;
+    max-width: 380px;
+    min-width: 300px;
+}
+
+/* Shared class reserved for overlay dropdowns (zIndex set in C# for runtime support) */
+.overlay-dropdown {}
 
 /* Ensure hidden overrides layout display on complex containers */
 .tournament-layout.hidden { display: none; }
@@ -503,7 +515,6 @@ FloatField > .unity-float-field__input {
 }
 
 .show-detail-card {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .show-detail-card .row,
