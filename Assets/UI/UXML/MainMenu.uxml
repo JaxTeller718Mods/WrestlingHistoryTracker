@@ -5,6 +5,8 @@
         <ui:VisualElement class="button-column">
             <ui:Button name="newButton" text="Create New Promotion" />
             <ui:Button name="loadButton" text="Load Promotion" />
+            <ui:Button name="exportButton" text="Export Promotion" />
+            <ui:Button name="importButton" text="Import Promotion" />
             <ui:Button name="exitButton" text="Exit" />
         </ui:VisualElement>
         <ui:VisualElement name="createPanel" class="panel hidden">
@@ -18,6 +20,21 @@
             <ui:TextField name="loadPathField" label="File Path (placeholder)" />
             <ui:Button name="loadConfirmButton" text="Load" />
             <ui:Button name="loadCancelButton" text="Cancel" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="exportPanel" class="panel hidden">
+            <ui:Label text="Export Promotion" class="panel-title" />
+            <ui:DropdownField name="exportPromotionDropdown" label="Select Promotion" />
+            <ui:Button name="openExportsFolderButton" text="Open Exports Folder" />
+            <ui:Button name="exportConfirmButton" text="Export" />
+            <ui:Button name="exportCancelButton" text="Cancel" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="importPanel" class="panel hidden">
+            <ui:Label text="Import Promotion" class="panel-title" />
+            <ui:TextField name="importPathField" label="Bundle Path (.json)" />
+            <ui:Button name="importConfirmButton" text="Import" />
+            <ui:Button name="importCancelButton" text="Cancel" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

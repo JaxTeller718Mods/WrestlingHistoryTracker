@@ -19,6 +19,7 @@ public static class DataManager
     private static readonly string stableFolder  = Path.Combine(baseFolder, "Stables");
     private static readonly string tournamentsFolder = Path.Combine(baseFolder, "Tournaments");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
+    private static readonly string exportFolder    = Path.Combine(baseFolder, "Exports");
 
     // ------------------------
     // PROMOTION MANAGEMENT (includes shows)
@@ -90,6 +91,112 @@ public static class DataManager
             files[i] = Path.GetFileNameWithoutExtension(files[i]);
 
         return files;
+    }
+
+    public static string GetExportFolderPath()
+    {
+        try
+        {
+            if (!Directory.Exists(exportFolder)) Directory.CreateDirectory(exportFolder);
+            return exportFolder;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to access export folder: {ex.Message}");
+            return null;
+        }
+    }
+
+    // ------------------------
+    // EXPORT / IMPORT BUNDLE
+    // ------------------------
+    public static string ExportPromotionBundle(string promotionName)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(promotionName)) return null;
+            var safe = MakeSafeFileName(promotionName);
+            var promo = LoadPromotion(promotionName);
+            var wrestlers = LoadWrestlers(promotionName);
+            var titles = LoadTitles(promotionName);
+            var tagTeams = LoadTagTeams(promotionName);
+            var stables = LoadStables(promotionName);
+            var tournaments = LoadTournaments(promotionName);
+
+            var bundle = new PromotionBundle
+            {
+                promotionName = promotionName,
+                promotion = promo,
+                wrestlers = wrestlers,
+                titles = titles,
+                tagTeams = tagTeams,
+                stables = stables,
+                tournaments = tournaments
+            };
+
+            if (!Directory.Exists(exportFolder)) Directory.CreateDirectory(exportFolder);
+            var outPath = Path.Combine(exportFolder, safe + "_bundle.json");
+            var json = JsonUtility.ToJson(bundle, true);
+            File.WriteAllText(outPath, json);
+            return outPath;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Export failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    public static bool ImportPromotionBundle(string bundlePath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(bundlePath) || !File.Exists(bundlePath))
+            {
+                Debug.LogError($"Import failed: file not found {bundlePath}");
+                return false;
+            }
+            var json = File.ReadAllText(bundlePath);
+            var bundle = JsonUtility.FromJson<PromotionBundle>(json);
+            if (bundle == null || string.IsNullOrWhiteSpace(bundle.promotionName))
+            {
+                Debug.LogError("Import failed: invalid bundle or missing promotionName.");
+                return false;
+            }
+            if (bundle.promotion != null) SavePromotion(bundle.promotion);
+            if (bundle.wrestlers != null)
+            {
+                bundle.wrestlers.promotionName = bundle.promotionName;
+                SaveWrestlers(bundle.wrestlers);
+            }
+            if (bundle.titles != null)
+            {
+                bundle.titles.promotionName = bundle.promotionName;
+                SaveTitles(bundle.titles);
+            }
+            if (bundle.tagTeams != null)
+            {
+                bundle.tagTeams.promotionName = bundle.promotionName;
+                SaveTagTeams(bundle.tagTeams);
+            }
+            if (bundle.stables != null)
+            {
+                bundle.stables.promotionName = bundle.promotionName;
+                SaveStables(bundle.stables);
+            }
+            if (bundle.tournaments != null)
+            {
+                bundle.tournaments.promotionName = bundle.promotionName;
+                SaveTournaments(bundle.tournaments);
+            }
+            Debug.Log($"Imported promotion bundle for {bundle.promotionName}.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Import failed: {ex.Message}");
+            return false;
+        }
     }
 
     public static bool DeletePromotion(string promotionName)
