@@ -11,8 +11,10 @@ public class PromotionDashboard : MonoBehaviour
     private void SetupDropdownOverlay(DropdownField dd)
     {
         if (dd == null) return;
-        dd.RegisterCallback<PointerDownEvent>(_ => { dd.parent?.BringToFront(); dd.BringToFront(); });
-        dd.RegisterCallback<FocusInEvent>(_ => { dd.parent?.BringToFront(); dd.BringToFront(); });
+        // Avoid BringToFront on the dropdown or its row to prevent layout reordering.
+        // If needed for inter-document stacking, bring the root panel forward.
+        dd.RegisterCallback<PointerDownEvent>(_ => { root?.BringToFront(); });
+        dd.RegisterCallback<FocusInEvent>(_ => { root?.BringToFront(); });
     }
     private const string DateFormat = "MM/dd/yyyy";
     // Data
@@ -220,8 +222,10 @@ public class PromotionDashboard : MonoBehaviour
         tournamentManagePanel = root.Q<VisualElement>("tournamentManagePanel");
         newTournamentNameField = root.Q<TextField>("newTournamentNameField");
         newTournamentTypeDropdown = root.Q<DropdownField>("newTournamentTypeDropdown");
+        SetupDropdownOverlay(newTournamentTypeDropdown);
         tournamentNameField = root.Q<TextField>("tournamentNameField");
         tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
+        SetupDropdownOverlay(tournamentTypeDropdown);
         tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
         SetupDropdownOverlay(tournamentEntrantDropdown);
         tournamentEntrantsList = root.Q<ScrollView>("tournamentEntrantsList");
@@ -364,6 +368,8 @@ public class PromotionDashboard : MonoBehaviour
         teamNameField = root.Q<TextField>("teamNameField");
         teamMemberADropdown = root.Q<DropdownField>("teamMemberADropdown");
         teamMemberBDropdown = root.Q<DropdownField>("teamMemberBDropdown");
+        SetupDropdownOverlay(teamMemberADropdown);
+        SetupDropdownOverlay(teamMemberBDropdown);
         addTeamButton = root.Q<Button>("addTeamButton");
         saveTeamsButton = root.Q<Button>("saveTeamsButton");
         saveTeamButton = root.Q<Button>("saveTeamButton");

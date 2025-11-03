@@ -109,6 +109,24 @@ public class CardBuilderView
         wrestlerDDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
 
         LoadRosterAndTitles();
+
+        // Ensure dropdown menus overlay cleanly without reordering rows
+        SetupDropdownOverlay(templateDropdown);
+        SetupDropdownOverlay(matchTypeDropdown);
+        SetupDropdownOverlay(wrestlerADropdown);
+        SetupDropdownOverlay(wrestlerBDropdown);
+        SetupDropdownOverlay(wrestlerCDropdown);
+        SetupDropdownOverlay(wrestlerDDropdown);
+        SetupDropdownOverlay(titleDropdown);
+        SetupDropdownOverlay(winnerDropdown);
+    }
+
+    private void SetupDropdownOverlay(DropdownField dd)
+    {
+        if (dd == null) return;
+        // Avoid changing layout order; if needed, bring the containing panel forward.
+        dd.RegisterCallback<PointerDownEvent>(_ => { panel?.BringToFront(); });
+        dd.RegisterCallback<FocusInEvent>(_ => { panel?.BringToFront(); });
     }
 
     public void BeginNew(DateTime date)

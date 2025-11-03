@@ -669,7 +669,7 @@ Label {
 }
 .calendar-dow-row { flex-direction: row; margin-bottom: 4px; }
 .calendar-dow-cell {
-    width: calc(14% - 6px);
+    width: 14%;
     min-width: 110px;
     margin: 2px;
     -unity-font-style: bold;
@@ -678,7 +678,7 @@ Label {
 }
 .calendar-row { flex-direction: row; }
 .calendar-cell {
-    width: calc(14% - 6px);
+    width: 14%;
     min-width: 110px;
     height: 96px;
     border-width: 1px;
@@ -708,4 +708,5 @@ Label {
 .cb-meta { width: 300px; min-width: 260px; flex-direction: column; }
 .cb-center { flex-grow: 1; flex-direction: column; }
 .cb-props { width: 360px; min-width: 320px; flex-direction: column; }
+.cb-props { overflow: visible; }
 .card-entry-button { justify-content: flex-start; }
