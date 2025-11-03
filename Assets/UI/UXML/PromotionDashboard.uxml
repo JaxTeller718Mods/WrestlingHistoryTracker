@@ -20,7 +20,7 @@
         <ui:Button name="tournamentsButton" text="Tournaments" />
         <ui:Button name="stablesButton" text="Stables" />
         <ui:Button name="tagTeamsButton" text="Tag Teams" />
-        <ui:Button name="showsButton" text="Shows" />
+        <ui:Button name="showsButton" text="Manage Shows" />
         <ui:Button name="calendarButton" text="Calendar" />
         <ui:Button name="historyButton" text="History" />
         <ui:Button name="rivalriesButton" text="Rivalries" />
@@ -34,6 +34,7 @@
     <!-- ===== CALENDAR PANEL ===== -->
     <ui:VisualElement name="calendarPanel" class="hidden">
       <ui:Label text="Calendar" class="section-title" />
+      <ui:Label text="Plan and navigate shows by date." class="label" />
       <ui:VisualElement class="calendar-header">
         <ui:Button name="prevMonthButton" text="&lt;" />
         <ui:Label name="monthLabel" text="Month 0000" class="calendar-month-label" />
@@ -322,6 +323,7 @@
     <!-- ===== SHOWS PANEL ===== -->
     <ui:VisualElement name="showsPanel" class="hidden">
       <ui:Label text="Shows &amp; Events" class="section-title" />
+      <ui:Label text="Bulk edit shows and details." class="label" />
       <ui:VisualElement class="shows-layout">
         <ui:ScrollView name="showsList" class="list" />
 

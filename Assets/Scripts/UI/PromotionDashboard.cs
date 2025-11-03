@@ -622,7 +622,7 @@ public class PromotionDashboard : MonoBehaviour
         // Default panel and status
         SetActivePanel(promotionInfoPanel ?? root);
         if (statusLabel != null)
-            statusLabel.text = currentPromotion != null ? $"Loaded: {currentPromotion.promotionName}" : "Ready.";
+            statusLabel.text = "Ready.";
         // Populate promotion info labels
         UpdatePromotionInfoUI();
     }
