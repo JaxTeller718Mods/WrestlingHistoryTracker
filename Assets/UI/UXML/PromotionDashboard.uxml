@@ -17,9 +17,84 @@
         <ui:Button name="stablesButton" text="Stables" />
         <ui:Button name="tagTeamsButton" text="Tag Teams" />
         <ui:Button name="showsButton" text="Shows" />
+        <ui:Button name="calendarButton" text="Calendar" />
         <ui:Button name="historyButton" text="History" />
         <ui:Button name="rankingsButton" text="Rankings" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== CALENDAR PANEL ===== -->
+    <ui:VisualElement name="calendarPanel" class="hidden">
+      <ui:Label text="Calendar" class="section-title" />
+      <ui:VisualElement class="calendar-header">
+        <ui:Button name="prevMonthButton" text="&lt;" />
+        <ui:Label name="monthLabel" text="Month 0000" class="calendar-month-label" />
+        <ui:Button name="nextMonthButton" text="&gt;" />
+        <ui:Button name="todayButton" text="Today" />
+      </ui:VisualElement>
+      <ui:VisualElement class="calendar-layout">
+        <ui:VisualElement name="calendarGrid" class="calendar-grid" />
+        <ui:VisualElement class="calendar-side">
+          <ui:Label name="selectedDateLabel" text="Select a date" class="subsection-title" />
+          <ui:ScrollView name="dayShowsList" class="list" />
+          <ui:VisualElement class="row">
+            <ui:Button name="createShowButton" text="Create Show on Date" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== CARD BUILDER PANEL ===== -->
+    <ui:VisualElement name="cardBuilderPanel" class="hidden">
+      <ui:Label text="Card Builder" class="section-title" />
+      <ui:VisualElement class="card-builder">
+        <ui:VisualElement class="cb-meta">
+          <ui:TextField name="cbShowNameField" label="Show Name" />
+          <ui:TextField name="cbShowDateField" label="Date (yyyy-MM-dd)" />
+          <ui:TextField name="cbShowVenueField" label="Venue" />
+          <ui:TextField name="cbShowCityField" label="City" />
+          <ui:IntegerField name="cbShowAttendanceField" label="Attendance" />
+          <ui:FloatField name="cbShowRatingField" label="Rating" />
+          <ui:VisualElement class="row">
+            <ui:DropdownField name="cbTemplateDropdown" label="Template" />
+            <ui:Button name="cbApplyTemplateButton" text="Apply Template" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="cb-center">
+          <ui:Label text="Card Entries" class="subsection-title" />
+          <ui:VisualElement class="row">
+            <ui:Button name="cbAddMatchButton" text="Add Match" />
+            <ui:Button name="cbAddSegmentButton" text="Add Segment" />
+          </ui:VisualElement>
+          <ui:ScrollView name="cbEntryListScroll" class="list" />
+        </ui:VisualElement>
+        <ui:VisualElement class="cb-props">
+          <ui:Label text="Entry Properties" class="subsection-title" />
+          <ui:VisualElement name="cbNoSelectionHint">
+            <ui:Label text="Select an entry to edit" />
+          </ui:VisualElement>
+          <ui:VisualElement name="cbMatchEditor" class="hidden">
+            <ui:TextField name="cbMatchNameField" label="Match Name" />
+            <ui:DropdownField name="cbMatchTypeDropdown" label="Match Type" />
+            <ui:DropdownField name="cbWrestlerADropdown" label="Wrestler A" />
+            <ui:DropdownField name="cbWrestlerBDropdown" label="Wrestler B" />
+            <ui:DropdownField name="cbWrestlerCDropdown" label="Wrestler C (opt)" />
+            <ui:DropdownField name="cbWrestlerDDropdown" label="Wrestler D (opt)" />
+            <ui:Toggle name="cbIsTitleMatchToggle" label="Title Match" />
+            <ui:DropdownField name="cbTitleDropdown" label="Pick Title" />
+            <ui:DropdownField name="cbWinnerDropdown" label="Pick Winner" />
+            <ui:TextField name="cbMatchNotesField" label="Notes" multiline="true" />
+          </ui:VisualElement>
+          <ui:VisualElement name="cbSegmentEditor" class="hidden">
+            <ui:TextField name="cbSegmentNameField" label="Segment Label" />
+            <ui:TextField name="cbSegmentTextField" label="Text" multiline="true" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+      <ui:VisualElement class="row">
+        <ui:Button name="cbSaveShowButton" text="Save Show" />
+        <ui:Button name="cbCancelShowButton" text="Cancel" />
       </ui:VisualElement>
     </ui:VisualElement>
 

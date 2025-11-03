@@ -15,10 +15,10 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, historyButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rankingsButton, returnButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, historyPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rankingsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
@@ -36,6 +36,10 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView wrestlerListScroll, showsListScroll, historyShowsListScroll, rankingsListScroll;
     private ListView wrestlerListView, showsListView, historyShowsListView, rankingsListView;
     private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton, rankingsStableButton;
+
+    // Calendar & Card Builder
+    private CalendarView calendarView;
+    private CardBuilderView cardBuilderView;
     private WrestlerCollection wrestlerCollection;
     // Wrestler UI
     private VisualElement wrestlerDetails, wrestlerAddPanel;
@@ -161,6 +165,7 @@ public class PromotionDashboard : MonoBehaviour
         stablesButton = root.Q<Button>("stablesButton");
         tagTeamsButton = root.Q<Button>("tagTeamsButton");
         showsButton = root.Q<Button>("showsButton");
+        calendarButton = root.Q<Button>("calendarButton");
         historyButton = root.Q<Button>("historyButton");
         rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
@@ -174,6 +179,8 @@ public class PromotionDashboard : MonoBehaviour
         stablesPanel = root.Q<VisualElement>("stablesPanel");
         tagTeamsPanel = root.Q<VisualElement>("tagTeamsPanel");
         showsPanel = root.Q<VisualElement>("showsPanel");
+        calendarPanel = root.Q<VisualElement>("calendarPanel");
+        cardBuilderPanel = root.Q<VisualElement>("cardBuilderPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
         historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
         historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
@@ -369,6 +376,8 @@ public class PromotionDashboard : MonoBehaviour
         RegisterMainPanel(stablesPanel);
         RegisterMainPanel(tagTeamsPanel);
         RegisterMainPanel(showsPanel);
+        RegisterMainPanel(calendarPanel);
+        RegisterMainPanel(cardBuilderPanel);
         RegisterMainPanel(historyPanel);
         RegisterMainPanel(rankingsPanel);
 
@@ -378,6 +387,7 @@ public class PromotionDashboard : MonoBehaviour
         if (titlesButton != null) titlesButton.clicked += ShowTitlesPanel;
         if (tagTeamsButton != null) tagTeamsButton.clicked += ShowTagTeamsPanel;
         if (showsButton != null) showsButton.clicked += ShowShowsPanel;
+        if (calendarButton != null) calendarButton.clicked += ShowCalendarPanel;
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
         if (stablesButton != null) stablesButton.clicked += ShowStablesPanel;
@@ -412,6 +422,22 @@ public class PromotionDashboard : MonoBehaviour
         if (saveTitleButton != null) saveTitleButton.clicked += OnSaveSelectedTitle;
         if (deleteTitleButton != null) deleteTitleButton.clicked += OnDeleteSelectedTitle;
         if (cancelTitleButton != null) cancelTitleButton.clicked += OnCancelEditTitle;
+
+        // Initialize Calendar & Card Builder views
+        if (calendarPanel != null)
+        {
+            calendarView = new CalendarView();
+            calendarView.Initialize(calendarPanel, () => currentPromotion);
+            calendarView.CreateShowRequested += OnCreateShowFromCalendar;
+            calendarView.EditShowRequested += OnEditShowFromCalendar;
+        }
+        if (cardBuilderPanel != null)
+        {
+            cardBuilderView = new CardBuilderView();
+            cardBuilderView.Initialize(cardBuilderPanel, () => currentPromotion);
+            cardBuilderView.Saved += OnCardBuilderSaved;
+            cardBuilderView.Canceled += () => SetActivePanel(calendarPanel);
+        }
         // Tag Teams handlers
         if (addTeamButton != null) addTeamButton.clicked += OnAddTeam;
         if (saveTeamsButton != null) saveTeamsButton.clicked += OnSaveTeams;
@@ -677,8 +703,50 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(tagTeamsPanel ?? titlesPanel ?? root);
     }
     private void ShowShowsPanel() => SetActivePanel(showsPanel);
+    private void ShowCalendarPanel()
+    {
+        calendarView?.Refresh();
+        SetActivePanel(calendarPanel);
+    }
     private void ShowHistoryPanel() => SetActivePanel(historyPanel);
     private void ShowRankingsPanel() => SetActivePanel(rankingsPanel);
+
+    private void OnCreateShowFromCalendar(DateTime date)
+    {
+        if (cardBuilderView == null) return;
+        cardBuilderView.BeginNew(date);
+        SetActivePanel(cardBuilderPanel);
+    }
+
+    private void OnEditShowFromCalendar(ShowData show)
+    {
+        if (cardBuilderView == null) return;
+        cardBuilderView.BeginEdit(show);
+        SetActivePanel(cardBuilderPanel);
+    }
+
+    private void OnCardBuilderSaved(ShowData show, string prevName, string prevDate)
+    {
+        if (currentPromotion == null) return;
+        // Upsert show into promotion
+        currentPromotion.shows ??= new List<ShowData>();
+        var existing = currentPromotion.shows.FirstOrDefault(s => s == show || (s.showName == prevName && s.date == prevDate));
+        if (existing == null)
+        {
+            // match by unique name+date if possible
+            existing = currentPromotion.shows.FirstOrDefault(s => s.showName == show.showName && s.date == show.date);
+        }
+        if (existing == null)
+        {
+            currentPromotion.shows.Add(show);
+        }
+        // Save promotion and update histories
+        DataManager.SavePromotion(currentPromotion);
+        TitleHistoryManager.UpdateShowResults(currentPromotion, show, prevName, prevDate);
+        // Refresh calendar
+        calendarView?.Refresh();
+        SetActivePanel(calendarPanel);
+    }
 
     // ----- Virtualized List helpers -----
     private void EnsureWrestlerListView()
