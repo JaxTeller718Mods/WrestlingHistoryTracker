@@ -18,6 +18,7 @@ public class MatchData
     public bool isTitleMatch;
     public string titleName;
     public string winner;
+    public string winnerTeamId; // if winner is a tag team, prefer this id
     public string notes;
 
     // New: stable ID references (preferred for logic)

@@ -83,6 +83,7 @@ public class PromotionDashboard : MonoBehaviour
     private Button addRivalryButton, saveRivalriesButton, saveRivalryButton, deleteRivalryButton, cancelRivalryButton, addRivalryEventButton, openLinkedShowButton;
     private RivalryCollection rivalryCollection;
     private int selectedRivalryIndex = -1;
+    private Dictionary<string, string> rivalryEntryMap = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
     // Tournaments UI
     private ScrollView tournamentListScroll;
     private ListView tournamentListView;
@@ -907,9 +908,10 @@ public class PromotionDashboard : MonoBehaviour
         if (string.IsNullOrEmpty(rivalryEventShowDropdown.value)) rivalryEventShowDropdown.value = choices[0];
     }
 
-    private void PopulateRivalryEventEntryChoices()
+        private void PopulateRivalryEventEntryChoices()
     {
         if (rivalryEventEntryDropdown == null) return;
+        rivalryEntryMap = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
         var entries = new List<string>();
         var show = FindShowFromChoice(rivalryEventShowDropdown?.value);
         if (show != null)
@@ -918,16 +920,18 @@ public class PromotionDashboard : MonoBehaviour
             {
                 if (!string.IsNullOrEmpty(m?.id))
                 {
-                    var name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : $"{m.matchType}";
-                    entries.Add($"M:{m.id} • Match: {name}");
+                    var display = BuildMatchDisplayLabel(m);
+                    entries.Add(display);
+                    rivalryEntryMap[display] = $"M:{m.id}";
                 }
             }
             foreach (var sg in show.segments ?? new List<SegmentData>())
             {
                 if (!string.IsNullOrEmpty(sg?.id))
                 {
-                    var name = !string.IsNullOrEmpty(sg.name) ? sg.name : "Segment";
-                    entries.Add($"S:{sg.id} • Segment: {name}");
+                    var display = $"Segment: {(!string.IsNullOrEmpty(sg.name) ? sg.name : "(unnamed)")}";
+                    entries.Add(display);
+                    rivalryEntryMap[display] = $"S:{sg.id}";
                 }
             }
         }
@@ -978,8 +982,8 @@ public class PromotionDashboard : MonoBehaviour
         foreach (var e in r.events ?? new List<RivalryEvent>())
         {
             var btn = new Button(() => OpenLinkedShowFromEvent(e));
-            string showTag = string.IsNullOrEmpty(e.showId) ? string.Empty : $" • Show: {e.showId}";
-            btn.text = $"{e.date} • {e.eventType} • {e.outcome}{showTag}";
+            string showTag = string.IsNullOrEmpty(e.showId) ? string.Empty : $" • Show: {((currentPromotion?.shows ?? new List<ShowData>()).FirstOrDefault(s => string.Equals(s?.id, e.showId, StringComparison.OrdinalIgnoreCase))?.showName ?? e.showId)}";
+            btn.text = $"{e.date} â€¢ {e.eventType} â€¢ {e.outcome}{showTag}";
             btn.AddToClassList("list-entry");
             rivalryEventsList.Add(btn);
         }
@@ -999,7 +1003,7 @@ public class PromotionDashboard : MonoBehaviour
         int idx = -1;
         for (int i = 0; i < shows.Count; i++)
         {
-            if (string.Equals(shows[i]?.date ?? string.Empty, ev.showId, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
+            if (string.Equals(shows[i]?.id ?? string.Empty, ev.showId, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
         }
         if (idx >= 0) SelectShow(idx);
         else if (statusLabel != null) statusLabel.text = "Linked show not found.";
@@ -1147,19 +1151,14 @@ public class PromotionDashboard : MonoBehaviour
         };
         // Link to selected show and entry if available
         var selShow = FindShowFromChoice(rivalryEventShowDropdown?.value);
-        if (selShow != null) ev.showId = selShow.date; // using date as show identifier
-        var entry = rivalryEventEntryDropdown?.value ?? string.Empty;
-        if (entry.StartsWith("M:", StringComparison.OrdinalIgnoreCase))
+        if (selShow != null) { if (string.IsNullOrEmpty(selShow.id)) selShow.id = Guid.NewGuid().ToString("N"); ev.showId = selShow.id; }
+        var display = rivalryEventEntryDropdown?.value ?? string.Empty;
+        string token = null;
+        if (!string.IsNullOrEmpty(display) && rivalryEntryMap != null) rivalryEntryMap.TryGetValue(display, out token);
+        if (!string.IsNullOrEmpty(token))
         {
-            var idPart = entry.Substring(2);
-            var space = idPart.IndexOf(' ');
-            ev.matchId = space > 0 ? idPart.Substring(0, space) : idPart;
-        }
-        else if (entry.StartsWith("S:", StringComparison.OrdinalIgnoreCase))
-        {
-            var idPart = entry.Substring(2);
-            var space = idPart.IndexOf(' ');
-            ev.segmentId = space > 0 ? idPart.Substring(0, space) : idPart;
+            if (token.StartsWith("M:", StringComparison.OrdinalIgnoreCase)) ev.matchId = token.Substring(2);
+            else if (token.StartsWith("S:", StringComparison.OrdinalIgnoreCase)) ev.segmentId = token.Substring(2);
         }
         r.events ??= new List<RivalryEvent>();
         r.events.Add(ev);
@@ -1193,7 +1192,7 @@ public class PromotionDashboard : MonoBehaviour
         int idx = -1;
         for (int i = 0; i < shows.Count; i++)
         {
-            if (string.Equals(shows[i]?.date ?? string.Empty, selShow.date, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
+            if (string.Equals(shows[i]?.id ?? string.Empty, selShow.id, StringComparison.OrdinalIgnoreCase)) { idx = i; break; }
         }
         if (idx >= 0) SelectShow(idx);
         else if (statusLabel != null) statusLabel.text = "Show not found in list.";
@@ -1948,7 +1947,7 @@ public class PromotionDashboard : MonoBehaviour
         int totalDefenses = summaries.Sum(s => s.defenses);
         var current = summaries.FirstOrDefault(s => string.IsNullOrEmpty(s.dateLost));
         if (titleStatsCurrentLabel != null)
-            titleStatsCurrentLabel.text = current != null ? $"Current champion: {current.championName} â€” {current.daysHeld} days" : "Current champion: (unknown)";
+            titleStatsCurrentLabel.text = current != null ? $"Current champion: {current.championName} Ã¢â‚¬â€ {current.daysHeld} days" : "Current champion: (unknown)";
         if (titleStatsSummaryLabel != null)
             titleStatsSummaryLabel.text = totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet.";
         var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
@@ -1956,23 +1955,23 @@ public class PromotionDashboard : MonoBehaviour
         if (titleStatsLongestLabel != null)
         {
             titleStatsLongestLabel.text = longest != null ?
-                $"Longest: {longest.championName} â€” {longest.daysHeld} days ({SpanText(longest)})" : string.Empty;
+                $"Longest: {longest.championName} Ã¢â‚¬â€ {longest.daysHeld} days ({SpanText(longest)})" : string.Empty;
         }
         if (titleStatsShortestLabel != null)
         {
             titleStatsShortestLabel.text = shortest != null ?
-                $"Shortest: {shortest.championName} â€” {shortest.daysHeld} days ({SpanText(shortest)})" : string.Empty;
+                $"Shortest: {shortest.championName} Ã¢â‚¬â€ {shortest.daysHeld} days ({SpanText(shortest)})" : string.Empty;
         }
         var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
         if (titleStatsMostDefensesLabel != null)
         {
             titleStatsMostDefensesLabel.text = mostDef != null ?
-                $"Most defenses in a reign: {mostDef.championName} â€” {mostDef.defenses}" : string.Empty;
+                $"Most defenses in a reign: {mostDef.championName} Ã¢â‚¬â€ {mostDef.defenses}" : string.Empty;
         }
 
         string SpanText(TitleReignSummary s)
         {
-            return string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} â€“ present" : $"{s.dateWon} â€“ {s.dateLost}";
+            return string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} Ã¢â‚¬â€œ present" : $"{s.dateWon} Ã¢â‚¬â€œ {s.dateLost}";
         }
     }
 
@@ -2154,11 +2153,11 @@ public class PromotionDashboard : MonoBehaviour
         var longest = summaries.OrderByDescending(s => s.daysHeld).FirstOrDefault();
         var shortest = summaries.OrderBy(s => s.daysHeld).FirstOrDefault();
         var mostDef = summaries.OrderByDescending(s => s.defenses).FirstOrDefault();
-        titleStatsList.Add(new Label(current != null ? $"Current champion: {current.championName} â€” {current.daysHeld} days" : "Current champion: (unknown)"));
+        titleStatsList.Add(new Label(current != null ? $"Current champion: {current.championName} Ã¢â‚¬â€ {current.daysHeld} days" : "Current champion: (unknown)"));
         titleStatsList.Add(new Label(totalReigns > 0 ? $"Reigns: {totalReigns}   Total defenses: {totalDefenses}" : "No stats yet."));
-        if (longest != null) titleStatsList.Add(new Label($"Longest: {longest.championName} â€” {longest.daysHeld} days ({(string.IsNullOrEmpty(longest.dateLost) ? $"{longest.dateWon} â€“ present" : $"{longest.dateWon} â€“ {longest.dateLost}")})"));
-        if (shortest != null) titleStatsList.Add(new Label($"Shortest: {shortest.championName} â€” {shortest.daysHeld} days ({(string.IsNullOrEmpty(shortest.dateLost) ? $"{shortest.dateWon} â€“ present" : $"{shortest.dateWon} â€“ {shortest.dateLost}")})"));
-        if (mostDef != null) titleStatsList.Add(new Label($"Most defenses in a reign: {mostDef.championName} â€” {mostDef.defenses}"));
+        if (longest != null) titleStatsList.Add(new Label($"Longest: {longest.championName} Ã¢â‚¬â€ {longest.daysHeld} days ({(string.IsNullOrEmpty(longest.dateLost) ? $"{longest.dateWon} Ã¢â‚¬â€œ present" : $"{longest.dateWon} Ã¢â‚¬â€œ {longest.dateLost}")})"));
+        if (shortest != null) titleStatsList.Add(new Label($"Shortest: {shortest.championName} Ã¢â‚¬â€ {shortest.daysHeld} days ({(string.IsNullOrEmpty(shortest.dateLost) ? $"{shortest.dateWon} Ã¢â‚¬â€œ present" : $"{shortest.dateWon} Ã¢â‚¬â€œ {shortest.dateLost}")})"));
+        if (mostDef != null) titleStatsList.Add(new Label($"Most defenses in a reign: {mostDef.championName} Ã¢â‚¬â€ {mostDef.defenses}"));
         titleStatsList.Add(new VisualElement() { style = { height = 8 } });
         // Reign summaries
         if (summaries.Count > 0)
@@ -2168,7 +2167,7 @@ public class PromotionDashboard : MonoBehaviour
             {
                 var row = new VisualElement(); row.style.marginBottom = 6;
                 string span = string.IsNullOrEmpty(s.dateLost) ? $"{s.dateWon} - present" : $"{s.dateWon} - {s.dateLost}";
-                row.Add(new Label($"{s.championName} ({span}) â€¢ {s.daysHeld} days, {s.defenses} defenses"));
+                row.Add(new Label($"{s.championName} ({span}) Ã¢â‚¬Â¢ {s.daysHeld} days, {s.defenses} defenses"));
                 if (s.defenses > 0)
                 {
                     row.Add(new Label($"First defense: {s.firstDefenseDate}  Last defense: {s.lastDefenseDate}"));
@@ -2431,6 +2430,30 @@ public class PromotionDashboard : MonoBehaviour
         string GetId(string nm) { return (!string.IsNullOrEmpty(nm) && idByName.TryGetValue(nm.Trim(), out var v)) ? v : null; }
         string GetTitleId(string nm) { return (!string.IsNullOrEmpty(nm) && titleIdByName.TryGetValue(nm.Trim(), out var v)) ? v : null; }
 
+        // Resolve potential team winners (ids)
+        string winnerTeamId = null;
+        tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+        string ResolveTeamId(string n1, string n2)
+        {
+            foreach (var t in tagTeamCollection?.teams ?? new List<TagTeamData>())
+            {
+                if (t == null) continue;
+                bool match = (StringEquals(t.memberA, n1) && StringEquals(t.memberB, n2)) || (StringEquals(t.memberA, n2) && StringEquals(t.memberB, n1));
+                if (match) return t.id;
+                if (!string.IsNullOrEmpty(t.teamName) && (StringEquals(t.teamName, winner))) return t.id;
+            }
+            return null;
+        }
+        if (!string.IsNullOrEmpty(winner) && isTagType && !string.IsNullOrEmpty(A) && !string.IsNullOrEmpty(B) && !string.IsNullOrEmpty(C) && !string.IsNullOrEmpty(D))
+        {
+            var leftId = ResolveTeamId(A, B);
+            var rightId = ResolveTeamId(C, D);
+            if (!string.IsNullOrEmpty(leftId) && (StringEquals(winner, A) || StringEquals(winner, B) || (!string.IsNullOrEmpty(tagTeamCollection?.teams?.FirstOrDefault(t=>t.id==leftId)?.teamName) && StringEquals(tagTeamCollection.teams.First(t=>t.id==leftId).teamName, winner))))
+                winnerTeamId = leftId;
+            else if (!string.IsNullOrEmpty(rightId) && (StringEquals(winner, C) || StringEquals(winner, D) || (!string.IsNullOrEmpty(tagTeamCollection?.teams?.FirstOrDefault(t=>t.id==rightId)?.teamName) && StringEquals(tagTeamCollection.teams.First(t=>t.id==rightId).teamName, winner))))
+                winnerTeamId = rightId;
+        }
+
         var m = new MatchData
         {
             id = System.Guid.NewGuid().ToString("N"),
@@ -2448,6 +2471,7 @@ public class PromotionDashboard : MonoBehaviour
             wrestlerCId = GetId(C),
             wrestlerDId = GetId(D),
             winnerId = GetId(winner),
+            winnerTeamId = winnerTeamId,
             titleId = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? GetTitleId(titleDropdown.value) : null
         };
         var show = currentPromotion.shows[selectedShowIndex];
@@ -2902,6 +2926,7 @@ public class PromotionDashboard : MonoBehaviour
         foreach (var show in currentPromotion.shows)
         {
             if (show == null) continue;
+            if (string.IsNullOrEmpty(show.id)) { show.id = System.Guid.NewGuid().ToString("N"); changed = true; }
             // Assign IDs where missing
             if (show.matches != null)
                 foreach (var m in show.matches)
@@ -3710,6 +3735,16 @@ public class PromotionDashboard : MonoBehaviour
         return parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
     }
 
+    private string BuildMatchDisplayLabel(MatchData m)
+    {
+        if (m == null) return "Match: (invalid)";
+        string name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : string.Empty;
+        string vs = BuildVsLine(m);
+        if (!string.IsNullOrEmpty(name)) return $"Match: {name}";
+        if (!string.IsNullOrEmpty(vs)) return $"Match: {vs}";
+        return $"Match: {(string.IsNullOrEmpty(m.matchType) ? "Match" : m.matchType)}";
+    }
+
     private string TeamDisplay(string a, string b)
     {
         if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
@@ -3724,6 +3759,16 @@ public class PromotionDashboard : MonoBehaviour
         return $"{a} & {b}";
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -758,3 +758,9 @@ Label {
 .cb-props { width: 360px; min-width: 320px; flex-direction: column; }
 .cb-props { overflow: visible; }
 .card-entry-button { justify-content: flex-start; }
+
+/* Nudge Rivalries panel slightly left to use sidebar gutter */
+#rivalriesPanel {
+    margin-left: -8px;
+}
+

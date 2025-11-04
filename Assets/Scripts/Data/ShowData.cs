@@ -5,6 +5,7 @@ using UnityEngine;
 [Serializable]
 public class ShowData
 {
+    public string id;         // stable identifier for cross-linking (rivalries, etc.)
     public string showName;
     public string date;
     public string venue;      // arena or building
@@ -19,6 +20,7 @@ public class ShowData
 
     public ShowData(string name, string date)
     {
+        id = Guid.NewGuid().ToString("N");
         showName = name;
         this.date = date;
     }
