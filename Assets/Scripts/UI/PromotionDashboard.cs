@@ -1812,6 +1812,8 @@ public class PromotionDashboard : MonoBehaviour
         if (teamMemberADropdown == null || teamMemberBDropdown == null) return;
         wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
         var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
+        names.Add("Draw");
+        names.Add("No Contest");
         if (names.Count == 0) names.Add(string.Empty);
         teamMemberADropdown.choices = names; teamMemberADropdown.value = names[0];
         teamMemberBDropdown.choices = names; teamMemberBDropdown.value = names[0];
@@ -2349,6 +2351,8 @@ public class PromotionDashboard : MonoBehaviour
         EnsureDefaultMatchTypes();
         EnsureRosterAndTitlesLoaded();
         var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
+        names.Add("Draw");
+        names.Add("No Contest");
         if (names.Count == 0) names.Add(string.Empty);
         SetChoices(wrestlerADropdown, names);
         SetChoices(wrestlerBDropdown, names);
@@ -2373,6 +2377,8 @@ public class PromotionDashboard : MonoBehaviour
         RegisterWinnerAutoUpdate(wrestlerBDropdown);
         RegisterWinnerAutoUpdate(wrestlerCDropdown);
         RegisterWinnerAutoUpdate(wrestlerDDropdown);
+        if (matchTypeDropdown != null)
+            matchTypeDropdown.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
         if (isTitleMatchToggle != null)
         {
             isTitleMatchToggle.RegisterValueChangedCallback(evt =>
@@ -2411,7 +2417,7 @@ public class PromotionDashboard : MonoBehaviour
         if (!string.IsNullOrEmpty(D)) have.Add(D);
         if (have.Count < 2) { if (statusLabel != null) statusLabel.text = "Select at least two wrestlers."; return; }
         string type = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
-        string matchName = $"{type}: {string.Join(" vs ", have)}";
+        string matchName; bool isTagType = !string.IsNullOrEmpty(type) && type.IndexOf("tag", System.StringComparison.OrdinalIgnoreCase) >= 0; if (isTagType && !string.IsNullOrEmpty(A) && !string.IsNullOrEmpty(B) && !string.IsNullOrEmpty(C) && !string.IsNullOrEmpty(D)) matchName = $"{type}: {A} & {B} vs {C} & {D}"; else matchName = $"{type}: {string.Join(" vs ", have)}";
         string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
         // Build id maps
         EnsureRosterAndTitlesLoaded();
@@ -2496,10 +2502,27 @@ public class PromotionDashboard : MonoBehaviour
         if (winnerDropdown == null) return;
         var names = new List<string>();
         void add(string v) { if (!string.IsNullOrEmpty(v) && !names.Contains(v)) names.Add(v); }
-        add(wrestlerADropdown?.value);
-        add(wrestlerBDropdown?.value);
-        add(wrestlerCDropdown?.value);
-        add(wrestlerDDropdown?.value);
+        var a = wrestlerADropdown?.value;
+        var b = wrestlerBDropdown?.value;
+        var c = wrestlerCDropdown?.value;
+        var d = wrestlerDDropdown?.value;
+        add(a);
+        add(b);
+        add(c);
+        add(d);
+
+        // If Tag Team match type and both sides have two members, include team names as winner options
+        var typeVal = matchTypeDropdown != null ? (matchTypeDropdown.value ?? string.Empty) : string.Empty;
+        bool isTag = typeVal.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (isTag && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) && !string.IsNullOrWhiteSpace(d))
+        {
+            var teamLeft = TeamDisplay(a, b);
+            var teamRight = TeamDisplay(c, d);
+            add(teamLeft);
+            add(teamRight);
+        }
+        names.Add("Draw");
+        names.Add("No Contest");
         if (names.Count == 0) names.Add(string.Empty);
         SetChoices(winnerDropdown, names);
     }
@@ -2507,8 +2530,10 @@ public class PromotionDashboard : MonoBehaviour
     private void SetChoices(DropdownField dropdown, List<string> choices)
     {
         if (dropdown == null) return;
+        var prev = dropdown.value;
         dropdown.choices = choices ?? new List<string>();
-        dropdown.value = dropdown.choices.Count > 0 ? dropdown.choices[0] : string.Empty;
+        if (!string.IsNullOrEmpty(prev) && dropdown.choices.Contains(prev)) dropdown.value = prev;
+        else dropdown.value = dropdown.choices.Count > 0 ? dropdown.choices[0] : string.Empty;
     }
 
     private void EnsureRosterAndTitlesLoaded()
@@ -2840,7 +2865,7 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(showsPanel);
     }
 
-    private static string GetDisplayTextForToken(ShowData show, string token)
+    private string GetDisplayTextForToken(ShowData show, string token)
     {
         if (show == null || string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') return string.Empty;
         char kind = token[0]; string key = token.Substring(2);
@@ -2851,12 +2876,7 @@ public class PromotionDashboard : MonoBehaviour
         {
             if (show.matches == null || idx < 0 || idx >= show.matches.Count) return string.Empty;
             var m = show.matches[idx];
-            var parts = new List<string>();
-            if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
-            if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
-            if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
-            if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-            string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+            string vsLine = BuildVsLine(m);
             return string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}";
         }
         else if (kind == 'S')
@@ -2956,12 +2976,7 @@ public class PromotionDashboard : MonoBehaviour
                     var m = show.matches[idx];
                     var entry = new VisualElement();
                     entry.style.marginBottom = 6;
-                    var parts = new List<string>();
-                    if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
-                    if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
-                    if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
-                    if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+                    string vsLine = BuildVsLine(m);
                     entry.Add(new Label(m.matchName));
                     if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
@@ -2991,12 +3006,7 @@ public class PromotionDashboard : MonoBehaviour
                 foreach (var m in show.matches)
                 {
                     var entry = new VisualElement(); entry.style.marginBottom = 6;
-                    var parts = new List<string>();
-                    if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
-                    if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
-                    if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
-                    if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-                    string vsLine = parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+                    string vsLine = BuildVsLine(m);
                     entry.Add(new Label(m.matchName)); if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
@@ -3500,13 +3510,15 @@ public class PromotionDashboard : MonoBehaviour
             return true;
         }
 
-        string TeamOfWinner(string winnerName)
+                string TeamOfWinner(string winnerName)
         {
             if (tagTeamCollection?.teams == null) return null;
             foreach (var t in tagTeamCollection.teams)
             {
                 if (t == null || string.IsNullOrEmpty(t.teamName)) continue;
-                if (StringEquals(t.memberA, winnerName) || StringEquals(t.memberB, winnerName)) return t.teamName;
+                // Winner may be a team name or an individual member
+                if (StringEquals(t.teamName, winnerName) || StringEquals(t.memberA, winnerName) || StringEquals(t.memberB, winnerName))
+                    return t.teamName;
             }
             return null;
         }
@@ -3674,13 +3686,44 @@ public class PromotionDashboard : MonoBehaviour
         var end = start.AddDays(6);
         return (start, end);
     }
+
+    // Build a readable vs-line for matches, using tag team names when possible
+    private string BuildVsLine(MatchData m)
+    {
+        if (m == null) return string.Empty;
+        bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.IndexOf("tag", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                     (!string.IsNullOrEmpty(m.wrestlerA) && !string.IsNullOrEmpty(m.wrestlerB) && !string.IsNullOrEmpty(m.wrestlerC) && !string.IsNullOrEmpty(m.wrestlerD));
+        if (isTag)
+        {
+            if (!string.IsNullOrEmpty(m.wrestlerA) && !string.IsNullOrEmpty(m.wrestlerB) && !string.IsNullOrEmpty(m.wrestlerC) && !string.IsNullOrEmpty(m.wrestlerD))
+            {
+                var left = TeamDisplay(m.wrestlerA, m.wrestlerB);
+                var right = TeamDisplay(m.wrestlerC, m.wrestlerD);
+                return $"{left} vs {right}";
+            }
+        }
+        var parts = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
+        if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
+        if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
+        if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
+        return parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+    }
+
+    private string TeamDisplay(string a, string b)
+    {
+        if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
+            return (a ?? string.Empty) + (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) ? string.Empty : " & ") + (b ?? string.Empty);
+        tagTeamCollection ??= (currentPromotion != null ? DataManager.LoadTagTeams(currentPromotion.promotionName) : null);
+        foreach (var t in tagTeamCollection?.teams ?? new List<TagTeamData>())
+        {
+            if (t == null) continue;
+            bool match = (StringEquals(t.memberA, a) && StringEquals(t.memberB, b)) || (StringEquals(t.memberA, b) && StringEquals(t.memberB, a));
+            if (match && !string.IsNullOrWhiteSpace(t.teamName)) return t.teamName;
+        }
+        return $"{a} & {b}";
+    }
 }
-
-
-
-
-
-
 
 
 
