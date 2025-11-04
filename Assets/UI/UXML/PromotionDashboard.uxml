@@ -111,10 +111,17 @@
       <ui:Label text="Rankings" class="section-title" />
       <ui:VisualElement class="rankings-layout">
         <ui:VisualElement name="rankingsNav" class="rankings-nav">
-          <ui:Button name="rankingsMenButton" text="Men's" />
-          <ui:Button name="rankingsWomenButton" text="Women's" />
-          <ui:Button name="rankingsTagButton" text="Tag Team" />
-          <ui:Button name="rankingsStableButton" text="Stables" />
+          <ui:DropdownField name="rankingsTypeDropdown" label="Type" />
+          <ui:DropdownField name="rankingsGenderDropdown" label="Gender" />
+          <ui:DropdownField name="rankingsDivisionDropdown" label="Division" />
+          <ui:DropdownField name="rankingsWeekDropdown" label="Week Snapshot" />
+          <ui:VisualElement class="row">
+            <ui:TextField name="rankingsDateField" label="As Of (MM/DD/YYYY)" />
+            <ui:Button name="rankingsPrevWeekButton" text="&lt;" />
+            <ui:Button name="rankingsNextWeekButton" text="&gt;" />
+          </ui:VisualElement>
+          <ui:Button name="computeRankingsButton" text="Compute" />
+          <ui:Button name="saveSnapshotButton" text="Save Snapshot" />
         </ui:VisualElement>
         <ui:ScrollView name="rankingsList" class="list rankings-list" />
       </ui:VisualElement>

@@ -643,15 +643,26 @@ Label {
 .rankings-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
 .rankings-nav {
-    width: 220px;
+    width: 440px;
     display: flex;
     flex-direction: column;
     /* emulate gap */
 }
 .rankings-nav > * { margin-bottom: 8px; }
 
+/* Widen rankings dropdowns for better readability */
+#rankingsTypeDropdown,
+#rankingsGenderDropdown,
+#rankingsDivisionDropdown,
+#rankingsWeekDropdown {
+    width: 400px;
+}
+
 .rankings-list {
-    flex-grow: 1;
+    flex-grow: 0;
+    margin-left: 16px; /* spacing from controls column */
+    width: 640px;      /* keep rankings column reasonably narrow */
+    height: auto;
 }
 
 
@@ -660,14 +671,15 @@ Label {
   margin-bottom: 10px;
   padding-top: 8px;
   padding-bottom: 8px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
   min-height: 30px;
 }
 
 /* New virtualized lists */
 #rankingsListView {
-  width: 100%;
+  width: 640px;
+  min-height: 260px;
 }
 #matchHistoryListView,
 #titleLineageListView {
@@ -677,6 +689,13 @@ Label {
 /* Ensure long text wraps inside list entries */
 .list-entry Label {
   white-space: normal;
+}
+
+/* Make ranking entries more compact and truncate long names gracefully */
+.list-entry .unity-button__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== CALENDAR ===== */

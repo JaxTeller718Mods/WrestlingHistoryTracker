@@ -21,6 +21,7 @@ public static class DataManager
     private static readonly string rivalryFolder    = Path.Combine(baseFolder, "Rivalries");
     private static readonly string historyFolder   = Path.Combine(baseFolder, "Histories");
     private static readonly string exportFolder    = Path.Combine(baseFolder, "Exports");
+    private static readonly string rankingsFolder  = Path.Combine(baseFolder, "Rankings");
 
     // ------------------------
     // PROMOTION MANAGEMENT (includes shows)
@@ -204,6 +205,57 @@ public static class DataManager
         {
             Debug.LogError($"Import failed: {ex.Message}");
             return false;
+        }
+    }
+
+    // ------------------------
+    // RANKINGS MANAGEMENT (snapshots per week)
+    // ------------------------
+    public static void SaveRankings(RankingStore store)
+    {
+        if (store == null || string.IsNullOrEmpty(store.promotionName))
+        {
+            Debug.LogError("Cannot save rankings: store or promotionName is null.");
+            return;
+        }
+        try
+        {
+            if (!Directory.Exists(rankingsFolder)) Directory.CreateDirectory(rankingsFolder);
+            string safe = MakeSafeFileName(store.promotionName);
+            string path = Path.Combine(rankingsFolder, safe + "_Rankings.json");
+            string json = JsonUtility.ToJson(store, true);
+            File.WriteAllText(path, json);
+            Debug.Log($"Rankings saved for {store.promotionName}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error saving rankings: {ex.Message}");
+        }
+    }
+
+    public static RankingStore LoadRankings(string promotionName)
+    {
+        if (string.IsNullOrEmpty(promotionName)) return null;
+        try
+        {
+            string safe = MakeSafeFileName(promotionName);
+            string path = Path.Combine(rankingsFolder, safe + "_Rankings.json");
+            if (!File.Exists(path))
+            {
+                return new RankingStore { promotionName = promotionName, config = new RankingConfig { promotionName = promotionName } };
+            }
+            string json = File.ReadAllText(path);
+            var store = JsonUtility.FromJson<RankingStore>(json) ?? new RankingStore();
+            if (string.IsNullOrEmpty(store.promotionName)) store.promotionName = promotionName;
+            if (store.config == null) store.config = new RankingConfig { promotionName = promotionName };
+            if (string.IsNullOrEmpty(store.config.promotionName)) store.config.promotionName = promotionName;
+            store.snapshots ??= new System.Collections.Generic.List<RankingSnapshot>();
+            return store;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error loading rankings: {ex.Message}");
+            return new RankingStore { promotionName = promotionName, config = new RankingConfig { promotionName = promotionName } };
         }
     }
 

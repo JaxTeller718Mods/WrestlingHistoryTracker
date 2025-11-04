@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,7 +43,13 @@ public class PromotionDashboard : MonoBehaviour
     // Virtualized lists (Step 1)
     private ScrollView wrestlerListScroll, showsListScroll, historyShowsListScroll, rankingsListScroll;
     private ListView wrestlerListView, showsListView, historyShowsListView, rankingsListView;
-    private Button rankingsMenButton, rankingsWomenButton, rankingsTagButton, rankingsStableButton;
+    
+    // Rankings 2.0 controls
+    private DropdownField rankingsTypeDropdown, rankingsGenderDropdown, rankingsDivisionDropdown, rankingsWeekDropdown;
+    private TextField rankingsDateField;
+    private Button computeRankingsButton, saveSnapshotButton, rankingsDatePickButton, rankingsPrevWeekButton, rankingsNextWeekButton;
+    private RankingStore rankingStore;
+    private List<RankingEntry> currentRankingResults;
 
     // Calendar & Card Builder
     private CalendarView calendarView;
@@ -304,10 +310,16 @@ public class PromotionDashboard : MonoBehaviour
         historyShowsListScroll = root.Q<ScrollView>("historyShowsList");
         rankingsListScroll = root.Q<ScrollView>("rankingsList");
         matchesView = root.Q<VisualElement>("matchesView");
-        rankingsMenButton = root.Q<Button>("rankingsMenButton");
-        rankingsWomenButton = root.Q<Button>("rankingsWomenButton");
-        rankingsTagButton = root.Q<Button>("rankingsTagButton");
-        rankingsStableButton = root.Q<Button>("rankingsStableButton");
+        
+        rankingsTypeDropdown = root.Q<DropdownField>("rankingsTypeDropdown");
+        rankingsGenderDropdown = root.Q<DropdownField>("rankingsGenderDropdown");
+        rankingsDivisionDropdown = root.Q<DropdownField>("rankingsDivisionDropdown");
+        rankingsWeekDropdown = root.Q<DropdownField>("rankingsWeekDropdown");
+        rankingsDateField = root.Q<TextField>("rankingsDateField");
+        computeRankingsButton = root.Q<Button>("computeRankingsButton");
+        saveSnapshotButton = root.Q<Button>("saveSnapshotButton");
+        rankingsPrevWeekButton = root.Q<Button>("rankingsPrevWeekButton");
+        rankingsNextWeekButton = root.Q<Button>("rankingsNextWeekButton");
         // Title edit/display widgets
         titleDetailsPanel = root.Q<VisualElement>("titleDetails");
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
@@ -461,10 +473,7 @@ public class PromotionDashboard : MonoBehaviour
         if (stablesButton != null) stablesButton.clicked += ShowStablesPanel;
         if (tournamentsButton != null) tournamentsButton.clicked += ShowTournamentsPanel;
         if (viewTournamentsButton != null) viewTournamentsButton.clicked += ShowTournamentManagePanel;
-        if (rankingsMenButton != null) rankingsMenButton.clicked += () => PopulateRankings(RankCategory.Men);
-        if (rankingsWomenButton != null) rankingsWomenButton.clicked += () => PopulateRankings(RankCategory.Women);
-        if (rankingsTagButton != null) rankingsTagButton.clicked += () => PopulateRankings(RankCategory.TagTeam);
-        if (rankingsStableButton != null) rankingsStableButton.clicked += () => PopulateRankings(RankCategory.Stable);
+        
         // Tournaments handlers
         if (addTournamentButton != null) addTournamentButton.clicked += OnAddTournament;
         if (saveTournamentsButton != null) saveTournamentsButton.clicked += OnSaveTournaments;
@@ -617,7 +626,9 @@ public class PromotionDashboard : MonoBehaviour
         RefreshStableList();
         RefreshShowList();
         PopulateHistoryShowsList();
-        PopulateRankings(RankCategory.Men);
+        // Rankings 2.0 setup
+        InitializeRankingsControls();
+        ComputeOverallRankings();
 
         // Default panel and status
         SetActivePanel(promotionInfoPanel ?? root);
@@ -2863,284 +2874,6 @@ public class PromotionDashboard : MonoBehaviour
         return string.Equals(a ?? string.Empty, b ?? string.Empty, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    private enum RankCategory { Men, Women, TagTeam, Stable }
-
-    private void EnsureRankingsListView()
-    {
-        if (rankingsListView != null) return;
-        var parent = rankingsListScroll != null ? rankingsListScroll.parent : rankingsPanel;
-        rankingsListView = new ListView
-        {
-            name = "rankingsListView",
-            selectionType = SelectionType.None,
-            fixedItemHeight = 36f
-        };
-        rankingsListView.style.flexGrow = 1;
-        rankingsListView.makeItem = () => { var b = new Button(); b.AddToClassList("list-entry"); return b; };
-        rankingsListView.bindItem = (ve, i) =>
-        {
-            var b = (Button)ve;
-            var items = rankingsListView.itemsSource as List<string>;
-            b.text = (items != null && i >= 0 && i < items.Count) ? items[i] : string.Empty;
-        };
-        parent?.Add(rankingsListView);
-        if (rankingsListScroll != null) rankingsListScroll.style.display = DisplayStyle.None;
-    }
-
-    private void PopulateRankings(RankCategory category)
-    {
-        if (rankingsListView == null || currentPromotion == null) return;
-
-        if (category == RankCategory.TagTeam)
-        {
-            PopulateTagTeamRankings();
-            return;
-        }
-        if (category == RankCategory.Stable)
-        {
-            PopulateStableRankings();
-            return;
-        }
-
-        // Singles (Men/Women)
-        var flagByName = new Dictionary<string, bool>(System.StringComparer.OrdinalIgnoreCase);
-        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
-        if (wrestlerCollection?.wrestlers != null)
-            foreach (var w in wrestlerCollection.wrestlers)
-                if (!string.IsNullOrEmpty(w.name)) flagByName[w.name] = w.isFemale;
-
-        var singles = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
-        // Build resolver for ID -> current name
-        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
-        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && nameById.TryGetValue(id, out var nm)) ? nm : fallback;
-
-        if (currentPromotion.shows != null)
-        {
-            foreach (var show in currentPromotion.shows)
-            {
-                if (show?.matches == null) continue;
-                foreach (var m in show.matches)
-                {
-                    // Consider only true singles matches for singles rankings
-                    var parts = new List<string>();
-                    void addPart(string id, string name) { var v = NameOf(id, name); if (!string.IsNullOrWhiteSpace(v)) parts.Add(v.Trim()); }
-                    addPart(m.wrestlerAId, m.wrestlerA);
-                    addPart(m.wrestlerBId, m.wrestlerB);
-                    addPart(m.wrestlerCId, m.wrestlerC);
-                    addPart(m.wrestlerDId, m.wrestlerD);
-
-                    // Identify tag matches either by type or by having 4 participants
-                    bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) ||
-                                 (parts.Count >= 4);
-
-                    // Only include matches that are strictly 1v1 and not tag
-                    if (isTag || parts.Count != 2) continue;
-                    string winner = NameOf(m.winnerId, m.winner);
-                    winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
-                    foreach (var p in parts)
-                    {
-                        flagByName.TryGetValue(p, out var isFemale);
-                        bool include = category == RankCategory.Women ? isFemale : !isFemale;
-                        if (!include) continue;
-                        if (!singles.ContainsKey(p)) singles[p] = (0, 0);
-                        var r = singles[p];
-                        if (!string.IsNullOrEmpty(winner) && string.Equals(p, winner, System.StringComparison.OrdinalIgnoreCase)) r.wins++; else if (!string.IsNullOrEmpty(winner)) r.losses++;
-                        singles[p] = r;
-                    }
-                }
-            }
-        }
-
-        var itemsSingles = singles
-            .OrderByDescending(e => e.Value.wins)
-            .ThenBy(e => e.Value.losses)
-            .ThenBy(e => e.Key)
-            .Select(e =>
-            {
-                int total = e.Value.wins + e.Value.losses;
-                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
-                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
-            })
-            .ToList();
-        if (itemsSingles.Count == 0) itemsSingles.Add("No results yet for this category.");
-        rankingsListView.itemsSource = itemsSingles;
-        rankingsListView.Rebuild();
-    }
-
-    private void PopulateTagTeamRankings()
-    {
-        var teams = DataManager.LoadTagTeams(currentPromotion.promotionName);
-        var teamByMembers = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase); // key: A|B -> teamName
-        foreach (var t in teams.teams ?? new List<TagTeamData>())
-        {
-            if (string.IsNullOrEmpty(t?.teamName) || string.IsNullOrEmpty(t.memberA) || string.IsNullOrEmpty(t.memberB)) continue;
-            string key = MakeTeamKey(t.memberA, t.memberB);
-            teamByMembers[key] = t.teamName;
-        }
-
-        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
-        // Name resolver for wrestler IDs
-        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
-        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
-        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && nameById.TryGetValue(id, out var nm)) ? nm : fallback;
-
-        foreach (var show in currentPromotion.shows ?? new List<ShowData>())
-        {
-            foreach (var m in show.matches ?? new List<MatchData>())
-            {
-                // Consider only tag matches (by type if set, else by 4 participants)
-                bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) ||
-                             (!string.IsNullOrWhiteSpace(m.wrestlerA) && !string.IsNullOrWhiteSpace(m.wrestlerB) && !string.IsNullOrWhiteSpace(m.wrestlerC) && !string.IsNullOrWhiteSpace(m.wrestlerD));
-                if (!isTag) continue;
-
-                string a = NameOf(m.wrestlerAId, m.wrestlerA);
-                string b = NameOf(m.wrestlerBId, m.wrestlerB);
-                string c = NameOf(m.wrestlerCId, m.wrestlerC);
-                string d = NameOf(m.wrestlerDId, m.wrestlerD);
-                string key1 = MakeTeamKey(a, b);
-                string key2 = MakeTeamKey(c, d);
-                bool hasTeam1 = teamByMembers.TryGetValue(key1, out var team1);
-                bool hasTeam2 = teamByMembers.TryGetValue(key2, out var team2);
-                if (!hasTeam1 && !hasTeam2) continue; // skip if neither side is a defined team
-
-                string winner = NameOf(m.winnerId, m.winner);
-                winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
-                // Determine which side won by winner membership
-                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, a) || StringEquals(winner, b));
-                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, c) || StringEquals(winner, d));
-
-                if (hasTeam1)
-                {
-                    if (!records.ContainsKey(team1)) records[team1] = (0, 0);
-                    var r = records[team1];
-                    if (side1Win) r.wins++; else if (side2Win) r.losses++;
-                    records[team1] = r;
-                }
-                if (hasTeam2)
-                {
-                    if (!records.ContainsKey(team2)) records[team2] = (0, 0);
-                    var r = records[team2];
-                    if (side2Win) r.wins++; else if (side1Win) r.losses++;
-                    records[team2] = r;
-                }
-            }
-        }
-
-        var items = records
-            .OrderByDescending(e => e.Value.wins)
-            .ThenBy(e => e.Value.losses)
-            .ThenBy(e => e.Key)
-            .Select(e =>
-            {
-                int total = e.Value.wins + e.Value.losses;
-                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
-                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
-            })
-            .ToList();
-        if (items.Count == 0) items.Add("No team results yet.");
-        rankingsListView.itemsSource = items;
-        rankingsListView.Rebuild();
-
-        static string MakeTeamKey(string a, string b)
-        {
-            string s1 = (a ?? string.Empty).Trim();
-            string s2 = (b ?? string.Empty).Trim();
-            if (string.Compare(s1, s2, System.StringComparison.OrdinalIgnoreCase) > 0) { var tmp = s1; s1 = s2; s2 = tmp; }
-            return $"{s1}|{s2}";
-        }
-    }
-
-    private void PopulateStableRankings()
-    {
-        // Load stables and map wrestlerId -> stableName
-        var stables = DataManager.LoadStables(currentPromotion.promotionName);
-        var nameById = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
-        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) nameById[w.id] = w.name;
-
-        var stableByMemberName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (var s in stables.stables ?? new List<StableData>())
-        {
-            foreach (var mid in s.memberIds ?? new List<string>())
-            {
-                if (!string.IsNullOrEmpty(mid) && nameById.TryGetValue(mid, out var nm))
-                    stableByMemberName[nm] = s.stableName;
-            }
-        }
-
-        string StableOf(params string[] names)
-        {
-            // If all provided names belong to same stable, return it; else null
-            string candidate = null;
-            foreach (var n in names)
-            {
-                if (string.IsNullOrWhiteSpace(n)) continue;
-                if (!stableByMemberName.TryGetValue(n, out var sname)) return null;
-                if (candidate == null) candidate = sname; else if (!StringEquals(candidate, sname)) return null;
-            }
-            return candidate;
-        }
-
-        // Compute records by stable for matches we can interpret as 2v2 (current data allows up to 4 participants)
-        var records = new Dictionary<string, (int wins, int losses)>(System.StringComparer.OrdinalIgnoreCase);
-
-        // Name resolver for IDs in matches
-        var idToName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-            if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) idToName[w.id] = w.name;
-        string NameOf(string id, string fallback) => (!string.IsNullOrEmpty(id) && idToName.TryGetValue(id, out var nm)) ? nm : fallback;
-
-        foreach (var show in currentPromotion.shows ?? new List<ShowData>())
-        {
-            foreach (var m in show.matches ?? new List<MatchData>())
-            {
-                // Treat only obvious team matches (tag/two-per-side) until participants array exists
-                var parts = new List<string>();
-                void addPart(string id, string name) { var v = NameOf(id, name); if (!string.IsNullOrWhiteSpace(v)) parts.Add(v.Trim()); }
-                addPart(m.wrestlerAId, m.wrestlerA);
-                addPart(m.wrestlerBId, m.wrestlerB);
-                addPart(m.wrestlerCId, m.wrestlerC);
-                addPart(m.wrestlerDId, m.wrestlerD);
-                if (parts.Count != 4) continue; // 2v2 only for now
-                string team1Stable = StableOf(parts[0], parts[1]);
-                string team2Stable = StableOf(parts[2], parts[3]);
-                if (string.IsNullOrEmpty(team1Stable) || string.IsNullOrEmpty(team2Stable)) continue; // require both sides be within a stable
-
-                string winner = NameOf(m.winnerId, m.winner);
-                winner = string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
-                bool side1Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, parts[0]) || StringEquals(winner, parts[1]));
-                bool side2Win = !string.IsNullOrEmpty(winner) && (StringEquals(winner, parts[2]) || StringEquals(winner, parts[3]));
-
-                if (!records.ContainsKey(team1Stable)) records[team1Stable] = (0, 0);
-                if (!records.ContainsKey(team2Stable)) records[team2Stable] = (0, 0);
-                var r1 = records[team1Stable]; var r2 = records[team2Stable];
-                if (side1Win) { r1.wins++; r2.losses++; }
-                else if (side2Win) { r2.wins++; r1.losses++; }
-                records[team1Stable] = r1; records[team2Stable] = r2;
-            }
-        }
-
-        var items = records
-            .OrderByDescending(e => e.Value.wins)
-            .ThenBy(e => e.Value.losses)
-            .ThenBy(e => e.Key)
-            .Select(e =>
-            {
-                int total = e.Value.wins + e.Value.losses;
-                string pct = total > 0 ? ((float)e.Value.wins / total).ToString("P0") : "0%";
-                return $"{e.Key} - {e.Value.wins}-{e.Value.losses} ({pct})";
-            })
-            .ToList();
-        if (items.Count == 0) items.Add("No stables results yet.");
-        rankingsListView.itemsSource = items;
-        rankingsListView.Rebuild();
-    }
-
     // ----- Step 2: Stable IDs + ordered history rendering -----
     private void EnsureStableIdsAndEntryOrder()
     {
@@ -3470,4 +3203,484 @@ public class PromotionDashboard : MonoBehaviour
             if (statusLabel != null) statusLabel.text = "Member removed.";
         }
     }
+
+    private void EnsureRankingsListView()
+    {
+        if (rankingsListView != null) return;
+        var parent = rankingsListScroll != null ? rankingsListScroll.parent : rankingsPanel;
+        rankingsListView = new ListView
+        {
+            name = "rankingsListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 36f
+        };
+        rankingsListView.style.flexGrow = 1;
+        rankingsListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            return b;
+        };
+        rankingsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            var items = rankingsListView.itemsSource as List<string>;
+            b.text = (items != null && i >= 0 && i < items.Count) ? items[i] : string.Empty;
+        };
+        parent?.Add(rankingsListView);
+        if (rankingsListScroll != null) rankingsListScroll.style.display = DisplayStyle.None;
+    }
+
+    // ==========================
+    // Rankings 2.0 (weekly snapshots)
+    // ==========================
+
+    private void InitializeRankingsControls()
+    {
+        if (currentPromotion == null) return;
+        rankingStore = DataManager.LoadRankings(currentPromotion.promotionName) ?? new RankingStore { promotionName = currentPromotion.promotionName };
+        rankingStore.promotionName = currentPromotion.promotionName;
+        rankingStore.config ??= new RankingConfig { promotionName = currentPromotion.promotionName };
+        if (string.IsNullOrEmpty(rankingStore.config.promotionName)) rankingStore.config.promotionName = currentPromotion.promotionName;
+
+        // Type
+        if (rankingsTypeDropdown != null)
+        {
+            rankingsTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Stable" };
+            rankingsTypeDropdown.value = rankingsTypeDropdown.choices[0];
+            rankingsTypeDropdown.RegisterValueChangedCallback(_ => { RefreshRankingControlVisibility(); RefreshWeeksDropdown(); RecomputeForCurrentWeekSelection(); });
+        }
+
+        // Gender (Singles only)
+        if (rankingsGenderDropdown != null)
+        {
+            rankingsGenderDropdown.choices = new List<string> { "Men", "Women", "All" };
+            rankingsGenderDropdown.value = "Men";
+                        rankingsGenderDropdown.RegisterValueChangedCallback(_ => { RefreshWeeksDropdown(); RecomputeForCurrentWeekSelection(); });
 }
+
+        // Division (Singles only)
+        if (rankingsDivisionDropdown != null)
+        {
+            var divs = (rankingStore.config?.singlesDivisions != null && rankingStore.config.singlesDivisions.Count > 0)
+                ? new List<string>(rankingStore.config.singlesDivisions)
+                : new List<string> { "Overall" };
+            rankingsDivisionDropdown.choices = divs;
+            rankingsDivisionDropdown.value = divs[0];
+            rankingsDivisionDropdown.RegisterValueChangedCallback(_ => { RefreshWeeksDropdown(); RecomputeForCurrentWeekSelection(); });
+        }
+
+        // Weeks dropdown: Current Week + saved snapshots for the selected type/gender/division
+        RefreshWeeksDropdown();
+
+        if (computeRankingsButton != null) computeRankingsButton.clicked += RecomputeForCurrentWeekSelection;
+        if (saveSnapshotButton != null) saveSnapshotButton.clicked += SaveCurrentWeekSnapshot;
+
+        // Date picker for historical week selection
+        if (rankingsDateField != null)
+        {
+            // default to today
+            rankingsDateField.value = DateTime.Today.ToString(DateFormat, CultureInfo.InvariantCulture);
+            // attach small calendar button
+            if (rankingsDatePickButton == null)
+            {
+                rankingsDatePickButton = new Button(() => OpenDatePicker(rankingsDateField)) { text = "\U0001F4C5" };
+                rankingsDatePickButton.style.width = 28; rankingsDatePickButton.style.height = 22; rankingsDatePickButton.style.marginLeft = 6;
+                rankingsDateField.parent?.Add(rankingsDatePickButton);
+            }
+            if (rankingsPrevWeekButton != null) rankingsPrevWeekButton.clicked += OnPrevWeekClicked;
+            if (rankingsNextWeekButton != null) rankingsNextWeekButton.clicked += OnNextWeekClicked;
+        }
+
+        if (rankingsWeekDropdown != null)
+        {
+            rankingsWeekDropdown.RegisterValueChangedCallback(_ => OnWeekSelectionChanged());
+        }
+
+        RefreshRankingControlVisibility();
+    }
+
+    private void SetRankingQuickType(RankingType type, string gender)
+    {
+        if (rankingsTypeDropdown != null)
+        {
+            rankingsTypeDropdown.value = type == RankingType.Singles ? "Singles" : type == RankingType.TagTeam ? "Tag Team" : "Stable";
+        }
+        if (rankingsGenderDropdown != null && type == RankingType.Singles && !string.IsNullOrEmpty(gender))
+        {
+            if (rankingsGenderDropdown.choices.Contains(gender)) rankingsGenderDropdown.value = gender;
+        }
+        RefreshRankingControlVisibility();
+        RefreshWeeksDropdown();
+    }
+
+    private void RefreshRankingControlVisibility()
+    {
+        string typeVal = rankingsTypeDropdown?.value ?? "Singles";
+        bool singles = string.Equals(typeVal, "Singles", StringComparison.OrdinalIgnoreCase);
+        if (rankingsGenderDropdown != null) rankingsGenderDropdown.style.display = singles ? DisplayStyle.Flex : DisplayStyle.None;
+        if (rankingsDivisionDropdown != null) rankingsDivisionDropdown.style.display = singles ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    private void RefreshWeeksDropdown()
+    {
+        if (rankingsWeekDropdown == null) return;
+        var list = new List<string> { "Current Week" };
+        if (rankingStore?.snapshots != null)
+        {
+            var filterType = GetSelectedRankingType();
+            var filterGender = GetSelectedGender();
+            var filterDivision = GetSelectedDivision();
+            foreach (var s in rankingStore.snapshots)
+            {
+                if (s == null) continue;
+                if (s.type != filterType) continue;
+                if ((filterType == RankingType.Singles) && (!StringEquals(s.gender, filterGender) || !StringEquals(s.division, filterDivision))) continue;
+                string label = WeekLabel(s.weekStartIso, s.weekEndIso);
+                if (!list.Contains(label)) list.Add(label);
+            }
+        }
+        if (!list.Contains("Overall")) list.Insert(0, "Overall");
+        rankingsWeekDropdown.choices = list;
+        if (string.IsNullOrEmpty(rankingsWeekDropdown.value) || !list.Contains(rankingsWeekDropdown.value))
+            rankingsWeekDropdown.value = "Overall";
+    }
+
+    private string WeekLabel(string startIso, string endIso)
+    {
+        return $"Week of {startIso} to {endIso}";
+    }
+
+    private RankingType GetSelectedRankingType()
+    {
+        string v = rankingsTypeDropdown?.value ?? "Singles";
+        if (v.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0) return RankingType.TagTeam;
+        if (v.IndexOf("stable", StringComparison.OrdinalIgnoreCase) >= 0) return RankingType.Stable;
+        return RankingType.Singles;
+    }
+
+    private string GetSelectedGender()
+    {
+        return rankingsGenderDropdown?.value ?? "Men";
+    }
+
+    private string GetSelectedDivision()
+    {
+        return rankingsDivisionDropdown?.value ?? "Overall";
+    }
+
+    private void OnWeekSelectionChanged()
+    {
+        var val = rankingsWeekDropdown?.value ?? "Current Week";
+        if (val.StartsWith("Overall", StringComparison.OrdinalIgnoreCase)) { ComputeOverallRankings(); return; }
+        if (val.StartsWith("Current Week", StringComparison.OrdinalIgnoreCase)) { ComputeCurrentWeekRankings(); return; }
+        // Find matching snapshot by label and selected filters
+        var t = GetSelectedRankingType();
+        var g = GetSelectedGender();
+        var d = GetSelectedDivision();
+        var snap = FindSnapshotByLabel(t, d, g, val);
+        if (snap != null)
+        {
+            DisplayRankingEntries(snap.top, snap.topN);
+        }
+        else { ComputeCurrentWeekRankings(); }
+    }
+
+    private void RecomputeForCurrentWeekSelection()
+    {
+        var sel = rankingsWeekDropdown?.value ?? "Overall";
+        if (sel.StartsWith("Overall", StringComparison.OrdinalIgnoreCase)) { ComputeOverallRankings(); }
+        else if (sel.StartsWith("Current Week", StringComparison.OrdinalIgnoreCase)) { ComputeCurrentWeekRankings(); }
+        else { OnWeekSelectionChanged(); }
+    }
+
+    private RankingSnapshot FindSnapshotByLabel(RankingType t, string division, string gender, string label)
+    {
+        if (rankingStore?.snapshots == null) return null;
+        foreach (var s in rankingStore.snapshots)
+        {
+            if (s == null) continue;
+            if (s.type != t) continue;
+            if (t == RankingType.Singles && (!StringEquals(s.gender, gender) || !StringEquals(s.division, division))) continue;
+            if (StringEquals(WeekLabel(s.weekStartIso, s.weekEndIso), label)) return s;
+        }
+        return null;
+    }
+
+    private void ComputeCurrentWeekRankings()
+    {
+        if (currentPromotion == null || rankingsListView == null) return;
+        var asOf = GetSelectedAsOfDate();
+        var (weekStart, weekEnd) = GetWeekRange(asOf);
+        var type = GetSelectedRankingType();
+        var division = GetSelectedDivision();
+        var gender = GetSelectedGender();
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+        stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
+
+        var entries = ComputeWeekly(type, gender, division, weekStart, weekEnd);
+        currentRankingResults = entries;
+        DisplayRankingEntries(entries, 10);
+    }
+
+    private void ComputeOverallRankings()
+    {
+        if (currentPromotion == null || rankingsListView == null) return;
+        var type = GetSelectedRankingType();
+        var division = GetSelectedDivision();
+        var gender = GetSelectedGender();
+        var entries = ComputeWeekly(type, gender, division, DateTime.MinValue, DateTime.MaxValue);
+        currentRankingResults = entries;
+        DisplayRankingEntries(entries, 10);
+    }
+
+    private void OnPrevWeekClicked()
+    {
+        var dt = GetSelectedAsOfDate().AddDays(-7);
+        UpdateRankingsDateField(dt);
+        SetWeekDropdownToCurrent();
+        ComputeCurrentWeekRankings();
+    }
+
+    private void OnNextWeekClicked()
+    {
+        var dt = GetSelectedAsOfDate().AddDays(7);
+        UpdateRankingsDateField(dt);
+        SetWeekDropdownToCurrent();
+        ComputeCurrentWeekRankings();
+    }
+
+    private void UpdateRankingsDateField(DateTime dt)
+    {
+        if (rankingsDateField != null)
+            rankingsDateField.value = dt.ToString(DateFormat, CultureInfo.InvariantCulture);
+    }
+
+    private void SetWeekDropdownToCurrent()
+    {
+        if (rankingsWeekDropdown == null) return;
+        if (rankingsWeekDropdown.choices == null || rankingsWeekDropdown.choices.Count == 0)
+            RefreshWeeksDropdown();
+        if (rankingsWeekDropdown.choices != null && rankingsWeekDropdown.choices.Count > 0)
+            rankingsWeekDropdown.value = rankingsWeekDropdown.choices[0]; // "Current Week"
+    }
+
+    private DateTime GetSelectedAsOfDate()
+    {
+        DateTime dt;
+        var s = rankingsDateField != null ? (rankingsDateField.value ?? string.Empty).Trim() : string.Empty;
+        if (!string.IsNullOrEmpty(s))
+        {
+            if (DateTime.TryParseExact(s, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt)) return dt.Date;
+            if (CalendarUtils.TryParseAny(s, out dt)) return dt.Date;
+        }
+        return DateTime.Today;
+    }
+
+    private List<RankingEntry> ComputeWeekly(RankingType type, string gender, string division, DateTime weekStart, DateTime weekEnd)
+    {
+        var results = new Dictionary<string, RankingEntry>(System.StringComparer.OrdinalIgnoreCase);
+
+        // Build helpers
+        var wrestlerByName = new Dictionary<string, WrestlerData>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.name)) wrestlerByName[w.name] = w;
+
+        bool IncludeWrestler(WrestlerData w)
+        {
+            if (w == null) return false;
+            if (type == RankingType.Singles)
+            {
+                if (string.Equals(gender, "Men", StringComparison.OrdinalIgnoreCase) && w.isFemale) return false;
+                if (string.Equals(gender, "Women", StringComparison.OrdinalIgnoreCase) && !w.isFemale) return false;
+                return true; // MVP: division not enforced beyond label
+            }
+            return true;
+        }
+
+        string TeamOfWinner(string winnerName)
+        {
+            if (tagTeamCollection?.teams == null) return null;
+            foreach (var t in tagTeamCollection.teams)
+            {
+                if (t == null || string.IsNullOrEmpty(t.teamName)) continue;
+                if (StringEquals(t.memberA, winnerName) || StringEquals(t.memberB, winnerName)) return t.teamName;
+            }
+            return null;
+        }
+
+        string StableOfWinner(string winnerName)
+        {
+            if (stableCollection?.stables == null) return null;
+            // Find wrestler id for winner
+            string id = wrestlerByName.TryGetValue(winnerName ?? string.Empty, out var ww) ? ww.id : null;
+            if (string.IsNullOrEmpty(id)) return null;
+            foreach (var s in stableCollection.stables)
+            {
+                if (s?.memberIds != null && s.memberIds.Contains(id)) return s.stableName;
+            }
+            return null;
+        }
+
+        bool InWeek(DateTime d) => d.Date >= weekStart.Date && d.Date <= weekEnd.Date;
+
+        foreach (var show in currentPromotion.shows ?? new List<ShowData>())
+        {
+            if (!CalendarUtils.TryParseAny(show?.date, out var sd)) continue;
+            if (!InWeek(sd)) continue;
+            foreach (var m in show.matches ?? new List<MatchData>())
+            {
+                // participants
+                var parts = new List<string>();
+                void add(string s) { if (!string.IsNullOrWhiteSpace(s)) parts.Add(s.Trim()); }
+                add(m.wrestlerA);
+                add(m.wrestlerB);
+                add(m.wrestlerC);
+                add(m.wrestlerD);
+
+                bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) || (parts.Count >= 4);
+                string winner = (m?.winner ?? string.Empty).Trim();
+                bool isDraw = string.Equals(winner, "Draw", StringComparison.OrdinalIgnoreCase) || string.Equals(winner, "No Contest", StringComparison.OrdinalIgnoreCase);
+
+                if (type == RankingType.Singles)
+                {
+                    if (isTag || parts.Count != 2) continue; // only true 1v1
+                    // filter participants by gender
+                    if (!wrestlerByName.TryGetValue(parts[0], out var a) || !IncludeWrestler(a)) continue;
+                    if (!wrestlerByName.TryGetValue(parts[1], out var b) || !IncludeWrestler(b)) continue;
+
+                    Ensure(results, parts[0]);
+                    Ensure(results, parts[1]);
+                    if (isDraw)
+                    {
+                        results[parts[0]].draws++;
+                        results[parts[1]].draws++;
+                    }
+                    else if (StringEquals(winner, parts[0]))
+                    {
+                        results[parts[0]].wins++;
+                        results[parts[1]].losses++;
+                    }
+                    else if (StringEquals(winner, parts[1]))
+                    {
+                        results[parts[1]].wins++;
+                        results[parts[0]].losses++;
+                    }
+                }
+                else if (type == RankingType.TagTeam)
+                {
+                    if (!isTag) continue;
+                    var team = TeamOfWinner(winner);
+                    if (string.IsNullOrEmpty(team)) continue;
+                    Ensure(results, team);
+                    results[team].wins++;
+                }
+                else if (type == RankingType.Stable)
+                {
+                    var stable = StableOfWinner(winner);
+                    if (string.IsNullOrEmpty(stable)) continue;
+                    Ensure(results, stable);
+                    results[stable].wins++;
+                }
+            }
+        }
+
+        // finalize list
+        var list = new List<RankingEntry>(results.Values);
+        foreach (var e in list) e.score = e.wins; // MVP
+        list.Sort((x, y) =>
+        {
+            int c = y.wins.CompareTo(x.wins);
+            if (c != 0) return c;
+            c = x.losses.CompareTo(y.losses);
+            if (c != 0) return c;
+            return string.Compare(x.name, y.name, StringComparison.OrdinalIgnoreCase);
+        });
+        return list;
+
+        void Ensure(Dictionary<string, RankingEntry> map, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            if (!map.TryGetValue(name, out var e))
+            {
+                e = new RankingEntry { name = name, wins = 0, losses = 0, draws = 0, score = 0 };
+                map[name] = e;
+            }
+        }
+    }
+
+    private void DisplayRankingEntries(List<RankingEntry> entries, int topN)
+    {
+        if (rankingsListView == null) return;
+        var items = new List<string>();
+        if (entries != null)
+        {
+            for (int i = 0; i < Math.Min(topN, entries.Count); i++)
+            {
+                var e = entries[i];
+                // Compact format: rank, name, record (omit score to shorten)
+                items.Add($"{i + 1}. {e.name}  {e.wins}-{e.losses}-{e.draws}");
+            }
+        }
+        if (items.Count == 0)
+        {
+            items.Add("No results for the selected week.");
+        }
+        rankingsListView.itemsSource = items;
+        rankingsListView.Rebuild();
+    }
+
+    private void SaveCurrentWeekSnapshot()
+    {
+        if (currentPromotion == null || currentRankingResults == null || currentRankingResults.Count == 0) return;
+        var asOf = GetSelectedAsOfDate();
+        var (weekStart, weekEnd) = GetWeekRange(asOf);
+        var snap = new RankingSnapshot
+        {
+            promotionName = currentPromotion.promotionName,
+            weekStartIso = CalendarUtils.FormatIso(weekStart),
+            weekEndIso = CalendarUtils.FormatIso(weekEnd),
+            type = GetSelectedRankingType(),
+            division = GetSelectedDivision(),
+            gender = GetSelectedGender(),
+            topN = 10,
+            top = new List<RankingEntry>()
+        };
+        foreach (var e in currentRankingResults)
+        {
+            if (snap.top.Count >= snap.topN) break;
+            snap.top.Add(new RankingEntry { entityId = e.entityId, name = e.name, wins = e.wins, losses = e.losses, draws = e.draws, score = e.score });
+        }
+
+        rankingStore ??= new RankingStore { promotionName = currentPromotion.promotionName };
+        rankingStore.promotionName = currentPromotion.promotionName;
+        rankingStore.snapshots ??= new List<RankingSnapshot>();
+
+        // Replace any existing snapshot with same key (type + week + filters)
+        rankingStore.snapshots.RemoveAll(s => s != null && s.promotionName == snap.promotionName && s.type == snap.type && StringEquals(s.weekStartIso, snap.weekStartIso) && StringEquals(s.weekEndIso, snap.weekEndIso) && StringEquals(s.division, snap.division) && StringEquals(s.gender, snap.gender));
+        rankingStore.snapshots.Add(snap);
+        DataManager.SaveRankings(rankingStore);
+        RefreshWeeksDropdown();
+        if (statusLabel != null) statusLabel.text = "Snapshot saved.";
+    }
+
+    private (System.DateTime start, System.DateTime end) GetWeekRange(System.DateTime asOf)
+    {
+        // Sunday to Saturday
+        int diff = (int)asOf.DayOfWeek; // Sunday=0
+        var start = asOf.Date.AddDays(-diff);
+        var end = start.AddDays(6);
+        return (start, end);
+    }
+}
+
+
+
+
+
+
+
+
+
