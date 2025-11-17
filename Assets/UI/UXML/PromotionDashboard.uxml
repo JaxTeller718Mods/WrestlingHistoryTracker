@@ -127,6 +127,25 @@
           </ui:VisualElement>
           <ui:Button name="computeRankingsButton" text="Compute" />
           <ui:Button name="saveSnapshotButton" text="Save Snapshot" />
+          <ui:VisualElement class="row">
+            <ui:TextField name="rankingsFromDateField" label="From (MM/DD/YYYY)" />
+            <ui:TextField name="rankingsToDateField" label="To (MM/DD/YYYY)" />
+            <ui:Button name="computeRangeRankingsButton" text="Compute Range" />
+          </ui:VisualElement>
+
+          <ui:VisualElement class="title-detail-card">
+            <ui:Label text="Formula" class="subsection-title" />
+            <ui:VisualElement class="row">
+              <ui:FloatField name="rankingsWinPointsField" label="Win" />
+              <ui:FloatField name="rankingsDrawPointsField" label="Draw" />
+              <ui:FloatField name="rankingsLossPointsField" label="Loss" />
+            </ui:VisualElement>
+            <ui:VisualElement class="row">
+              <ui:FloatField name="rankingsMainEventBonusField" label="Main Event Bonus" />
+              <ui:FloatField name="rankingsTitleMatchBonusField" label="Title Match Bonus" />
+              <ui:Button name="saveFormulaButton" text="Save Formula" />
+            </ui:VisualElement>
+          </ui:VisualElement>
         </ui:VisualElement>
         <ui:ScrollView name="rankingsList" class="list rankings-list" />
       </ui:VisualElement>

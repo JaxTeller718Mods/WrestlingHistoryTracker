@@ -15,6 +15,8 @@ public class RankingFormula
     public int winPoints = 1;   // MVP: simple wins
     public int drawPoints = 0;
     public int lossPoints = 0;
+    public float mainEventBonus = 0f;
+    public float titleMatchBonus = 0f;
 }
 
 [Serializable]
@@ -45,6 +47,7 @@ public class RankingSnapshot
     public RankingType type;
     public string division;      // for Singles (e.g., Overall)
     public string gender;        // Men, Women, All (Singles only)
+    public string brand;         // optional brand filter label
     public int topN = 10;
     public List<RankingEntry> top = new();
 }
@@ -56,4 +59,3 @@ public class RankingStore
     public RankingConfig config = new RankingConfig();
     public List<RankingSnapshot> snapshots = new();
 }
-

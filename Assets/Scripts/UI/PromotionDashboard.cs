@@ -47,8 +47,8 @@ public class PromotionDashboard : MonoBehaviour
     
     // Rankings 2.0 controls
     private DropdownField rankingsTypeDropdown, rankingsGenderDropdown, rankingsDivisionDropdown, rankingsWeekDropdown;
-    private TextField rankingsDateField;
-    private Button computeRankingsButton, saveSnapshotButton, rankingsDatePickButton, rankingsPrevWeekButton, rankingsNextWeekButton;
+    private TextField rankingsDateField, rankingsFromDateField, rankingsToDateField;
+    private Button computeRankingsButton, saveSnapshotButton, computeRangeRankingsButton, rankingsDatePickButton, rankingsPrevWeekButton, rankingsNextWeekButton;
     private RankingStore rankingStore;
     private List<RankingEntry> currentRankingResults;
 
@@ -344,7 +344,10 @@ public class PromotionDashboard : MonoBehaviour
         rankingsBrandDropdown = root.Q<DropdownField>("rankingsBrandDropdown");
         rankingsWeekDropdown = root.Q<DropdownField>("rankingsWeekDropdown");
         rankingsDateField = root.Q<TextField>("rankingsDateField");
+        rankingsFromDateField = root.Q<TextField>("rankingsFromDateField");
+        rankingsToDateField = root.Q<TextField>("rankingsToDateField");
         computeRankingsButton = root.Q<Button>("computeRankingsButton");
+        computeRangeRankingsButton = root.Q<Button>("computeRangeRankingsButton");
         saveSnapshotButton = root.Q<Button>("saveSnapshotButton");
         rankingsPrevWeekButton = root.Q<Button>("rankingsPrevWeekButton");
         rankingsNextWeekButton = root.Q<Button>("rankingsNextWeekButton");
@@ -4151,6 +4154,7 @@ public class PromotionDashboard : MonoBehaviour
         RefreshWeeksDropdown();
 
         if (computeRankingsButton != null) computeRankingsButton.clicked += RecomputeForCurrentWeekSelection;
+        if (computeRangeRankingsButton != null) computeRangeRankingsButton.clicked += OnComputeRangeRankingsClicked;
         if (saveSnapshotButton != null) saveSnapshotButton.clicked += SaveCurrentWeekSnapshot;
 
         // Date picker for historical week selection
@@ -4175,6 +4179,45 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         RefreshRankingControlVisibility();
+
+        // Initialize formula UI from config
+        if (rankingStore.config?.formula != null)
+        {
+            var f = rankingStore.config.formula;
+            var winField = root.Q<FloatField>("rankingsWinPointsField");
+            var drawField = root.Q<FloatField>("rankingsDrawPointsField");
+            var lossField = root.Q<FloatField>("rankingsLossPointsField");
+            var mainField = root.Q<FloatField>("rankingsMainEventBonusField");
+            var titleField = root.Q<FloatField>("rankingsTitleMatchBonusField");
+            if (winField != null) winField.value = f.winPoints;
+            if (drawField != null) drawField.value = f.drawPoints;
+            if (lossField != null) lossField.value = f.lossPoints;
+            if (mainField != null) mainField.value = f.mainEventBonus;
+            if (titleField != null) titleField.value = f.titleMatchBonus;
+
+            var saveFormulaButton = root.Q<Button>("saveFormulaButton");
+            if (saveFormulaButton != null)
+            {
+                saveFormulaButton.clicked += () =>
+                {
+                    try
+                    {
+                        if (winField != null) f.winPoints = (int)winField.value;
+                        if (drawField != null) f.drawPoints = (int)drawField.value;
+                        if (lossField != null) f.lossPoints = (int)lossField.value;
+                        if (mainField != null) f.mainEventBonus = mainField.value;
+                        if (titleField != null) f.titleMatchBonus = titleField.value;
+                        DataManager.SaveRankings(rankingStore);
+                        if (statusLabel != null) statusLabel.text = "Ranking formula saved.";
+                        RecomputeForCurrentWeekSelection();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Failed to save ranking formula: {ex.Message}");
+                    }
+                };
+            }
+        }
     }
 
     private void SetRankingQuickType(RankingType type, string gender)
@@ -4208,11 +4251,16 @@ public class PromotionDashboard : MonoBehaviour
             var filterType = GetSelectedRankingType();
             var filterGender = GetSelectedGender();
             var filterDivision = GetSelectedDivision();
+            var filterBrand = rankingsBrandDropdown != null ? (rankingsBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
             foreach (var s in rankingStore.snapshots)
             {
                 if (s == null) continue;
                 if (s.type != filterType) continue;
                 if ((filterType == RankingType.Singles) && (!StringEquals(s.gender, filterGender) || !StringEquals(s.division, filterDivision))) continue;
+                if (!string.IsNullOrEmpty(filterBrand) && !string.Equals(filterBrand, "All Brands", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!StringEquals(s.brand, filterBrand)) continue;
+                }
                 string label = WeekLabel(s.weekStartIso, s.weekEndIso);
                 if (!list.Contains(label)) list.Add(label);
             }
@@ -4258,7 +4306,8 @@ public class PromotionDashboard : MonoBehaviour
         var snap = FindSnapshotByLabel(t, d, g, val);
         if (snap != null)
         {
-            DisplayRankingEntries(snap.top, snap.topN);
+            currentRankingResults = snap.top ?? new List<RankingEntry>();
+            DisplayRankingEntries(currentRankingResults, snap.topN);
         }
         else { ComputeCurrentWeekRankings(); }
     }
@@ -4274,14 +4323,54 @@ public class PromotionDashboard : MonoBehaviour
     private RankingSnapshot FindSnapshotByLabel(RankingType t, string division, string gender, string label)
     {
         if (rankingStore?.snapshots == null) return null;
+        var filterBrand = rankingsBrandDropdown != null ? (rankingsBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
         foreach (var s in rankingStore.snapshots)
         {
             if (s == null) continue;
             if (s.type != t) continue;
             if (t == RankingType.Singles && (!StringEquals(s.gender, gender) || !StringEquals(s.division, division))) continue;
+            if (!string.IsNullOrEmpty(filterBrand) && !string.Equals(filterBrand, "All Brands", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!StringEquals(s.brand, filterBrand)) continue;
+            }
             if (StringEquals(WeekLabel(s.weekStartIso, s.weekEndIso), label)) return s;
         }
         return null;
+    }
+
+    private List<RankingEntry> GetPreviousSnapshotTopForCurrentWeek()
+    {
+        if (rankingStore?.snapshots == null || rankingStore.snapshots.Count == 0) return null;
+        var type = GetSelectedRankingType();
+        var division = GetSelectedDivision();
+        var gender = GetSelectedGender();
+        var brand = rankingsBrandDropdown != null ? (rankingsBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
+
+        var asOf = GetSelectedAsOfDate();
+        var (weekStart, _) = GetWeekRange(asOf);
+
+        RankingSnapshot best = null;
+        DateTime bestEnd = DateTime.MinValue;
+
+        foreach (var s in rankingStore.snapshots)
+        {
+            if (s == null) continue;
+            if (s.type != type) continue;
+            if (type == RankingType.Singles && (!StringEquals(s.gender, gender) || !StringEquals(s.division, division))) continue;
+            if (!string.IsNullOrEmpty(brand) && !string.Equals(brand, "All Brands", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!StringEquals(s.brand, brand)) continue;
+            }
+            if (!CalendarUtils.TryParseAny(s.weekEndIso, out var end)) continue;
+            if (end >= weekStart) continue; // only weeks strictly before current
+            if (end > bestEnd)
+            {
+                bestEnd = end;
+                best = s;
+            }
+        }
+
+        return best?.top;
     }
 
     private void ComputeCurrentWeekRankings()
@@ -4299,7 +4388,12 @@ public class PromotionDashboard : MonoBehaviour
 
         var entries = ComputeWeekly(type, gender, division, weekStart, weekEnd);
         currentRankingResults = entries;
-        DisplayRankingEntries(entries, 10);
+
+        var previousTop = GetPreviousSnapshotTopForCurrentWeek();
+        if (previousTop != null && previousTop.Count > 0)
+            DisplayRankingEntriesWithTrend(entries, previousTop, 10);
+        else
+            DisplayRankingEntries(entries, 10);
     }
 
     private void ComputeOverallRankings()
@@ -4356,9 +4450,54 @@ public class PromotionDashboard : MonoBehaviour
         return DateTime.Today;
     }
 
+    private bool TryParseRankingDateField(TextField field, out DateTime date)
+    {
+        date = DateTime.MinValue;
+        if (field == null) return false;
+        var s = (field.value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(s)) return false;
+        if (DateTime.TryParseExact(s, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) { date = d.Date; return true; }
+        if (CalendarUtils.TryParseAny(s, out d)) { date = d.Date; return true; }
+        return false;
+    }
+
+    private void OnComputeRangeRankingsClicked()
+    {
+        if (currentPromotion == null || rankingsListView == null) return;
+        if (!TryParseRankingDateField(rankingsFromDateField, out var from) ||
+            !TryParseRankingDateField(rankingsToDateField, out var to))
+        {
+            if (statusLabel != null) statusLabel.text = "Enter valid From/To dates.";
+            return;
+        }
+        if (to < from)
+        {
+            var tmp = from; from = to; to = tmp;
+        }
+
+        var type = GetSelectedRankingType();
+        var division = GetSelectedDivision();
+        var gender = GetSelectedGender();
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+        stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
+
+        var entries = ComputeWeekly(type, gender, division, from, to);
+        currentRankingResults = entries;
+        DisplayRankingEntries(entries, 10);
+        if (statusLabel != null) statusLabel.text = $"Range rankings {from:MM/dd/yyyy} - {to:MM/dd/yyyy}.";
+    }
+
     private List<RankingEntry> ComputeWeekly(RankingType type, string gender, string division, DateTime weekStart, DateTime weekEnd)
     {
         var results = new Dictionary<string, RankingEntry>(System.StringComparer.OrdinalIgnoreCase);
+        var formula = rankingStore?.config?.formula ?? new RankingConfig().formula;
+        float winPts = formula.winPoints;
+        float drawPts = formula.drawPoints;
+        float lossPts = formula.lossPoints;
+        float mainBonus = formula.mainEventBonus;
+        float titleBonus = formula.titleMatchBonus;
 
         // Build helpers
         var wrestlerByName = new Dictionary<string, WrestlerData>(System.StringComparer.OrdinalIgnoreCase);
@@ -4432,6 +4571,8 @@ public class PromotionDashboard : MonoBehaviour
                 string winner = (m?.winner ?? string.Empty).Trim();
                 bool isDraw = string.Equals(winner, "Draw", StringComparison.OrdinalIgnoreCase) || string.Equals(winner, "No Contest", StringComparison.OrdinalIgnoreCase);
 
+                bool isMainEvent = show.matches != null && show.matches.Count > 0 && show.matches[show.matches.Count - 1] == m;
+
                 if (type == RankingType.Singles)
                 {
                     if (isTag || parts.Count != 2) continue; // only true 1v1
@@ -4450,11 +4591,15 @@ public class PromotionDashboard : MonoBehaviour
                     {
                         results[parts[0]].wins++;
                         results[parts[1]].losses++;
+                        if (m.isTitleMatch) results[parts[0]].score += titleBonus;
+                        if (isMainEvent) results[parts[0]].score += mainBonus;
                     }
                     else if (StringEquals(winner, parts[1]))
                     {
                         results[parts[1]].wins++;
                         results[parts[0]].losses++;
+                        if (m.isTitleMatch) results[parts[1]].score += titleBonus;
+                        if (isMainEvent) results[parts[1]].score += mainBonus;
                     }
                 }
                 else if (type == RankingType.TagTeam)
@@ -4464,6 +4609,8 @@ public class PromotionDashboard : MonoBehaviour
                     if (string.IsNullOrEmpty(team)) continue;
                     Ensure(results, team);
                     results[team].wins++;
+                    if (m.isTitleMatch) results[team].score += titleBonus;
+                    if (isMainEvent) results[team].score += mainBonus;
                 }
                 else if (type == RankingType.Stable)
                 {
@@ -4471,16 +4618,21 @@ public class PromotionDashboard : MonoBehaviour
                     if (string.IsNullOrEmpty(stable)) continue;
                     Ensure(results, stable);
                     results[stable].wins++;
+                    if (m.isTitleMatch) results[stable].score += titleBonus;
+                    if (isMainEvent) results[stable].score += mainBonus;
                 }
             }
         }
 
         // finalize list
         var list = new List<RankingEntry>(results.Values);
-        foreach (var e in list) e.score = e.wins; // MVP
+        foreach (var e in list)
+        {
+            e.score += e.wins * winPts + e.draws * drawPts + e.losses * lossPts;
+        }
         list.Sort((x, y) =>
         {
-            int c = y.wins.CompareTo(x.wins);
+            int c = y.score.CompareTo(x.score);
             if (c != 0) return c;
             c = x.losses.CompareTo(y.losses);
             if (c != 0) return c;
@@ -4520,6 +4672,49 @@ public class PromotionDashboard : MonoBehaviour
         rankingsListView.Rebuild();
     }
 
+    private void DisplayRankingEntriesWithTrend(List<RankingEntry> current, List<RankingEntry> previous, int topN)
+    {
+        if (rankingsListView == null)
+        {
+            DisplayRankingEntries(current, topN);
+            return;
+        }
+
+        var prevIndexByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (previous != null)
+        {
+            for (int i = 0; i < previous.Count; i++)
+            {
+                var e = previous[i];
+                if (e != null && !string.IsNullOrWhiteSpace(e.name) && !prevIndexByName.ContainsKey(e.name))
+                    prevIndexByName[e.name] = i;
+            }
+        }
+
+        var items = new List<string>();
+        if (current != null)
+        {
+            for (int i = 0; i < Math.Min(topN, current.Count); i++)
+            {
+                var e = current[i];
+                string trend = "new";
+                if (e != null && !string.IsNullOrWhiteSpace(e.name) && prevIndexByName.TryGetValue(e.name, out var prevIdx))
+                {
+                    int diff = prevIdx - i; // positive = moved up
+                    if (diff > 0) trend = $"▲{diff}";
+                    else if (diff < 0) trend = $"▼{Math.Abs(diff)}";
+                    else trend = "–";
+                }
+                items.Add($"{i + 1}. {e.name}  {e.wins}-{e.losses}-{e.draws}  ({trend})");
+            }
+        }
+        if (items.Count == 0)
+            items.Add("No results for the selected week.");
+
+        rankingsListView.itemsSource = items;
+        rankingsListView.Rebuild();
+    }
+
     private void SaveCurrentWeekSnapshot()
     {
         if (currentPromotion == null || currentRankingResults == null || currentRankingResults.Count == 0) return;
@@ -4533,6 +4728,7 @@ public class PromotionDashboard : MonoBehaviour
             type = GetSelectedRankingType(),
             division = GetSelectedDivision(),
             gender = GetSelectedGender(),
+            brand = rankingsBrandDropdown != null ? (rankingsBrandDropdown.value ?? string.Empty).Trim() : string.Empty,
             topN = 10,
             top = new List<RankingEntry>()
         };
