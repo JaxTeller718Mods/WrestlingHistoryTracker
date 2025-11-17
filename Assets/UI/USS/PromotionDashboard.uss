@@ -381,6 +381,11 @@ FloatField > .unity-float-field__input {
 }
 .rivalry-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
+/* Nudge Rivalries panel content away from sidebar */
+#rivalriesPanel {
+    padding-left: 54px;
+}
+
 .rivalry-list-column {
     width: 320px;
     max-width: 360px;
@@ -789,4 +794,3 @@ Label {
     position: relative;
     left: -64px; /* adjust as desired */
 }
-

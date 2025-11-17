@@ -512,6 +512,8 @@
             <ui:DropdownField name="rivalryParticipantADropdown" label="Participant A" class="overlay-dropdown" />
             <ui:DropdownField name="rivalryParticipantBDropdown" label="Participant B" class="overlay-dropdown" />
           </ui:VisualElement>
+          <ui:Label name="rivalryParticipantsLabel" />
+          <ui:Label name="rivalryHeatLabel" />
           <ui:TextField name="rivalryNotesField" label="Notes" />
           <ui:VisualElement class="row">
             <ui:Button name="addRivalryButton" text="Add Rivalry" />

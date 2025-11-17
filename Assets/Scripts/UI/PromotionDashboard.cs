@@ -81,6 +81,7 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView rivalryListScroll, rivalryEventsList;
     private ListView rivalryListView;
     private TextField rivalryNameField, rivalryNotesField;
+    private Label rivalryParticipantsLabel, rivalryHeatLabel;
     private DropdownField rivalryTypeDropdown, rivalryParticipantADropdown, rivalryParticipantBDropdown;
     private TextField rivalryEventDateField, rivalryEventNotesField;
     private DropdownField rivalryEventTypeDropdown, rivalryEventOutcomeDropdown, rivalryEventShowDropdown, rivalryEventEntryDropdown;
@@ -233,6 +234,8 @@ public class PromotionDashboard : MonoBehaviour
         rivalryEventsList = root.Q<ScrollView>("rivalryEventsList");
         rivalryNameField = root.Q<TextField>("rivalryNameField");
         rivalryNotesField = root.Q<TextField>("rivalryNotesField");
+        rivalryParticipantsLabel = root.Q<Label>("rivalryParticipantsLabel");
+        rivalryHeatLabel = root.Q<Label>("rivalryHeatLabel");
         rivalryTypeDropdown = root.Q<DropdownField>("rivalryTypeDropdown");
         rivalryParticipantADropdown = root.Q<DropdownField>("rivalryParticipantADropdown");
         rivalryParticipantBDropdown = root.Q<DropdownField>("rivalryParticipantBDropdown");
@@ -860,7 +863,16 @@ public class PromotionDashboard : MonoBehaviour
         {
             var b = (Button)ve;
             var list = rivalryCollection?.rivalries;
-            if (list != null && i >= 0 && i < list.Count) { b.text = list[i].title; b.userData = i; }
+            if (list != null && i >= 0 && i < list.Count)
+            {
+                var r = list[i];
+                var type = string.IsNullOrEmpty(r.type) ? "Singles" : r.type;
+                var heat = r.feudScore;
+                b.text = heat > 0f
+                    ? $"{r.title} [{type}] • Heat: {heat:F1}"
+                    : $"{r.title} [{type}]";
+                b.userData = i;
+            }
             else { b.text = string.Empty; b.userData = -1; }
         };
         parent?.Add(rivalryListView);
@@ -871,6 +883,8 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (rivalryListView == null) return;
         var src = rivalryCollection?.rivalries ?? new List<RivalryData>();
+        foreach (var r in src)
+            RecomputeRivalryMetrics(r);
         rivalryListView.itemsSource = src;
         rivalryListView.Rebuild();
     }
@@ -888,6 +902,7 @@ public class PromotionDashboard : MonoBehaviour
         if (rivalryParticipantBDropdown != null) rivalryParticipantBDropdown.value = ResolveNameFromTypedId(r.participants.ElementAtOrDefault(1));
         if (rivalryNotesField != null) rivalryNotesField.value = r.notes;
         PopulateRivalryEventsUI(r);
+        UpdateRivalrySummaryUI(r);
         FocusPanel(rivalriesPanel);
     }
 
@@ -1083,6 +1098,172 @@ public class PromotionDashboard : MonoBehaviour
         return string.Empty;
     }
 
+    private void RecomputeRivalryMetrics(RivalryData r)
+    {
+        if (r == null) return;
+        r.winsA = 0;
+        r.winsB = 0;
+        r.draws = 0;
+        r.lastInteractionDate = null;
+        r.feudScore = 0f;
+
+        if (r.events == null || r.events.Count == 0) return;
+
+        DateTime firstDate = DateTime.MaxValue;
+        DateTime lastDate = DateTime.MinValue;
+        float rawScore = 0f;
+
+        foreach (var e in r.events)
+        {
+            if (e == null) continue;
+
+            // Date tracking
+            if (!string.IsNullOrEmpty(e.date) && DateTime.TryParse(e.date, out var d))
+            {
+                if (d < firstDate) firstDate = d;
+                if (d > lastDate) lastDate = d;
+            }
+
+            // Outcome tallies
+            if (!string.IsNullOrEmpty(e.outcome))
+            {
+                if (string.Equals(e.outcome, "A wins", StringComparison.OrdinalIgnoreCase)) r.winsA++;
+                else if (string.Equals(e.outcome, "B wins", StringComparison.OrdinalIgnoreCase)) r.winsB++;
+                else if (string.Equals(e.outcome, "Draw", StringComparison.OrdinalIgnoreCase)) r.draws++;
+            }
+
+            // Base heat from event
+            float score = 1f;
+            score += Mathf.Max(0f, e.rating);
+
+            // Event type bonus
+            var t = e.eventType ?? string.Empty;
+            if (t.IndexOf("Match", StringComparison.OrdinalIgnoreCase) >= 0) score += 1.5f;
+            else if (t.IndexOf("Attack", StringComparison.OrdinalIgnoreCase) >= 0) score += 1.0f;
+            else if (t.IndexOf("Promo", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     t.IndexOf("Segment", StringComparison.OrdinalIgnoreCase) >= 0) score += 0.5f;
+
+            // Stip/importance based on linked match
+            if (!string.IsNullOrEmpty(e.matchId) && !string.IsNullOrEmpty(e.showId) && currentPromotion?.shows != null)
+            {
+                var show = currentPromotion.shows.FirstOrDefault(s => s != null && string.Equals(s.id, e.showId, StringComparison.OrdinalIgnoreCase));
+                var match = show?.matches?.FirstOrDefault(m => m != null && string.Equals(m.id, e.matchId, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    if (match.isTitleMatch) score += 0.5f;
+                    var mt = match.matchType ?? string.Empty;
+                    if (mt.IndexOf("cage", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("cell", StringComparison.OrdinalIgnoreCase) >= 0)
+                        score += 1.0f;
+                    if (mt.IndexOf("ladder", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("TLC", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("table", StringComparison.OrdinalIgnoreCase) >= 0)
+                        score += 1.0f;
+                    if (mt.IndexOf("no dq", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("no disqualification", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("street fight", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        mt.IndexOf("hardcore", StringComparison.OrdinalIgnoreCase) >= 0)
+                        score += 0.7f;
+                }
+            }
+
+            rawScore += score;
+        }
+
+        // Time span and last interaction
+        if (lastDate == DateTime.MinValue)
+        {
+            r.lastInteractionDate = null;
+            r.feudScore = Mathf.Max(0f, rawScore);
+            return;
+        }
+
+        r.lastInteractionDate = lastDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (firstDate == DateTime.MaxValue) firstDate = lastDate;
+        double days = (lastDate - firstDate).TotalDays;
+        float spanMultiplier = 1f + Mathf.Clamp01((float)(days / 365.0)); // up to 2x for very long feuds
+
+        r.feudScore = Mathf.Max(0f, rawScore * spanMultiplier);
+    }
+
+    private void UpdateRivalrySummaryUI(RivalryData r)
+    {
+        if (r == null)
+        {
+            if (rivalryParticipantsLabel != null) rivalryParticipantsLabel.text = string.Empty;
+            if (rivalryHeatLabel != null) rivalryHeatLabel.text = string.Empty;
+            return;
+        }
+
+        // Participants summary
+        string sideA = BuildRivalrySideLabel(r.participants.ElementAtOrDefault(0));
+        string sideB = BuildRivalrySideLabel(r.participants.ElementAtOrDefault(1));
+        if (rivalryParticipantsLabel != null)
+        {
+            if (!string.IsNullOrEmpty(sideA) || !string.IsNullOrEmpty(sideB))
+                rivalryParticipantsLabel.text = $"Participants: {sideA} vs {sideB}";
+            else
+                rivalryParticipantsLabel.text = "Participants: (not set)";
+        }
+
+        // Heat / record summary
+        if (rivalryHeatLabel != null)
+        {
+            var parts = new List<string>();
+            parts.Add($"Heat: {r.feudScore:F1}");
+            parts.Add($"Record A–B–D: {r.winsA}-{r.winsB}-{r.draws}");
+            if (!string.IsNullOrEmpty(r.startDate) || !string.IsNullOrEmpty(r.lastInteractionDate))
+            {
+                string span;
+                if (!string.IsNullOrEmpty(r.startDate) && !string.IsNullOrEmpty(r.lastInteractionDate))
+                    span = $"{r.startDate} to {r.lastInteractionDate}";
+                else
+                    span = r.startDate ?? r.lastInteractionDate;
+                parts.Add($"Span: {span}");
+            }
+            rivalryHeatLabel.text = string.Join("  |  ", parts);
+        }
+    }
+
+    private string BuildRivalrySideLabel(string typedId)
+    {
+        if (string.IsNullOrEmpty(typedId) || typedId.Length < 3 || typedId[1] != ':')
+            return string.Empty;
+
+        char kind = typedId[0];
+        string id = typedId.Substring(2);
+
+        switch (kind)
+        {
+            case 'W':
+                wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+                var w = wrestlerCollection?.wrestlers?.FirstOrDefault(x => string.Equals(x?.id, id, StringComparison.OrdinalIgnoreCase));
+                return w?.name ?? string.Empty;
+            case 'T':
+                var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
+                var t = tags?.teams?.FirstOrDefault(x => string.Equals(x?.id, id, StringComparison.OrdinalIgnoreCase));
+                if (t == null) return string.Empty;
+                return string.IsNullOrEmpty(t.memberA) || string.IsNullOrEmpty(t.memberB)
+                    ? t.teamName
+                    : $"{t.teamName} ({t.memberA} & {t.memberB})";
+            case 'S':
+                var st = DataManager.LoadStables(currentPromotion?.promotionName);
+                var s = st?.stables?.FirstOrDefault(x => string.Equals(x?.id, id, StringComparison.OrdinalIgnoreCase));
+                if (s == null) return string.Empty;
+                var names = new List<string>();
+                wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+                foreach (var mid in s.memberIds ?? new List<string>())
+                {
+                    var mw = wrestlerCollection?.wrestlers?.FirstOrDefault(x => string.Equals(x?.id, mid, StringComparison.OrdinalIgnoreCase));
+                    if (mw != null && !string.IsNullOrEmpty(mw.name)) names.Add(mw.name);
+                }
+                var members = names.Count > 0 ? $" ({string.Join(", ", names)})" : string.Empty;
+                return s.stableName + members;
+        }
+
+        return string.Empty;
+    }
+
     private void OnAddRivalry()
     {
         if (currentPromotion == null) { statusLabel.text = "No promotion loaded."; return; }
@@ -1194,17 +1375,12 @@ public class PromotionDashboard : MonoBehaviour
         r.events ??= new List<RivalryEvent>();
         r.events.Add(ev);
 
-        // Update lightweight metrics
-        if (string.Equals(outcome, "A wins", StringComparison.OrdinalIgnoreCase)) r.winsA++;
-        else if (string.Equals(outcome, "B wins", StringComparison.OrdinalIgnoreCase)) r.winsB++;
-        else if (string.Equals(outcome, "Draw", StringComparison.OrdinalIgnoreCase)) r.draws++;
-        // last interaction
-        if (string.IsNullOrEmpty(r.lastInteractionDate) || string.CompareOrdinal(sDate, r.lastInteractionDate) > 0) r.lastInteractionDate = sDate;
-        // simple feud score: +1 base + rating
-        r.feudScore += 1f + Mathf.Max(0f, rating);
+        // Recompute lightweight metrics & heat
+        RecomputeRivalryMetrics(r);
 
         DataManager.SaveRivalries(rivalryCollection);
         PopulateRivalryEventsUI(r);
+        UpdateRivalrySummaryUI(r);
         statusLabel.text = "Event added.";
     }
 
