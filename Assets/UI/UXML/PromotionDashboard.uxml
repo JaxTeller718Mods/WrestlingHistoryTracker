@@ -5,9 +5,11 @@
 
     <!-- ===== HEADER & NAVIGATION ===== -->
     <ui:VisualElement name="dashboardChrome" class="dashboard-chrome">
-      <ui:Label text="Promotion Dashboard" class="title" />
+      <ui:VisualElement class="dashboard-header-row">
+        <ui:Label text="Promotion Dashboard" class="title" />
+        <ui:Button name="minimizeButton" text="–" class="window-button-minimize" />
+      </ui:VisualElement>
       <ui:Label name="statusLabel" text="Ready." class="status-label" />
-
     </ui:VisualElement>
 
     <!-- ===== BODY: SIDEBAR + CONTENT ===== -->
@@ -32,7 +34,7 @@
       <ui:VisualElement name="contentContainer" class="content-container">
 
     <!-- ===== CALENDAR PANEL ===== -->
-    <ui:VisualElement name="calendarPanel" class="hidden">
+    <ui:ScrollView name="calendarPanel" class="hidden">
       <ui:Label text="Calendar" class="section-title" />
       <ui:Label text="Plan and navigate shows by date." class="label" />
       <ui:VisualElement class="calendar-header">
@@ -51,10 +53,10 @@
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== CARD BUILDER PANEL ===== -->
-    <ui:VisualElement name="cardBuilderPanel" class="hidden">
+    <ui:ScrollView name="cardBuilderPanel" class="hidden">
       <ui:Label text="Card Builder" class="section-title" />
       <ui:VisualElement class="card-builder">
         <ui:VisualElement class="cb-meta">
@@ -104,10 +106,10 @@
         <ui:Button name="cbSaveShowButton" text="Save Show" />
         <ui:Button name="cbCancelShowButton" text="Cancel" />
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== RANKINGS PANEL ===== -->
-    <ui:VisualElement name="rankingsPanel" class="hidden">
+    <ui:ScrollView name="rankingsPanel" class="hidden">
       <ui:Label text="Rankings" class="section-title" />
       <ui:VisualElement class="rankings-layout">
         <ui:VisualElement name="rankingsNav" class="rankings-nav">
@@ -125,10 +127,10 @@
         </ui:VisualElement>
         <ui:ScrollView name="rankingsList" class="list rankings-list" />
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== PROMOTION INFO PANEL ===== -->
-    <ui:VisualElement name="promotionInfoPanel">
+    <ui:ScrollView name="promotionInfoPanel">
       <ui:Label name="promotionTitle" text="Promotion Information" class="section-title" />
       <ui:Label name="nameLabel" text="Name: [None]" />
       <ui:Label name="locationLabel" text="Location: [None]" />
@@ -149,25 +151,30 @@
           <ui:Button name="cancelPromotionButton" text="Cancel" />
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== WRESTLERS PANEL ===== -->
-    <ui:VisualElement name="wrestlersPanel" class="hidden">
+    <ui:ScrollView name="wrestlersPanel" class="hidden">
       <ui:Label text="Wrestlers" class="section-title" />
       <ui:VisualElement class="wrestler-layout">
         <ui:ScrollView name="wrestlerList" class="list" />
-        <ui:VisualElement class="wrestler-detail-column">
+          <ui:VisualElement class="wrestler-detail-column">
           <ui:VisualElement name="wrestlerDetails" class="hidden wrestler-detail-card">
             <ui:Label text="Wrestler Details" class="subsection-title" />
             <ui:TextField name="wrestlerNameField" label="Name" />
-            <ui:TextField name="wrestlerHometownField" label="Hometown" />
             <ui:Toggle name="wrestlerIsFemaleToggle" label="Female" />
-            <ui:FloatField name="wrestlerHeightField" label="Height (cm)" />
-            <ui:FloatField name="wrestlerWeightField" label="Weight (lbs)" />
             <ui:VisualElement class="row">
               <ui:Button name="saveWrestlerButton" text="Save Changes" />
               <ui:Button name="deleteWrestlerButton" text="Delete" />
               <ui:Button name="cancelEditButton" text="Cancel" />
+            </ui:VisualElement>
+            <ui:VisualElement name="wrestlerCareerPanel" class="wrestler-career">
+              <ui:Label text="Career Summary" class="subsection-title" />
+              <ui:Label name="wrestlerCareerRecordLabel" text="No matches recorded yet." />
+              <ui:Label name="wrestlerCareerSpanLabel" />
+              <ui:Label name="wrestlerCareerTitlesLabel" />
+              <ui:Label text="Recent Matches" class="subsection-title" />
+              <ui:ScrollView name="wrestlerCareerMatchesList" class="list" />
             </ui:VisualElement>
           </ui:VisualElement>
 
@@ -181,10 +188,10 @@
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== TITLES PANEL ===== -->
-    <ui:VisualElement name="titlesPanel" class="hidden">
+    <ui:ScrollView name="titlesPanel" class="hidden">
       <ui:Label text="Titles" class="section-title" />
       <ui:VisualElement class="titles-layout">
         <ui:ScrollView name="titleList" class="list" />
@@ -236,10 +243,10 @@
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== TOURNAMENTS PANEL ===== -->
-    <ui:VisualElement name="tournamentsPanel" class="hidden">
+    <ui:ScrollView name="tournamentsPanel" class="hidden">
       <ui:Label text="Tournaments" class="section-title" />
 
       <!-- Create/Add panel (default visible) -->
@@ -297,10 +304,10 @@
         <!-- List column (right) -->
         <ui:ScrollView name="tournamentList" class="list" />
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== TAG TEAMS PANEL ===== -->
-    <ui:VisualElement name="tagTeamsPanel" class="hidden">
+    <ui:ScrollView name="tagTeamsPanel" class="hidden">
       <ui:Label text="Tag Teams" class="section-title" />
       <ui:VisualElement class="tag-team-layout">
         <ui:VisualElement class="tag-team-detail-column">
@@ -325,10 +332,10 @@
         </ui:VisualElement>
         <ui:ScrollView name="tagTeamList" class="list" />
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== SHOWS PANEL ===== -->
-    <ui:VisualElement name="showsPanel" class="hidden">
+    <ui:ScrollView name="showsPanel" class="hidden">
       <ui:Label text="Shows &amp; Events" class="section-title" />
       <ui:Label text="Bulk edit shows and details." class="label" />
       <ui:VisualElement class="shows-layout">
@@ -407,10 +414,10 @@
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
 
     <!-- ===== HISTORY PANEL ===== -->
-    <ui:VisualElement name="historyPanel" class="hidden">
+    <ui:ScrollView name="historyPanel" class="hidden">
       <ui:Label text="Promotion History" class="section-title" />
 
       <!-- Primary: list of shows to browse results -->
@@ -430,11 +437,11 @@
       </ui:VisualElement>
 
       <!-- Aggregated sections removed per request -->
-    </ui:VisualElement>
+    </ui:ScrollView>
 
   
     <!-- ===== STABLES PANEL ===== -->
-    <ui:VisualElement name="stablesPanel" class="hidden">
+    <ui:ScrollView name="stablesPanel" class="hidden">
       <ui:Label text="Stables" class="section-title" />
       <ui:VisualElement class="tournament-layout">
         <!-- Members column (left) -->
@@ -474,11 +481,11 @@
         <!-- Stables list (right) -->
         <ui:ScrollView name="stableList" class="list" />
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
       </ui:VisualElement> <!-- end contentContainer -->
 
     <!-- ===== RIVALRIES PANEL ===== -->
-    <ui:VisualElement name="rivalriesPanel" class="hidden">
+    <ui:ScrollView name="rivalriesPanel" class="hidden">
       <ui:Label text="Rivalries" class="section-title" />
       <ui:VisualElement class="rivalry-layout">
         <!-- Left: list of rivalries -->
@@ -527,7 +534,7 @@
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
-    </ui:VisualElement>
+    </ui:ScrollView>
     </ui:VisualElement> <!-- end dashboardBody -->
   </ui:VisualElement> <!-- end root -->
 </ui:UXML>

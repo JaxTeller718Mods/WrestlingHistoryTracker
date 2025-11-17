@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -23,7 +24,7 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, returnButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, returnButton, minimizeButton;
 
     // Panels
     private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rivalriesPanel, rankingsPanel;
@@ -61,6 +62,10 @@ public class PromotionDashboard : MonoBehaviour
     private Toggle wrestlerIsFemaleToggle, newWrestlerIsFemaleToggle;
     private FloatField wrestlerHeightField, wrestlerWeightField;
     private Button addWrestlerButton, saveWrestlersButton, saveWrestlerButton, deleteWrestlerButton, cancelEditButton;
+    // Wrestler career UI
+    private VisualElement wrestlerCareerPanel;
+    private Label wrestlerCareerRecordLabel, wrestlerCareerSpanLabel, wrestlerCareerTitlesLabel;
+    private ScrollView wrestlerCareerMatchesList;
     private int selectedWrestlerIndex = -1;
     // Titles (Step 4)
     private ScrollView titleListScroll, titleHistoryList;
@@ -196,6 +201,7 @@ public class PromotionDashboard : MonoBehaviour
         rivalriesButton = root.Q<Button>("rivalriesButton");
         rankingsButton = root.Q<Button>("rankingsButton");
         returnButton = root.Q<Button>("returnButton");
+        minimizeButton = root.Q<Button>("minimizeButton");
         statusLabel = root.Q<Label>("statusLabel");
 
         // Query panels
@@ -253,6 +259,11 @@ public class PromotionDashboard : MonoBehaviour
         // Wrestler details/add panel
         wrestlerDetails = root.Q<VisualElement>("wrestlerDetails");
         wrestlerAddPanel = root.Q<VisualElement>("wrestlerAddPanel");
+        wrestlerCareerPanel = root.Q<VisualElement>("wrestlerCareerPanel");
+        wrestlerCareerRecordLabel = root.Q<Label>("wrestlerCareerRecordLabel");
+        wrestlerCareerSpanLabel = root.Q<Label>("wrestlerCareerSpanLabel");
+        wrestlerCareerTitlesLabel = root.Q<Label>("wrestlerCareerTitlesLabel");
+        wrestlerCareerMatchesList = root.Q<ScrollView>("wrestlerCareerMatchesList");
         wrestlerNameField = root.Q<TextField>("wrestlerNameField");
         wrestlerHometownField = root.Q<TextField>("wrestlerHometownField");
         wrestlerIsFemaleToggle = root.Q<Toggle>("wrestlerIsFemaleToggle");
@@ -463,6 +474,7 @@ public class PromotionDashboard : MonoBehaviour
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rivalriesButton != null) rivalriesButton.clicked += ShowRivalriesPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        if (minimizeButton != null) minimizeButton.clicked += OnMinimizeClicked;
         // Rivalries handlers
         if (addRivalryButton != null) addRivalryButton.clicked += OnAddRivalry;
         if (saveRivalriesButton != null) saveRivalriesButton.clicked += OnSaveRivalries;
@@ -1324,6 +1336,7 @@ public class PromotionDashboard : MonoBehaviour
         if (wrestlerIsFemaleToggle != null) wrestlerIsFemaleToggle.value = w.isFemale;
         if (wrestlerHeightField != null) wrestlerHeightField.value = w.height;
         if (wrestlerWeightField != null) wrestlerWeightField.value = w.weight;
+        UpdateWrestlerCareerSummary(w);
         FocusPanel(wrestlerDetails ?? wrestlersPanel);
     }
 
@@ -1346,6 +1359,170 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(wrestlersPanel);
     }
 
+    private void UpdateWrestlerCareerSummary(WrestlerData wrestler)
+    {
+        if (wrestler == null || currentPromotion == null)
+            return;
+
+        try
+        {
+            TitleHistoryManager.EnsureHistoryLoaded(currentPromotion);
+            var allMatches = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName) ?? new List<MatchResultData>();
+            var lineages = TitleHistoryManager.GetTitleLineages(currentPromotion.promotionName) ?? new List<TitleLineageData>();
+
+            // Filter matches involving this wrestler (by current name)
+            var name = wrestler.name ?? string.Empty;
+            bool Involves(MatchResultData m)
+                => m != null &&
+                   (!string.IsNullOrEmpty(m.wrestlerA) && StringEquals(m.wrestlerA, name) ||
+                    !string.IsNullOrEmpty(m.wrestlerB) && StringEquals(m.wrestlerB, name));
+
+            var matches = allMatches.Where(Involves).ToList();
+
+            int wins = 0, losses = 0, draws = 0;
+            DateTime first = DateTime.MinValue, last = DateTime.MinValue;
+
+            foreach (var m in matches)
+            {
+                if (!string.IsNullOrEmpty(m.date) && DateTime.TryParse(m.date, out var d))
+                {
+                    if (first == DateTime.MinValue || d < first) first = d;
+                    if (last == DateTime.MinValue || d > last) last = d;
+                }
+
+                var winner = m.winner ?? string.Empty;
+                if (string.Equals(winner, "Draw", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(winner, "No Contest", StringComparison.OrdinalIgnoreCase))
+                {
+                    draws++;
+                }
+                else if (StringEquals(winner, name))
+                {
+                    wins++;
+                }
+                else if (!string.IsNullOrEmpty(winner))
+                {
+                    // Count loss if someone else is listed as winner
+                    losses++;
+                }
+            }
+
+            int total = wins + losses + draws;
+            if (wrestlerCareerRecordLabel != null)
+            {
+                wrestlerCareerRecordLabel.text = total > 0
+                    ? $"Record: {wins} W - {losses} L - {draws} D ({total} matches)"
+                    : "No matches recorded yet.";
+            }
+
+            if (wrestlerCareerSpanLabel != null)
+            {
+                if (total == 0 || first == DateTime.MinValue)
+                    wrestlerCareerSpanLabel.text = string.Empty;
+                else if (last == DateTime.MinValue || last == first)
+                    wrestlerCareerSpanLabel.text = $"Active: {first:MM/dd/yyyy}";
+                else
+                    wrestlerCareerSpanLabel.text = $"Active: {first:MM/dd/yyyy} - {last:MM/dd/yyyy}";
+            }
+
+            // Titles held: collect unique titles where this wrestler appears as champion
+            var titlesHeld = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            int totalReigns = 0;
+            foreach (var lineage in lineages)
+            {
+                if (lineage?.reigns == null) continue;
+                bool anyForThis = false;
+                foreach (var reign in lineage.reigns)
+                {
+                    if (reign != null && StringEquals(reign.championName, name))
+                    {
+                        anyForThis = true;
+                        totalReigns++;
+                    }
+                }
+                if (anyForThis && !string.IsNullOrEmpty(lineage.titleName))
+                    titlesHeld.Add(lineage.titleName);
+            }
+
+            if (wrestlerCareerTitlesLabel != null)
+            {
+                if (titlesHeld.Count == 0)
+                {
+                    wrestlerCareerTitlesLabel.text = "Titles held: none recorded.";
+                }
+                else
+                {
+                    var titlesText = string.Join(", ", titlesHeld.OrderBy(t => t));
+                    wrestlerCareerTitlesLabel.text = totalReigns > 0
+                        ? $"Titles held: {titlesText} ({totalReigns} total reigns)"
+                        : $"Titles held: {titlesText}";
+                }
+            }
+
+            // Recent matches list (most recent first, capped)
+            if (wrestlerCareerMatchesList != null)
+            {
+                wrestlerCareerMatchesList.Clear();
+                const int maxMatches = 15;
+                var ordered = matches
+                    .OrderByDescending(m =>
+                    {
+                        if (!string.IsNullOrEmpty(m.date) && DateTime.TryParse(m.date, out var d))
+                            return d;
+                        return DateTime.MinValue;
+                    })
+                    .ThenByDescending(m => m.showName)
+                    .ThenByDescending(m => m.matchName)
+                    .Take(maxMatches);
+
+                foreach (var m in ordered)
+                {
+                    var row = new VisualElement();
+                    var dateLabel = !string.IsNullOrEmpty(m.date) ? m.date : "Unknown date";
+                    var showPart = string.IsNullOrEmpty(m.showName) ? string.Empty : $"{m.showName} - ";
+                    var matchName = string.IsNullOrEmpty(m.matchName) ? "(Match)" : m.matchName;
+                    row.Add(new Label($"{dateLabel}  |  {showPart}{matchName}"));
+
+                    string outcome;
+                    var winner = m.winner ?? string.Empty;
+                    if (string.Equals(winner, "Draw", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(winner, "No Contest", StringComparison.OrdinalIgnoreCase))
+                    {
+                        outcome = winner;
+                    }
+                    else if (StringEquals(winner, name))
+                    {
+                        outcome = "Result: Win";
+                    }
+                    else if (!string.IsNullOrEmpty(winner))
+                    {
+                        outcome = $"Result: Loss (winner: {winner})";
+                    }
+                    else
+                    {
+                        outcome = "Result: (unknown)";
+                    }
+
+                    if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleInvolved))
+                    {
+                        outcome += $"  |  Title: {m.titleInvolved}";
+                    }
+
+                    row.Add(new Label(outcome));
+                    row.style.marginBottom = 4;
+                    wrestlerCareerMatchesList.Add(row);
+                }
+            }
+
+            if (wrestlerCareerPanel != null)
+                wrestlerCareerPanel.RemoveFromClassList("hidden");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to update wrestler career summary: {ex.Message}");
+        }
+    }
+
     private void OnDeleteSelectedWrestler()
     {
         if (wrestlerCollection?.wrestlers == null || selectedWrestlerIndex < 0 || selectedWrestlerIndex >= wrestlerCollection.wrestlers.Count) return;
@@ -1365,6 +1542,34 @@ public class PromotionDashboard : MonoBehaviour
         if (wrestlerAddPanel != null) wrestlerAddPanel.RemoveFromClassList("hidden");
         FocusPanel(wrestlersPanel);
     }
+
+    private void OnMinimizeClicked()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try
+        {
+            IntPtr handle = GetActiveWindow();
+            if (handle != IntPtr.Zero)
+            {
+                ShowWindow(handle, 6); // SW_MINIMIZE
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to minimize window: {ex.Message}");
+        }
+#else
+        Debug.Log("Minimize is only supported in Windows standalone builds.");
+#endif
+    }
+
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetActiveWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+#endif
 
     // --------- Titles (Step 4) ---------
     private void EnsureTitleListView()

@@ -127,8 +127,25 @@ button:active {
     max-width: 1800px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     margin-bottom: 12px;
+}
+
+.dashboard-header-row {
+    width: 100%;
+    max-width: 1800px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.window-button-minimize {
+    width: 32px;
+    height: 24px;
+    padding-left: 0;
+    padding-right: 0;
+    -unity-text-align: middle-center;
 }
 
 /* New two-column layout */
@@ -260,6 +277,14 @@ FloatField > .unity-float-field__input {
 }
 .wrestler-detail-card .row > *,
 .wrestler-add-card .row > * { margin-right: 8px; margin-bottom: 8px; }
+
+/* Wrestler career summary */
+.wrestler-career {
+    margin-top: 8px;
+}
+.wrestler-career > Label {
+    margin-top: 2px;
+}
 
 /* ===== TITLES LAYOUT ===== */
 .titles-layout {
@@ -764,6 +789,4 @@ Label {
     position: relative;
     left: -64px; /* adjust as desired */
 }
-
-
 
