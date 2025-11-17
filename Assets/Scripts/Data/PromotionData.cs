@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Collections.Generic;   // ✅ Needed for List<>
+using System.Collections.Generic;   // �o. Needed for List<>
 using UnityEngine;
 
 /// <summary>
@@ -14,12 +14,14 @@ public class PromotionData
     public string foundedYear;
     public string description;
 
-    // ✅ Added: list of shows/events for this promotion
+    // �o. Added: list of shows/events for this promotion
     public List<WrestlerData> wrestlers = new();
     public List<TitleData> titles = new();
     public List<ShowData> shows = new();
+    // Optional: brands within this promotion (e.g., Raw, SmackDown)
+    public List<string> brands = new();
 
-    // 🔹 Future-proof placeholders (you can fill them later)
+    // dY"1 Future-proof placeholders (you can fill them later)
     // public List<WrestlerData> wrestlers = new();
     // public List<TitleData> titles = new();
 
@@ -47,3 +49,4 @@ public class PromotionData
         return JsonUtility.FromJson<PromotionData>(json);
     }
 }
+

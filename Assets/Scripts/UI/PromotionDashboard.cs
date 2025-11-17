@@ -123,6 +123,10 @@ public class PromotionDashboard : MonoBehaviour
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
+    // Brands UI
+    private ScrollView brandListScroll;
+    private TextField newBrandField;
+    private Button addBrandButton;
 
     // Shows UI (details + editors)
     private VisualElement showDetailsPanel, showAddPanel, matchEditor, segmentEditor;
@@ -130,6 +134,7 @@ public class PromotionDashboard : MonoBehaviour
     private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
     private IntegerField showAttendanceField, newShowAttendanceField;
     private FloatField showRatingField, newShowRatingField;
+    private DropdownField showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
@@ -221,6 +226,7 @@ public class PromotionDashboard : MonoBehaviour
         historyResultsHeader = root.Q<Label>("historyResultsHeader");
         historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
         historyLocationFilterField = root.Q<TextField>("historyLocationFilterField");
+        historyBrandDropdown = root.Q<DropdownField>("historyBrandDropdown");
         rankingsPanel = root.Q<VisualElement>("rankingsPanel");
         // Rivalries queries
         rivalryListScroll = root.Q<ScrollView>("rivalryList");
@@ -326,6 +332,7 @@ public class PromotionDashboard : MonoBehaviour
         rankingsTypeDropdown = root.Q<DropdownField>("rankingsTypeDropdown");
         rankingsGenderDropdown = root.Q<DropdownField>("rankingsGenderDropdown");
         rankingsDivisionDropdown = root.Q<DropdownField>("rankingsDivisionDropdown");
+        rankingsBrandDropdown = root.Q<DropdownField>("rankingsBrandDropdown");
         rankingsWeekDropdown = root.Q<DropdownField>("rankingsWeekDropdown");
         rankingsDateField = root.Q<TextField>("rankingsDateField");
         computeRankingsButton = root.Q<Button>("computeRankingsButton");
@@ -356,6 +363,7 @@ public class PromotionDashboard : MonoBehaviour
         newShowDateField = root.Q<TextField>("newShowDateField");
         newShowVenueField = root.Q<TextField>("newShowVenueField");
         newShowCityField = root.Q<TextField>("newShowCityField");
+        newShowBrandDropdown = root.Q<DropdownField>("newShowBrandDropdown");
         newShowAttendanceField = root.Q<IntegerField>("newShowAttendanceField");
         newShowRatingField = root.Q<FloatField>("newShowRatingField");
         addShowButton = root.Q<Button>("addShowButton");
@@ -367,6 +375,7 @@ public class PromotionDashboard : MonoBehaviour
         showDateField = root.Q<TextField>("showDateField");
         showVenueField = root.Q<TextField>("showVenueField");
         showCityField = root.Q<TextField>("showCityField");
+        showBrandDropdown = root.Q<DropdownField>("showBrandDropdown");
         showAttendanceField = root.Q<IntegerField>("showAttendanceField");
         showRatingField = root.Q<FloatField>("showRatingField");
         saveShowButton = root.Q<Button>("saveShowButton");
@@ -408,6 +417,8 @@ public class PromotionDashboard : MonoBehaviour
             newShowDateField.RegisterCallback<FocusOutEvent>(_ => { NormalizeDateField(newShowDateField); });
         }
 
+        if (historyBrandDropdown != null)
+            historyBrandDropdown.RegisterValueChangedCallback(_ => PopulateHistoryShowsList());
         if (historyLocationFilterField != null)
         {
             historyLocationFilterField.RegisterValueChangedCallback(_ => PopulateHistoryShowsList());
@@ -432,6 +443,9 @@ public class PromotionDashboard : MonoBehaviour
         foundedField = root.Q<TextField>("foundedField");
         descriptionField = root.Q<TextField>("descriptionField");
         editPanel = root.Q<VisualElement>("editPanel");
+        brandListScroll = root.Q<ScrollView>("brandList");
+        newBrandField = root.Q<TextField>("newBrandField");
+        addBrandButton = root.Q<Button>("addBrandButton");
         // Tag Teams queries
         teamNameField = root.Q<TextField>("teamNameField");
         teamMemberADropdown = root.Q<DropdownField>("teamMemberADropdown");
@@ -547,6 +561,7 @@ public class PromotionDashboard : MonoBehaviour
         if (editPromotionButton != null) editPromotionButton.clicked += ShowPromotionEditPanel;
         if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
         if (cancelPromotionButton != null) cancelPromotionButton.clicked += HidePromotionEditPanel;
+        if (addBrandButton != null) addBrandButton.clicked += OnAddBrand;
         // Shows handlers
         if (addShowButton != null) addShowButton.clicked += OnAddShow;
         if (saveShowsButton != null) saveShowsButton.clicked += OnSaveShows;
@@ -642,6 +657,10 @@ public class PromotionDashboard : MonoBehaviour
         // Rankings 2.0 setup
         InitializeRankingsControls();
         ComputeOverallRankings();
+
+        // Brands UI
+        RefreshBrandList();
+        RefreshBrandDropdowns();
 
         // Default panel and status
         SetActivePanel(promotionInfoPanel ?? root);
@@ -1523,6 +1542,53 @@ public class PromotionDashboard : MonoBehaviour
         }
     }
 
+    private void RefreshBrandDropdowns()
+    {
+        var brands = currentPromotion?.brands ?? new List<string>();
+
+        // Shows: existing and new
+        List<string> MakeBrandChoices()
+        {
+            var list = new List<string> { "" };
+            list.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            return list;
+        }
+
+        var showChoices = MakeBrandChoices();
+        if (showBrandDropdown != null)
+        {
+            showBrandDropdown.choices = showChoices;
+            if (!showChoices.Contains(showBrandDropdown.value))
+                showBrandDropdown.value = "";
+        }
+        if (newShowBrandDropdown != null)
+        {
+            newShowBrandDropdown.choices = showChoices;
+            if (!showChoices.Contains(newShowBrandDropdown.value))
+                newShowBrandDropdown.value = "";
+        }
+
+        // History filter
+        if (historyBrandDropdown != null)
+        {
+            var histChoices = new List<string> { "All Brands" };
+            histChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            historyBrandDropdown.choices = histChoices;
+            if (!histChoices.Contains(historyBrandDropdown.value))
+                historyBrandDropdown.value = "All Brands";
+        }
+
+        // Rankings filter
+        if (rankingsBrandDropdown != null)
+        {
+            var rankChoices = new List<string> { "All Brands" };
+            rankChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            rankingsBrandDropdown.choices = rankChoices;
+            if (!rankChoices.Contains(rankingsBrandDropdown.value))
+                rankingsBrandDropdown.value = "All Brands";
+        }
+    }
+
     private void OnDeleteSelectedWrestler()
     {
         if (wrestlerCollection?.wrestlers == null || selectedWrestlerIndex < 0 || selectedWrestlerIndex >= wrestlerCollection.wrestlers.Count) return;
@@ -1541,6 +1607,31 @@ public class PromotionDashboard : MonoBehaviour
         selectedWrestlerIndex = -1;
         if (wrestlerAddPanel != null) wrestlerAddPanel.RemoveFromClassList("hidden");
         FocusPanel(wrestlersPanel);
+    }
+
+    private void OnAddBrand()
+    {
+        if (currentPromotion == null) return;
+        var raw = newBrandField != null ? (newBrandField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(raw))
+        {
+            if (statusLabel != null) statusLabel.text = "Enter a brand name.";
+            return;
+        }
+
+        currentPromotion.brands ??= new List<string>();
+        if (currentPromotion.brands.Any(b => string.Equals(b, raw, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (statusLabel != null) statusLabel.text = "Brand already exists.";
+            return;
+        }
+
+        currentPromotion.brands.Add(raw);
+        DataManager.SavePromotion(currentPromotion);
+        if (newBrandField != null) newBrandField.value = string.Empty;
+        RefreshBrandList();
+        RefreshBrandDropdowns();
+        if (statusLabel != null) statusLabel.text = "Brand added.";
     }
 
     private void OnMinimizeClicked()
@@ -1570,6 +1661,59 @@ public class PromotionDashboard : MonoBehaviour
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 #endif
+
+    private void RefreshBrandList()
+    {
+        if (brandListScroll == null) return;
+        brandListScroll.Clear();
+        var brands = currentPromotion?.brands ?? new List<string>();
+        var shows = currentPromotion?.shows ?? new List<ShowData>();
+
+        if (brands.Count == 0)
+        {
+            brandListScroll.Add(new Label("No brands defined."));
+            return;
+        }
+
+        foreach (var b in brands.OrderBy(x => x))
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.marginBottom = 4;
+
+            int count = shows.Count(s => s != null && !string.IsNullOrEmpty(s.brand) && StringEquals(s.brand, b));
+            var label = new Label(count > 0 ? $"{b} ({count} shows)" : b);
+            label.style.flexGrow = 1;
+
+            var deleteBtn = new Button(() => OnDeleteBrand(b)) { text = "Delete" };
+
+            row.Add(label);
+            row.Add(deleteBtn);
+            brandListScroll.Add(row);
+        }
+    }
+
+    private void OnDeleteBrand(string brand)
+    {
+        if (currentPromotion == null || string.IsNullOrEmpty(brand)) return;
+        if (currentPromotion.brands == null) return;
+        currentPromotion.brands.RemoveAll(b => StringEquals(b, brand));
+
+        // Clear brand from shows that used it
+        if (currentPromotion.shows != null)
+        {
+            foreach (var s in currentPromotion.shows)
+            {
+                if (s != null && !string.IsNullOrEmpty(s.brand) && StringEquals(s.brand, brand))
+                    s.brand = null;
+            }
+        }
+
+        DataManager.SavePromotion(currentPromotion);
+        RefreshBrandList();
+        RefreshBrandDropdowns();
+        if (statusLabel != null) statusLabel.text = "Brand deleted.";
+    }
 
     // --------- Titles (Step 4) ---------
     private void EnsureTitleListView()
@@ -2470,6 +2614,11 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowCityField != null) show.city = (newShowCityField.value ?? string.Empty).Trim();
         if (newShowAttendanceField != null) show.attendance = newShowAttendanceField.value;
         if (newShowRatingField != null) show.rating = newShowRatingField.value;
+        if (newShowBrandDropdown != null)
+        {
+            var b = (newShowBrandDropdown.value ?? string.Empty).Trim();
+            show.brand = string.IsNullOrEmpty(b) ? null : b;
+        }
         currentPromotion.shows.Add(show);
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
@@ -2477,6 +2626,7 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowDateField != null) newShowDateField.value = string.Empty;
         if (newShowVenueField != null) newShowVenueField.value = string.Empty;
         if (newShowCityField != null) newShowCityField.value = string.Empty;
+        if (newShowBrandDropdown != null) newShowBrandDropdown.value = "";
         if (newShowAttendanceField != null) newShowAttendanceField.value = 0;
         if (newShowRatingField != null) newShowRatingField.value = 0f;
         if (statusLabel != null) statusLabel.text = "Show added.";
@@ -2503,6 +2653,7 @@ public class PromotionDashboard : MonoBehaviour
         if (showDateField != null) showDateField.value = s.date;
         if (showVenueField != null) showVenueField.value = s.venue;
         if (showCityField != null) showCityField.value = s.city;
+        if (showBrandDropdown != null) showBrandDropdown.value = s.brand ?? string.Empty;
         if (showAttendanceField != null) showAttendanceField.value = s.attendance;
         if (showRatingField != null) showRatingField.value = s.rating;
         FocusPanel(showDetailsPanel ?? showsPanel);
@@ -2520,6 +2671,11 @@ public class PromotionDashboard : MonoBehaviour
         if (showCityField != null) s.city = showCityField.value;
         if (showAttendanceField != null) s.attendance = showAttendanceField.value;
         if (showRatingField != null) s.rating = showRatingField.value;
+        if (showBrandDropdown != null)
+        {
+            var b = (showBrandDropdown.value ?? string.Empty).Trim();
+            s.brand = string.IsNullOrEmpty(b) ? null : b;
+        }
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
         RefreshShowList();
@@ -2995,6 +3151,12 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (historyShowsListView == null) return;
         var all = currentPromotion?.shows ?? new List<ShowData>();
+        // Brand filter
+        string brandFilter = historyBrandDropdown != null ? (historyBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
+        if (!string.IsNullOrEmpty(brandFilter) && !string.Equals(brandFilter, "All Brands", StringComparison.OrdinalIgnoreCase))
+        {
+            all = all.Where(s => s != null && !string.IsNullOrEmpty(s.brand) && StringEquals(s.brand, brandFilter)).ToList();
+        }
         string filter = historyLocationFilterField != null ? (historyLocationFilterField.value ?? string.Empty).Trim() : string.Empty;
         if (!string.IsNullOrEmpty(filter))
         {
@@ -3767,9 +3929,18 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         bool InWeek(DateTime d) => d.Date >= weekStart.Date && d.Date <= weekEnd.Date;
+        string brandFilter = rankingsBrandDropdown != null ? (rankingsBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
+        bool MatchBrand(ShowData s)
+        {
+            if (s == null) return false;
+            if (string.IsNullOrEmpty(brandFilter) || string.Equals(brandFilter, "All Brands", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return !string.IsNullOrEmpty(s.brand) && StringEquals(s.brand, brandFilter);
+        }
 
         foreach (var show in currentPromotion.shows ?? new List<ShowData>())
         {
+            if (!MatchBrand(show)) continue;
             if (!CalendarUtils.TryParseAny(show?.date, out var sd)) continue;
             if (!InWeek(sd)) continue;
             foreach (var m in show.matches ?? new List<MatchData>())

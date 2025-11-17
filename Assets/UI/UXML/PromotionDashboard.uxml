@@ -64,6 +64,7 @@
           <ui:TextField name="cbShowDateField" label="Date (yyyy-MM-dd)" />
           <ui:TextField name="cbShowVenueField" label="Venue" />
           <ui:TextField name="cbShowCityField" label="City" />
+          <ui:DropdownField name="cbShowBrandDropdown" label="Brand (optional)" />
           <ui:IntegerField name="cbShowAttendanceField" label="Attendance" />
           <ui:FloatField name="cbShowRatingField" label="Rating" />
           <ui:VisualElement class="row">
@@ -116,6 +117,7 @@
           <ui:DropdownField name="rankingsTypeDropdown" label="Type" />
           <ui:DropdownField name="rankingsGenderDropdown" label="Gender" />
           <ui:DropdownField name="rankingsDivisionDropdown" label="Division" />
+          <ui:DropdownField name="rankingsBrandDropdown" label="Brand (optional)" />
           <ui:DropdownField name="rankingsWeekDropdown" label="Week Snapshot" />
           <ui:VisualElement class="row">
             <ui:TextField name="rankingsDateField" label="As Of (MM/DD/YYYY)" />
@@ -139,6 +141,13 @@
 
       <ui:VisualElement class="row">
         <ui:Button name="editPromotionButton" text="Edit Promotion" />
+      </ui:VisualElement>
+
+      <ui:Label text="Brands" class="section-title" />
+      <ui:ScrollView name="brandList" class="list" />
+      <ui:VisualElement class="row">
+        <ui:TextField name="newBrandField" label="New Brand Name" />
+        <ui:Button name="addBrandButton" text="Add Brand" />
       </ui:VisualElement>
 
       <ui:VisualElement name="editPanel" class="hidden">
@@ -345,11 +354,12 @@
         <ui:VisualElement class="show-edit-columns">
           <!-- Details of the selected show -->
           <ui:VisualElement name="showDetails" class="hidden show-detail-card">
-            <ui:Label text="Show Details" class="subsection-title" />
-            <ui:TextField name="showNameField" label="Show Name" />
-            <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-            <ui:TextField name="showVenueField" label="Venue" />
-            <ui:TextField name="showCityField" label="City" />
+          <ui:Label text="Show Details" class="subsection-title" />
+          <ui:TextField name="showNameField" label="Show Name" />
+          <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
+          <ui:TextField name="showVenueField" label="Venue" />
+          <ui:TextField name="showCityField" label="City" />
+          <ui:DropdownField name="showBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="showAttendanceField" label="Attendance" />
             <ui:FloatField name="showRatingField" label="Buyrate / TV Rating" />
             <ui:VisualElement class="row">
@@ -405,6 +415,7 @@
             <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
             <ui:TextField name="newShowVenueField" label="Venue" />
             <ui:TextField name="newShowCityField" label="City" />
+            <ui:DropdownField name="newShowBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="newShowAttendanceField" label="Attendance" />
             <ui:FloatField name="newShowRatingField" label="Buyrate / TV Rating" />
             <ui:VisualElement class="row">
@@ -423,6 +434,7 @@
       <!-- Primary: list of shows to browse results -->
       <ui:VisualElement name="historyShowsPanel">
         <ui:Label text="Shows" class="subsection-title" />
+        <ui:DropdownField name="historyBrandDropdown" label="Brand (optional)" />
         <ui:TextField name="historyLocationFilterField" label="Filter by City/Venue" />
         <ui:ScrollView name="historyShowsList" class="list" />
       </ui:VisualElement>

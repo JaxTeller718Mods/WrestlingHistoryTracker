@@ -9,6 +9,7 @@ public class CardBuilderView
     private VisualElement panel;
     private TextField showNameField, showDateField, showVenueField, showCityField;
     private IntegerField showAttendanceField; private FloatField showRatingField;
+    private DropdownField showBrandDropdown;
     private DropdownField templateDropdown; private Button applyTemplateButton;
     private ScrollView entryListScroll; // container
     private ListView entryListView;
@@ -45,6 +46,7 @@ public class CardBuilderView
         showDateField = panel.Q<TextField>("cbShowDateField");
         showVenueField = panel.Q<TextField>("cbShowVenueField");
         showCityField = panel.Q<TextField>("cbShowCityField");
+        showBrandDropdown = panel.Q<DropdownField>("cbShowBrandDropdown");
         showAttendanceField = panel.Q<IntegerField>("cbShowAttendanceField");
         showRatingField = panel.Q<FloatField>("cbShowRatingField");
         templateDropdown = panel.Q<DropdownField>("cbTemplateDropdown");
@@ -75,6 +77,14 @@ public class CardBuilderView
         matchTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Triple Threat", "Four Way" };
         templateDropdown.choices = ShowTemplates.Templates.Select(t => t.name).ToList();
         if (templateDropdown.choices.Count > 0) templateDropdown.value = templateDropdown.choices[0];
+        if (showBrandDropdown != null)
+        {
+            var brands = Promotion?.brands ?? new List<string>();
+            var brandChoices = new List<string> { "" };
+            brandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            showBrandDropdown.choices = brandChoices;
+            showBrandDropdown.value = "";
+        }
 
         if (applyTemplateButton != null) applyTemplateButton.clicked += ApplyTemplate;
         if (addMatchButton != null) addMatchButton.clicked += () => { AddMatch(); RefreshEntryList(); };
@@ -187,6 +197,17 @@ public class CardBuilderView
         showCityField.value = workingShow.city ?? string.Empty;
         showAttendanceField.value = workingShow.attendance;
         showRatingField.value = workingShow.rating;
+        if (showBrandDropdown != null)
+        {
+            var b = workingShow.brand ?? string.Empty;
+            if (!string.IsNullOrEmpty(b) && !showBrandDropdown.choices.Contains(b))
+            {
+                var list = new List<string>(showBrandDropdown.choices ?? new List<string>());
+                list.Add(b);
+                showBrandDropdown.choices = list;
+            }
+            showBrandDropdown.value = b;
+        }
         RefreshEntryList();
         SelectEntry(-1); // clear selection
     }
@@ -399,6 +420,8 @@ public class CardBuilderView
         workingShow.city = showCityField.value?.Trim();
         workingShow.attendance = showAttendanceField.value;
         workingShow.rating = showRatingField.value;
+        if (showBrandDropdown != null)
+            workingShow.brand = string.IsNullOrWhiteSpace(showBrandDropdown.value) ? null : showBrandDropdown.value.Trim();
         workingShow.entryOrder = new List<string>(order);
 
         // Apply entry editor if modified
