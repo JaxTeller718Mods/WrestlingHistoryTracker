@@ -24,10 +24,10 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
-    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, returnButton, minimizeButton;
+    private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, awardsButton, returnButton, minimizeButton;
 
     // Panels
-    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rivalriesPanel, rankingsPanel;
+    private VisualElement promotionInfoPanel, wrestlersPanel, titlesPanel, tournamentsPanel, stablesPanel, tagTeamsPanel, showsPanel, calendarPanel, cardBuilderPanel, historyPanel, rivalriesPanel, rankingsPanel, awardsPanel;
     // History subpanels
     private VisualElement historyShowsPanel, historyResultsPanel;
     private Label historyResultsHeader;
@@ -99,6 +99,10 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView tournamentEntrantsList, tournamentMatchesList;
     private Button addTournamentButton, saveTournamentsButton, viewTournamentsButton, saveTournamentButton, deleteTournamentButton, cancelTournamentButton;
     private Button addEntrantButton, removeEntrantButton, generateBracketButton, advanceRoundButton, clearBracketButton;
+    // Awards UI
+    private TextField awardsYearField, wotyOverrideField, motyOverrideField, feudOverrideField, tagTeamOverrideField;
+    private Label wotySuggestionLabel, motySuggestionLabel, feudSuggestionLabel, tagTeamSuggestionLabel;
+    private Button computeAwardsButton, saveAwardsButton;
     private TournamentCollection tournamentCollection;
     private int selectedTournamentIndex = -1;
     // Tag Teams UI
@@ -206,6 +210,7 @@ public class PromotionDashboard : MonoBehaviour
         historyButton = root.Q<Button>("historyButton");
         rivalriesButton = root.Q<Button>("rivalriesButton");
         rankingsButton = root.Q<Button>("rankingsButton");
+        awardsButton = root.Q<Button>("awardsButton");
         returnButton = root.Q<Button>("returnButton");
         minimizeButton = root.Q<Button>("minimizeButton");
         statusLabel = root.Q<Label>("statusLabel");
@@ -222,6 +227,7 @@ public class PromotionDashboard : MonoBehaviour
         cardBuilderPanel = root.Q<VisualElement>("cardBuilderPanel");
         historyPanel = root.Q<VisualElement>("historyPanel");
         rivalriesPanel = root.Q<VisualElement>("rivalriesPanel");
+        awardsPanel = root.Q<VisualElement>("awardsPanel");
         historyShowsPanel = root.Q<VisualElement>("historyShowsPanel");
         historyResultsPanel = root.Q<VisualElement>("historyResultsPanel");
         historyResultsHeader = root.Q<Label>("historyResultsHeader");
@@ -449,6 +455,18 @@ public class PromotionDashboard : MonoBehaviour
         brandListScroll = root.Q<ScrollView>("brandList");
         newBrandField = root.Q<TextField>("newBrandField");
         addBrandButton = root.Q<Button>("addBrandButton");
+        // Awards queries
+        awardsYearField = root.Q<TextField>("awardsYearField");
+        wotySuggestionLabel = root.Q<Label>("wotySuggestionLabel");
+        motySuggestionLabel = root.Q<Label>("motySuggestionLabel");
+        feudSuggestionLabel = root.Q<Label>("feudSuggestionLabel");
+        tagTeamSuggestionLabel = root.Q<Label>("tagTeamSuggestionLabel");
+        wotyOverrideField = root.Q<TextField>("wotyOverrideField");
+        motyOverrideField = root.Q<TextField>("motyOverrideField");
+        feudOverrideField = root.Q<TextField>("feudOverrideField");
+        tagTeamOverrideField = root.Q<TextField>("tagTeamOverrideField");
+        computeAwardsButton = root.Q<Button>("computeAwardsButton");
+        saveAwardsButton = root.Q<Button>("saveAwardsButton");
         // Tag Teams queries
         teamNameField = root.Q<TextField>("teamNameField");
         teamMemberADropdown = root.Q<DropdownField>("teamMemberADropdown");
@@ -480,6 +498,7 @@ public class PromotionDashboard : MonoBehaviour
         RegisterMainPanel(historyPanel);
         RegisterMainPanel(rivalriesPanel);
         RegisterMainPanel(rankingsPanel);
+        RegisterMainPanel(awardsPanel);
 
         // Wire navigation
         if (promotionButton != null) promotionButton.clicked += ShowPromotionPanel;
@@ -491,6 +510,7 @@ public class PromotionDashboard : MonoBehaviour
         if (historyButton != null) historyButton.clicked += ShowHistoryPanel;
         if (rivalriesButton != null) rivalriesButton.clicked += ShowRivalriesPanel;
         if (rankingsButton != null) rankingsButton.clicked += ShowRankingsPanel;
+        if (awardsButton != null) awardsButton.clicked += ShowAwardsPanel;
         if (minimizeButton != null) minimizeButton.clicked += OnMinimizeClicked;
         // Rivalries handlers
         if (addRivalryButton != null) addRivalryButton.clicked += OnAddRivalry;
@@ -565,6 +585,8 @@ public class PromotionDashboard : MonoBehaviour
         if (savePromotionButton != null) savePromotionButton.clicked += SavePromotionEdits;
         if (cancelPromotionButton != null) cancelPromotionButton.clicked += HidePromotionEditPanel;
         if (addBrandButton != null) addBrandButton.clicked += OnAddBrand;
+        if (computeAwardsButton != null) computeAwardsButton.clicked += OnComputeAwardsClicked;
+        if (saveAwardsButton != null) saveAwardsButton.clicked += OnSaveAwardsClicked;
         // Shows handlers
         if (addShowButton != null) addShowButton.clicked += OnAddShow;
         if (saveShowsButton != null) saveShowsButton.clicked += OnSaveShows;
@@ -1224,6 +1246,14 @@ public class PromotionDashboard : MonoBehaviour
             rivalryHeatLabel.text = string.Join("  |  ", parts);
         }
     }
+    private void ShowAwardsPanel()
+    {
+        SetActivePanel(awardsPanel);
+        // Default year to current if empty
+        if (awardsYearField != null && string.IsNullOrWhiteSpace(awardsYearField.value))
+            awardsYearField.value = DateTime.Today.Year.ToString(CultureInfo.InvariantCulture);
+        ComputeAwardsForCurrentYear();
+    }
 
     private string BuildRivalrySideLabel(string typedId)
     {
@@ -1762,6 +1792,275 @@ public class PromotionDashboard : MonoBehaviour
             rankingsBrandDropdown.choices = rankChoices;
             if (!rankChoices.Contains(rankingsBrandDropdown.value))
                 rankingsBrandDropdown.value = "All Brands";
+        }
+    }
+
+    // ----- Awards & Accolades -----
+
+    private int GetSelectedAwardsYear()
+    {
+        if (awardsYearField == null || string.IsNullOrWhiteSpace(awardsYearField.value))
+            return DateTime.Today.Year;
+        if (int.TryParse(awardsYearField.value.Trim(), out var y) && y > 1900 && y < 3000)
+            return y;
+        return DateTime.Today.Year;
+    }
+
+    private void OnComputeAwardsClicked()
+    {
+        ComputeAwardsForCurrentYear();
+    }
+
+    private void ComputeAwardsForCurrentYear()
+    {
+        if (currentPromotion == null) return;
+        int year = GetSelectedAwardsYear();
+
+        // Wrestler of the Year suggestion
+        string woty = SuggestWrestlerOfYear(year);
+        if (wotySuggestionLabel != null)
+            wotySuggestionLabel.text = string.IsNullOrEmpty(woty) ? "(no suggestion)" : woty;
+
+        // Match of the Year suggestion
+        string moty = SuggestMatchOfYear(year);
+        if (motySuggestionLabel != null)
+            motySuggestionLabel.text = string.IsNullOrEmpty(moty) ? "(no suggestion)" : moty;
+
+        // Feud of the Year suggestion
+        string feud = SuggestFeudOfYear(year);
+        if (feudSuggestionLabel != null)
+            feudSuggestionLabel.text = string.IsNullOrEmpty(feud) ? "(no suggestion)" : feud;
+
+        // Tag Team of the Year suggestion
+        string tag = SuggestTagTeamOfYear(year);
+        if (tagTeamSuggestionLabel != null)
+            tagTeamSuggestionLabel.text = string.IsNullOrEmpty(tag) ? "(no suggestion)" : tag;
+
+        LoadAwardsOverrides(year);
+    }
+
+    private string MakeAwardKey(string award, int year)
+    {
+        var promo = currentPromotion?.promotionName ?? "UnknownPromotion";
+        return $"Awards::{promo}::{year}::{award}";
+    }
+
+    private void LoadAwardsOverrides(int year)
+    {
+        if (wotyOverrideField != null)
+            wotyOverrideField.value = PlayerPrefs.GetString(MakeAwardKey("WrestlerOfYear", year), string.Empty);
+        if (motyOverrideField != null)
+            motyOverrideField.value = PlayerPrefs.GetString(MakeAwardKey("MatchOfYear", year), string.Empty);
+        if (feudOverrideField != null)
+            feudOverrideField.value = PlayerPrefs.GetString(MakeAwardKey("FeudOfYear", year), string.Empty);
+        if (tagTeamOverrideField != null)
+            tagTeamOverrideField.value = PlayerPrefs.GetString(MakeAwardKey("TagTeamOfYear", year), string.Empty);
+    }
+
+    private void OnSaveAwardsClicked()
+    {
+        if (currentPromotion == null) return;
+        int year = GetSelectedAwardsYear();
+
+        if (wotyOverrideField != null)
+            PlayerPrefs.SetString(MakeAwardKey("WrestlerOfYear", year), wotyOverrideField.value ?? string.Empty);
+        if (motyOverrideField != null)
+            PlayerPrefs.SetString(MakeAwardKey("MatchOfYear", year), motyOverrideField.value ?? string.Empty);
+        if (feudOverrideField != null)
+            PlayerPrefs.SetString(MakeAwardKey("FeudOfYear", year), feudOverrideField.value ?? string.Empty);
+        if (tagTeamOverrideField != null)
+            PlayerPrefs.SetString(MakeAwardKey("TagTeamOfYear", year), tagTeamOverrideField.value ?? string.Empty);
+
+        PlayerPrefs.Save();
+        if (statusLabel != null) statusLabel.text = $"Awards saved for {year}.";
+    }
+
+    private string SuggestWrestlerOfYear(int year)
+    {
+        try
+        {
+            var history = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName) ?? new List<MatchResultData>();
+            var cutoffStart = new DateTime(year, 1, 1);
+            var cutoffEnd = new DateTime(year, 12, 31);
+            var wins = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var matches = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var r in history)
+            {
+                if (!CalendarUtils.TryParseAny(r.date, out var d)) continue;
+                if (d < cutoffStart || d > cutoffEnd) continue;
+
+                void addMatch(string n)
+                {
+                    if (string.IsNullOrWhiteSpace(n)) return;
+                    var key = n.Trim();
+                    matches.TryGetValue(key, out var m); matches[key] = m + 1;
+                }
+
+                addMatch(r.wrestlerA);
+                addMatch(r.wrestlerB);
+
+                var w = r.winner ?? string.Empty;
+                if (!string.IsNullOrEmpty(w) &&
+                    !string.Equals(w, "Draw", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(w, "No Contest", StringComparison.OrdinalIgnoreCase))
+                {
+                    var key = w.Trim();
+                    wins.TryGetValue(key, out var c); wins[key] = c + 1;
+                }
+            }
+
+            string best = null;
+            float bestScore = 0f;
+            foreach (var kv in matches)
+            {
+                wins.TryGetValue(kv.Key, out var w);
+                var m = kv.Value;
+                float score = w * 3f + m * 1f;
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = kv.Key;
+                }
+            }
+
+            return best;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"SuggestWrestlerOfYear failed: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    private string SuggestMatchOfYear(int year)
+    {
+        try
+        {
+            var history = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName) ?? new List<MatchResultData>();
+            var shows = currentPromotion?.shows ?? new List<ShowData>();
+            var cutoffStart = new DateTime(year, 1, 1);
+            var cutoffEnd = new DateTime(year, 12, 31);
+
+            MatchResultData bestMatch = null;
+            float bestScore = float.MinValue;
+
+            foreach (var r in history)
+            {
+                if (!CalendarUtils.TryParseAny(r.date, out var d)) continue;
+                if (d < cutoffStart || d > cutoffEnd) continue;
+
+                var show = shows.FirstOrDefault(s => string.Equals(s?.showName, r.showName, StringComparison.OrdinalIgnoreCase) &&
+                                                     string.Equals(s?.date, r.date, StringComparison.OrdinalIgnoreCase));
+                float baseRating = show?.rating ?? 0f;
+                float score = baseRating;
+                if (r.isTitleMatch) score += 1.0f;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMatch = r;
+                }
+            }
+
+            if (bestMatch == null) return string.Empty;
+            return string.IsNullOrEmpty(bestMatch.showName)
+                ? $"{bestMatch.date} - {bestMatch.matchName}"
+                : $"{bestMatch.showName} ({bestMatch.date}) - {bestMatch.matchName}";
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"SuggestMatchOfYear failed: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    private string SuggestFeudOfYear(int year)
+    {
+        try
+        {
+            rivalryCollection ??= DataManager.LoadRivalries(currentPromotion?.promotionName);
+            if (rivalryCollection?.rivalries == null || rivalryCollection.rivalries.Count == 0) return string.Empty;
+
+            var cutoffStart = new DateTime(year, 1, 1);
+            var cutoffEnd = new DateTime(year, 12, 31);
+            RivalryData best = null;
+            float bestScore = float.MinValue;
+
+            foreach (var r in rivalryCollection.rivalries)
+            {
+                if (r == null || r.events == null || r.events.Count == 0) continue;
+
+                // Filter events to this year and build a temporary metric
+                float raw = 0f;
+                foreach (var e in r.events)
+                {
+                    if (!DateTime.TryParse(e.date, out var d)) continue;
+                    if (d < cutoffStart || d > cutoffEnd) continue;
+                    float score = 1f + Mathf.Max(0f, e.rating);
+                    if ((e.eventType ?? string.Empty).IndexOf("Match", StringComparison.OrdinalIgnoreCase) >= 0) score += 1.5f;
+                    raw += score;
+                }
+                if (raw <= 0f) continue;
+
+                if (raw > bestScore)
+                {
+                    bestScore = raw;
+                    best = r;
+                }
+            }
+
+            return best?.title ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"SuggestFeudOfYear failed: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    private string SuggestTagTeamOfYear(int year)
+    {
+        try
+        {
+            var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
+            if (tags?.teams == null || tags.teams.Count == 0) return string.Empty;
+
+            var history = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName) ?? new List<MatchResultData>();
+            var cutoffStart = new DateTime(year, 1, 1);
+            var cutoffEnd = new DateTime(year, 12, 31);
+
+            var winCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in history)
+            {
+                if (!CalendarUtils.TryParseAny(r.date, out var d)) continue;
+                if (d < cutoffStart || d > cutoffEnd) continue;
+
+                var w = r.winner ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(w) ||
+                    string.Equals(w, "Draw", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(w, "No Contest", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var t in tags.teams)
+                {
+                    if (t == null || string.IsNullOrEmpty(t.teamName)) continue;
+                    if (string.Equals(t.teamName, w, StringComparison.OrdinalIgnoreCase))
+                    {
+                        winCounts.TryGetValue(t.teamName, out var c);
+                        winCounts[t.teamName] = c + 1;
+                        break;
+                    }
+                }
+            }
+
+            if (winCounts.Count == 0) return string.Empty;
+            return winCounts.OrderByDescending(kv => kv.Value).First().Key;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"SuggestTagTeamOfYear failed: {ex.Message}");
+            return string.Empty;
         }
     }
 

@@ -59,6 +59,7 @@
 #showsPanel,
 #historyPanel,
 #rankingsPanel,
+#awardsPanel,
 #tournamentsPanel,
 #calendarPanel,
 #cardBuilderPanel {

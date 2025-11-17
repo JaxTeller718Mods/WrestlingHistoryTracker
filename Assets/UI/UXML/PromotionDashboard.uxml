@@ -27,6 +27,7 @@
         <ui:Button name="historyButton" text="History" />
         <ui:Button name="rivalriesButton" text="Rivalries" />
         <ui:Button name="rankingsButton" text="Rankings" />
+        <ui:Button name="awardsButton" text="Awards" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
       </ui:VisualElement>
 
@@ -131,12 +132,46 @@
       </ui:VisualElement>
     </ui:ScrollView>
 
+    <!-- ===== AWARDS PANEL ===== -->
+    <ui:ScrollView name="awardsPanel" class="hidden">
+      <ui:Label text="Awards &amp; Accolades" class="section-title" />
+      <ui:VisualElement class="row">
+        <ui:TextField name="awardsYearField" label="Year" />
+        <ui:Button name="computeAwardsButton" text="Compute Suggestions" />
+        <ui:Button name="saveAwardsButton" text="Save Overrides" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Wrestler of the Year" class="subsection-title" />
+        <ui:Label name="wotySuggestionLabel" text="(no suggestion yet)" />
+        <ui:TextField name="wotyOverrideField" label="Override (optional)" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Match of the Year" class="subsection-title" />
+        <ui:Label name="motySuggestionLabel" text="(no suggestion yet)" />
+        <ui:TextField name="motyOverrideField" label="Override (optional)" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Feud of the Year" class="subsection-title" />
+        <ui:Label name="feudSuggestionLabel" text="(no suggestion yet)" />
+        <ui:TextField name="feudOverrideField" label="Override (optional)" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Tag Team of the Year" class="subsection-title" />
+        <ui:Label name="tagTeamSuggestionLabel" text="(no suggestion yet)" />
+        <ui:TextField name="tagTeamOverrideField" label="Override (optional)" />
+      </ui:VisualElement>
+    </ui:ScrollView>
+
     <!-- ===== PROMOTION INFO PANEL ===== -->
     <ui:ScrollView name="promotionInfoPanel">
       <ui:Label name="promotionTitle" text="Promotion Information" class="section-title" />
       <ui:Label name="nameLabel" text="Name: [None]" />
       <ui:Label name="locationLabel" text="Location: [None]" />
-      <ui:Label name="foundedLabel" text="Founded: [None]" />
+      <ui:Label name="foundedLabel" text="Owner: [None]" />
       <ui:Label name="descriptionLabel" text="Description: [None]" />
 
       <ui:VisualElement class="row">
@@ -153,7 +188,7 @@
       <ui:VisualElement name="editPanel" class="hidden">
         <ui:TextField name="nameField" label="Promotion Name" />
         <ui:TextField name="locationField" label="Location" />
-        <ui:TextField name="foundedField" label="Founded Year" />
+        <ui:TextField name="foundedField" label="Owner" />
         <ui:TextField name="descriptionField" label="Description" multiline="true" />
         <ui:VisualElement class="row">
           <ui:Button name="savePromotionButton" text="Save" />
