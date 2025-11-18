@@ -191,6 +191,11 @@
         <ui:Label name="tagTeamSuggestionLabel" text="(no suggestion yet)" />
         <ui:TextField name="tagTeamOverrideField" label="Override (optional)" />
       </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Milestones" class="subsection-title" />
+        <ui:ScrollView name="milestonesList" class="list" />
+      </ui:VisualElement>
     </ui:ScrollView>
 
     <!-- ===== PROMOTION INFO PANEL ===== -->

@@ -117,6 +117,12 @@
     height: 720px;
 }
 
+/* Keep Awards panel from growing off-screen; ScrollView will scroll vertically */
+#awardsPanel {
+    max-height: 720px;
+    height: 720px;
+}
+
 /* ===== HIDDEN STATE ===== */
 .hidden {
     display: none;
@@ -762,6 +768,13 @@ Label {
 #matchHistoryListView,
 #titleLineageListView {
   width: 100%;
+}
+
+/* Make milestones list wider inside Awards panel */
+#milestonesList {
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
 }
 
 /* Ensure long text wraps inside list entries */

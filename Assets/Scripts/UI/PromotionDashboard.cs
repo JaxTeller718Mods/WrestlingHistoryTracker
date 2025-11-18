@@ -108,6 +108,7 @@ public class PromotionDashboard : MonoBehaviour
     // Awards UI
     private TextField awardsYearField, wotyOverrideField, motyOverrideField, feudOverrideField, tagTeamOverrideField;
     private Label wotySuggestionLabel, motySuggestionLabel, feudSuggestionLabel, tagTeamSuggestionLabel;
+    private ScrollView milestonesList;
     private Button computeAwardsButton, saveAwardsButton;
     private TournamentCollection tournamentCollection;
     private int selectedTournamentIndex = -1;
@@ -487,6 +488,7 @@ public class PromotionDashboard : MonoBehaviour
         tagTeamOverrideField = root.Q<TextField>("tagTeamOverrideField");
         computeAwardsButton = root.Q<Button>("computeAwardsButton");
         saveAwardsButton = root.Q<Button>("saveAwardsButton");
+        milestonesList = root.Q<ScrollView>("milestonesList");
         // Tag Teams queries
         teamNameField = root.Q<TextField>("teamNameField");
         teamMemberADropdown = root.Q<DropdownField>("teamMemberADropdown");
@@ -1981,7 +1983,40 @@ public class PromotionDashboard : MonoBehaviour
         if (tagTeamSuggestionLabel != null)
             tagTeamSuggestionLabel.text = string.IsNullOrEmpty(tag) ? "(no suggestion)" : tag;
 
+        // Milestones for this year
+        PopulateMilestonesForYear(year);
+
         LoadAwardsOverrides(year);
+    }
+
+    private void PopulateMilestonesForYear(int year)
+    {
+        if (milestonesList == null)
+            return;
+
+        milestonesList.Clear();
+        if (currentPromotion == null)
+        {
+            milestonesList.Add(new Label("No promotion loaded."));
+            return;
+        }
+
+        var milestones = MilestoneEngine.ComputeYearlyMilestones(currentPromotion, year) ?? new System.Collections.Generic.List<Milestone>();
+        if (milestones.Count == 0)
+        {
+            milestonesList.Add(new Label("No milestones detected for this year."));
+            return;
+        }
+
+        foreach (var m in milestones)
+        {
+            string dateText = m.date;
+            if (CalendarUtils.TryParseAny(m.date, out var d))
+                dateText = d.ToString("MM/dd/yyyy");
+
+            string line = dateText + " - " + (m.description ?? string.Empty);
+            milestonesList.Add(new Label(line));
+        }
     }
 
     private string MakeAwardKey(string award, int year)
