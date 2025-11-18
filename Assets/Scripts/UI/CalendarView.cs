@@ -11,7 +11,9 @@ public class CalendarView
     private VisualElement grid;
     private Label selectedDateLabel;
     private ScrollView dayShowsList;
-    private Button prevMonthButton, nextMonthButton, todayButton, createShowButton;
+    private Button prevMonthButton, nextMonthButton, todayButton, createShowButton, generateYearButton;
+    private DropdownField recurrenceDropdown;
+    private TextField yearField;
 
     private Func<PromotionData> promotionProvider;
     private Func<string> brandFilterProvider;
@@ -34,6 +36,9 @@ public class CalendarView
         nextMonthButton = panel.Q<Button>("nextMonthButton");
         todayButton = panel.Q<Button>("todayButton");
         createShowButton = panel.Q<Button>("createShowButton");
+        recurrenceDropdown = panel.Q<DropdownField>("calendarRecurrenceDropdown");
+        yearField = panel.Q<TextField>("calendarYearField");
+        generateYearButton = panel.Q<Button>("calendarGenerateYearButton");
 
         currentMonth = DateTime.Today;
         selectedDate = DateTime.Today;
@@ -42,6 +47,28 @@ public class CalendarView
         if (nextMonthButton != null) nextMonthButton.clicked += () => { currentMonth = currentMonth.AddMonths(1); Refresh(); };
         if (todayButton != null) todayButton.clicked += () => { currentMonth = DateTime.Today; selectedDate = DateTime.Today; Refresh(); };
         if (createShowButton != null) createShowButton.clicked += () => CreateShowRequested?.Invoke(selectedDate);
+
+        if (recurrenceDropdown != null)
+        {
+            var choices = new List<string>();
+            foreach (var r in ShowTemplates.Recurring)
+            {
+                if (r != null && !string.IsNullOrWhiteSpace(r.name))
+                    choices.Add(r.name);
+            }
+            recurrenceDropdown.choices = choices;
+            if (choices.Count > 0) recurrenceDropdown.value = choices[0];
+        }
+
+        if (yearField != null)
+        {
+            yearField.value = DateTime.Today.Year.ToString();
+        }
+
+        if (generateYearButton != null)
+        {
+            generateYearButton.clicked += OnGenerateYearClicked;
+        }
 
         Refresh();
     }
@@ -226,5 +253,119 @@ public class CalendarView
                 }
             }
         }
+    }
+
+    private void OnGenerateYearClicked()
+    {
+        var promotion = promotionProvider?.Invoke();
+        if (promotion == null)
+        {
+            Debug.LogWarning("Calendar: no promotion loaded for year generation.");
+            return;
+        }
+
+        if (recurrenceDropdown == null || recurrenceDropdown.choices == null || recurrenceDropdown.choices.Count == 0)
+        {
+            Debug.LogWarning("Calendar: no recurrence template selected.");
+            return;
+        }
+
+        if (yearField == null || string.IsNullOrWhiteSpace(yearField.value) || !int.TryParse(yearField.value.Trim(), out var year) || year < 1900 || year > 3000)
+        {
+            year = DateTime.Today.Year;
+            if (yearField != null) yearField.value = year.ToString();
+        }
+
+        var templateName = recurrenceDropdown.value;
+        var recurring = ShowTemplates.Recurring.FirstOrDefault(r => r != null && string.Equals(r.name, templateName, StringComparison.OrdinalIgnoreCase));
+        if (recurring == null)
+        {
+            Debug.LogWarning($"Calendar: recurrence template '{templateName}' not found.");
+            return;
+        }
+
+        var dates = GenerateDatesForYear(recurring, year);
+        if (dates.Count == 0)
+            return;
+
+        promotion.shows ??= new List<ShowData>();
+
+        foreach (var date in dates)
+        {
+            string iso = CalendarUtils.FormatIso(date);
+            bool exists = promotion.shows.Any(s => s != null && CalendarUtils.TryParseAny(s.date, out var d) && d.Date == date.Date && string.Equals(s.showName, recurring.showName, StringComparison.OrdinalIgnoreCase));
+            if (exists) continue;
+
+            var show = new ShowData(recurring.showName, iso)
+            {
+                showType = recurring.showType,
+                brand = recurring.brand ?? string.Empty,
+                venue = string.Empty,
+                city = string.Empty,
+                attendance = 0,
+                rating = 0f
+            };
+            promotion.shows.Add(show);
+        }
+
+        DataManager.SavePromotion(promotion);
+        Refresh();
+    }
+
+    private List<DateTime> GenerateDatesForYear(ShowTemplates.RecurringTemplate recurring, int year)
+    {
+        var list = new List<DateTime>();
+        if (recurring == null) return list;
+
+        if (recurring.kind == ShowTemplates.RecurrenceKind.Weekly)
+        {
+            // From Jan 1 to Dec 31, pick all given weekday
+            var start = new DateTime(year, 1, 1);
+            var end = new DateTime(year, 12, 31);
+            int offset = ((int)recurring.weeklyDay - (int)start.DayOfWeek + 7) % 7;
+            var first = start.AddDays(offset);
+            for (var d = first; d <= end; d = d.AddDays(7))
+                list.Add(d);
+        }
+        else if (recurring.kind == ShowTemplates.RecurrenceKind.Monthly)
+        {
+            for (int month = 1; month <= 12; month++)
+            {
+                var date = GetMonthlyDate(year, month, recurring.monthlyWeekIndex, recurring.monthlyDay);
+                if (date != DateTime.MinValue)
+                    list.Add(date);
+            }
+        }
+
+        return list;
+    }
+
+    private DateTime GetMonthlyDate(int year, int month, int weekIndex, DayOfWeek dayOfWeek)
+    {
+        if (weekIndex <= 0) return DateTime.MinValue;
+
+        var first = new DateTime(year, month, 1);
+        int offset = ((int)dayOfWeek - (int)first.DayOfWeek + 7) % 7;
+        var firstDesired = first.AddDays(offset);
+
+        if (weekIndex >= 1 && weekIndex <= 4)
+        {
+            var date = firstDesired.AddDays(7 * (weekIndex - 1));
+            return date.Month == month ? date : DateTime.MinValue;
+        }
+
+        if (weekIndex == 5) // last occurrence in the month
+        {
+            var date = firstDesired;
+            DateTime lastValid = DateTime.MinValue;
+            while (date.Month == month)
+            {
+                lastValid = date;
+                date = date.AddDays(7);
+            }
+            return lastValid;
+        }
+
+        return DateTime.MinValue;
     }
 }

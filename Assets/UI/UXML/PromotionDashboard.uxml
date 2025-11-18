@@ -50,6 +50,13 @@
         <ui:Button name="todayButton" text="Today" />
         <ui:DropdownField name="calendarBrandDropdown" label="Brand" />
       </ui:VisualElement>
+      <ui:VisualElement class="calendar-header">
+        <ui:DropdownField name="calendarRecurrenceDropdown" label="Recurrence Template" />
+        <ui:VisualElement class="row">
+          <ui:TextField name="calendarYearField" label="Year" />
+          <ui:Button name="calendarGenerateYearButton" text="Generate Year" />
+        </ui:VisualElement>
+      </ui:VisualElement>
       <ui:VisualElement class="calendar-layout">
         <ui:VisualElement name="calendarGrid" class="calendar-grid" />
         <ui:VisualElement class="calendar-side">
