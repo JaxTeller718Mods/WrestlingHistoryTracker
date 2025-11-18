@@ -40,18 +40,31 @@ public class LoadPromotionScreen : MonoBehaviour
 
         foreach (string promotionName in promotions)
         {
-            Button button = new Button(() => OnPromotionSelected(promotionName))
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.marginBottom = 5;
+            row.style.alignItems = Align.Center;
+
+            Button loadButton = new Button(() => OnPromotionSelected(promotionName))
             {
                 text = promotionName
             };
+            loadButton.style.height = 30;
+            loadButton.style.flexGrow = 1;
+            loadButton.style.unityTextAlign = TextAnchor.MiddleCenter;
 
-            button.style.height = 30;
-            button.style.marginBottom = 5;
-            button.style.unityTextAlign = TextAnchor.MiddleCenter;
-            button.style.alignSelf = Align.Stretch;
-            button.style.minWidth = 200;
+            Button deleteButton = new Button(() => OnDeletePromotionClicked(promotionName))
+            {
+                text = "Delete"
+            };
+            deleteButton.style.height = 30;
+            deleteButton.style.marginLeft = 6;
+            deleteButton.style.minWidth = 80;
 
-            promotionList.Add(button);
+            row.Add(loadButton);
+            row.Add(deleteButton);
+
+            promotionList.Add(row);
         }
     }
 
@@ -78,6 +91,21 @@ public class LoadPromotionScreen : MonoBehaviour
         else
             UnityEngine.SceneManagement.SceneManager.LoadScene("PromotionDashboard");
     }
-}
 
+    private void OnDeletePromotionClicked(string promotionName)
+    {
+        if (string.IsNullOrWhiteSpace(promotionName)) return;
+
+        bool deleted = DataManager.DeletePromotion(promotionName);
+        if (deleted)
+        {
+            statusLabel.text = $"Promotion '{promotionName}' deleted.";
+            PopulatePromotionList();
+        }
+        else
+        {
+            statusLabel.text = $"Failed to delete promotion '{promotionName}'.";
+        }
+    }
+}
 

@@ -12,4 +12,6 @@ public class PromotionBundle
     public StableCollection stables;
     public TournamentCollection tournaments;
     public RivalryCollection rivalries;
+    public MatchHistoryData history;
+    public RankingStore rankings;
 }

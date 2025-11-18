@@ -125,6 +125,8 @@ public static class DataManager
             var stables = LoadStables(promotionName);
             var tournaments = LoadTournaments(promotionName);
             var rivalries = LoadRivalries(promotionName);
+            var history = LoadMatchHistory(promotionName);
+            var rankings = LoadRankings(promotionName);
 
             var bundle = new PromotionBundle
             {
@@ -135,7 +137,9 @@ public static class DataManager
                 tagTeams = tagTeams,
                 stables = stables,
                 tournaments = tournaments,
-                rivalries = rivalries
+                rivalries = rivalries,
+                history = history,
+                rankings = rankings
             };
 
             if (!Directory.Exists(exportFolder)) Directory.CreateDirectory(exportFolder);
@@ -197,6 +201,16 @@ public static class DataManager
             {
                 bundle.rivalries.promotionName = bundle.promotionName;
                 SaveRivalries(bundle.rivalries);
+            }
+            if (bundle.history != null)
+            {
+                bundle.history.promotionName = bundle.promotionName;
+                SaveMatchHistory(bundle.history);
+            }
+            if (bundle.rankings != null)
+            {
+                bundle.rankings.promotionName = bundle.promotionName;
+                SaveRankings(bundle.rankings);
             }
             Debug.Log($"Imported promotion bundle for {bundle.promotionName}.");
             return true;
