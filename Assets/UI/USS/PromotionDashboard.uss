@@ -812,6 +812,20 @@ Label {
     color: #ddd;
     font-size: 10px;
 }
+.calendar-badge--tv {
+    background-color: #283848;
+}
+.calendar-badge--ppv {
+    background-color: #482828;
+}
+.calendar-badge--house {
+    background-color: #284828;
+}
+.calendar-badge--title {
+    border-width: 1px;
+    border-color: #ffd54a;
+    color: #ffe9a0;
+}
 .calendar-side { width: 340px; min-width: 260px; flex-direction: column; }
 
 /* ===== CARD BUILDER ===== */

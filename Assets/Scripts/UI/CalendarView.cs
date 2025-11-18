@@ -115,6 +115,20 @@ public class CalendarView
                         var badge = new Button(() => EditShowRequested?.Invoke(s)) { text = s.showName };
                         badge.AddToClassList("calendar-badge");
                         badge.AddToClassList("card-entry-button");
+
+                        // Color-code by explicit show type if available, otherwise inferred
+                        var showType = !string.IsNullOrEmpty(s.showType) ? s.showType : InferShowType(s);
+                        if (!string.IsNullOrEmpty(showType))
+                            badge.AddToClassList($"calendar-badge--{showType}");
+
+                        // Highlight shows that include any title match
+                        if (ShowHasTitleMatch(s))
+                        {
+                            badge.AddToClassList("calendar-badge--title");
+                            if (!string.IsNullOrEmpty(badge.text))
+                                badge.text = $"★ {badge.text}";
+                        }
+
                         cell.Add(badge);
                     }
 
@@ -127,6 +141,30 @@ public class CalendarView
         }
 
         RefreshDayDetails();
+    }
+
+    private string InferShowType(ShowData show)
+    {
+        if (show == null) return "tv";
+        var name = (show.showName ?? string.Empty).ToLowerInvariant();
+
+        if (name.Contains("ppv") || name.Contains("pay-per-view") || name.Contains("pay per view"))
+            return "ppv";
+        if (name.Contains("house") || name.Contains("live event") || name.Contains("live show"))
+            return "house";
+
+        return "tv";
+    }
+
+    private bool ShowHasTitleMatch(ShowData show)
+    {
+        if (show?.matches == null) return false;
+        foreach (var m in show.matches)
+        {
+            if (m != null && m.isTitleMatch)
+                return true;
+        }
+        return false;
     }
 
     private void RefreshDayDetails()

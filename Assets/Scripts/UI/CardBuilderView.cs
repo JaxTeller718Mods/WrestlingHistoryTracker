@@ -9,7 +9,7 @@ public class CardBuilderView
     private VisualElement panel;
     private TextField showNameField, showDateField, showVenueField, showCityField;
     private IntegerField showAttendanceField; private FloatField showRatingField;
-    private DropdownField showBrandDropdown;
+    private DropdownField showTypeDropdown, showBrandDropdown;
     private DropdownField templateDropdown; private Button applyTemplateButton;
     private ScrollView entryListScroll; // container
     private ListView entryListView;
@@ -46,6 +46,7 @@ public class CardBuilderView
         showDateField = panel.Q<TextField>("cbShowDateField");
         showVenueField = panel.Q<TextField>("cbShowVenueField");
         showCityField = panel.Q<TextField>("cbShowCityField");
+        showTypeDropdown = panel.Q<DropdownField>("cbShowTypeDropdown");
         showBrandDropdown = panel.Q<DropdownField>("cbShowBrandDropdown");
         showAttendanceField = panel.Q<IntegerField>("cbShowAttendanceField");
         showRatingField = panel.Q<FloatField>("cbShowRatingField");
@@ -84,6 +85,11 @@ public class CardBuilderView
             brandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
             showBrandDropdown.choices = brandChoices;
             showBrandDropdown.value = "";
+        }
+        if (showTypeDropdown != null)
+        {
+            showTypeDropdown.choices = new List<string> { "TV", "PPV", "House" };
+            showTypeDropdown.value = "TV";
         }
 
         if (applyTemplateButton != null) applyTemplateButton.clicked += ApplyTemplate;
@@ -226,6 +232,20 @@ public class CardBuilderView
         showCityField.value = workingShow.city ?? string.Empty;
         showAttendanceField.value = workingShow.attendance;
         showRatingField.value = workingShow.rating;
+        if (showTypeDropdown != null)
+        {
+            var t = workingShow.showType ?? string.Empty;
+            if (string.IsNullOrEmpty(t)) t = "TV";
+            if (showTypeDropdown.choices == null || showTypeDropdown.choices.Count == 0)
+                showTypeDropdown.choices = new List<string> { "TV", "PPV", "House" };
+            if (!showTypeDropdown.choices.Contains(t))
+            {
+                var list = new List<string>(showTypeDropdown.choices);
+                list.Add(t);
+                showTypeDropdown.choices = list;
+            }
+            showTypeDropdown.value = t;
+        }
         if (showBrandDropdown != null)
         {
             var b = workingShow.brand ?? string.Empty;
@@ -449,6 +469,8 @@ public class CardBuilderView
         workingShow.city = showCityField.value?.Trim();
         workingShow.attendance = showAttendanceField.value;
         workingShow.rating = showRatingField.value;
+        if (showTypeDropdown != null)
+            workingShow.showType = string.IsNullOrWhiteSpace(showTypeDropdown.value) ? null : showTypeDropdown.value.Trim();
         if (showBrandDropdown != null)
             workingShow.brand = string.IsNullOrWhiteSpace(showBrandDropdown.value) ? null : showBrandDropdown.value.Trim();
         workingShow.entryOrder = new List<string>(order);
@@ -520,6 +542,12 @@ public class CardBuilderView
         var m = workingShow?.matches?.FirstOrDefault(x => x != null && x.id == id);
         if (m == null) return "(Missing Match)";
         string baseName = string.IsNullOrWhiteSpace(m.matchName) ? m.matchType ?? "Match" : m.matchName;
+        if (m.isTitleMatch)
+        {
+            if (!string.IsNullOrEmpty(m.titleName))
+                return $"★ [M] {baseName} (Title: {m.titleName})";
+            return $"★ [M] {baseName} (Title Match)";
+        }
         return $"[M] {baseName}";
     }
 

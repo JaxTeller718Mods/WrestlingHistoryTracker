@@ -65,6 +65,7 @@
           <ui:TextField name="cbShowDateField" label="Date (yyyy-MM-dd)" />
           <ui:TextField name="cbShowVenueField" label="Venue" />
           <ui:TextField name="cbShowCityField" label="City" />
+          <ui:DropdownField name="cbShowTypeDropdown" label="Type (TV/PPV/House)" />
           <ui:DropdownField name="cbShowBrandDropdown" label="Brand (optional)" />
           <ui:IntegerField name="cbShowAttendanceField" label="Attendance" />
           <ui:FloatField name="cbShowRatingField" label="Rating" />
@@ -413,6 +414,7 @@
           <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
           <ui:TextField name="showVenueField" label="Venue" />
           <ui:TextField name="showCityField" label="City" />
+          <ui:DropdownField name="showTypeDropdown" label="Type (TV/PPV/House)" />
           <ui:DropdownField name="showBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="showAttendanceField" label="Attendance" />
             <ui:FloatField name="showRatingField" label="Buyrate / TV Rating" />
@@ -465,11 +467,12 @@
 
           <!-- Create a new show -->
           <ui:VisualElement name="showAddPanel" class="show-add-card">
-            <ui:TextField name="newShowField" label="New Show Name" />
-            <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
-            <ui:TextField name="newShowVenueField" label="Venue" />
-            <ui:TextField name="newShowCityField" label="City" />
-            <ui:DropdownField name="newShowBrandDropdown" label="Brand (optional)" />
+          <ui:TextField name="newShowField" label="New Show Name" />
+          <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
+          <ui:TextField name="newShowVenueField" label="Venue" />
+          <ui:TextField name="newShowCityField" label="City" />
+          <ui:DropdownField name="newShowTypeDropdown" label="Type (TV/PPV/House)" />
+          <ui:DropdownField name="newShowBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="newShowAttendanceField" label="Attendance" />
             <ui:FloatField name="newShowRatingField" label="Buyrate / TV Rating" />
             <ui:VisualElement class="row">

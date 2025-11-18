@@ -139,7 +139,7 @@ public class PromotionDashboard : MonoBehaviour
     private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
     private IntegerField showAttendanceField, newShowAttendanceField;
     private FloatField showRatingField, newShowRatingField;
-    private DropdownField showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown;
+    private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
@@ -375,6 +375,7 @@ public class PromotionDashboard : MonoBehaviour
         newShowDateField = root.Q<TextField>("newShowDateField");
         newShowVenueField = root.Q<TextField>("newShowVenueField");
         newShowCityField = root.Q<TextField>("newShowCityField");
+        newShowTypeDropdown = root.Q<DropdownField>("newShowTypeDropdown");
         newShowBrandDropdown = root.Q<DropdownField>("newShowBrandDropdown");
         newShowAttendanceField = root.Q<IntegerField>("newShowAttendanceField");
         newShowRatingField = root.Q<FloatField>("newShowRatingField");
@@ -387,6 +388,7 @@ public class PromotionDashboard : MonoBehaviour
         showDateField = root.Q<TextField>("showDateField");
         showVenueField = root.Q<TextField>("showVenueField");
         showCityField = root.Q<TextField>("showCityField");
+        showTypeDropdown = root.Q<DropdownField>("showTypeDropdown");
         showBrandDropdown = root.Q<DropdownField>("showBrandDropdown");
         showAttendanceField = root.Q<IntegerField>("showAttendanceField");
         showRatingField = root.Q<FloatField>("showRatingField");
@@ -3113,6 +3115,11 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowCityField != null) show.city = (newShowCityField.value ?? string.Empty).Trim();
         if (newShowAttendanceField != null) show.attendance = newShowAttendanceField.value;
         if (newShowRatingField != null) show.rating = newShowRatingField.value;
+        if (newShowTypeDropdown != null)
+        {
+            var t = (newShowTypeDropdown.value ?? string.Empty).Trim();
+            show.showType = string.IsNullOrEmpty(t) ? null : t;
+        }
         if (newShowBrandDropdown != null)
         {
             var b = (newShowBrandDropdown.value ?? string.Empty).Trim();
@@ -3155,6 +3162,20 @@ public class PromotionDashboard : MonoBehaviour
         if (showBrandDropdown != null) showBrandDropdown.value = s.brand ?? string.Empty;
         if (showAttendanceField != null) showAttendanceField.value = s.attendance;
         if (showRatingField != null) showRatingField.value = s.rating;
+        if (showTypeDropdown != null)
+        {
+            if (showTypeDropdown.choices == null || showTypeDropdown.choices.Count == 0)
+                showTypeDropdown.choices = new List<string> { "TV", "PPV", "House" };
+            var t = s.showType ?? string.Empty;
+            if (string.IsNullOrEmpty(t)) t = "TV";
+            if (!showTypeDropdown.choices.Contains(t))
+            {
+                var list = new List<string>(showTypeDropdown.choices);
+                list.Add(t);
+                showTypeDropdown.choices = list;
+            }
+            showTypeDropdown.value = t;
+        }
         FocusPanel(showDetailsPanel ?? showsPanel);
     }
 
@@ -3174,6 +3195,11 @@ public class PromotionDashboard : MonoBehaviour
         {
             var b = (showBrandDropdown.value ?? string.Empty).Trim();
             s.brand = string.IsNullOrEmpty(b) ? null : b;
+        }
+        if (showTypeDropdown != null)
+        {
+            var t = (showTypeDropdown.value ?? string.Empty).Trim();
+            s.showType = string.IsNullOrEmpty(t) ? null : t;
         }
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
@@ -4963,9 +4989,20 @@ public class PromotionDashboard : MonoBehaviour
         if (m == null) return "Match: (invalid)";
         string name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : string.Empty;
         string vs = BuildVsLine(m);
-        if (!string.IsNullOrEmpty(name)) return $"Match: {name}";
-        if (!string.IsNullOrEmpty(vs)) return $"Match: {vs}";
-        return $"Match: {(string.IsNullOrEmpty(m.matchType) ? "Match" : m.matchType)}";
+        string label;
+        if (!string.IsNullOrEmpty(name)) label = $"Match: {name}";
+        else if (!string.IsNullOrEmpty(vs)) label = $"Match: {vs}";
+        else label = $"Match: {(string.IsNullOrEmpty(m.matchType) ? "Match" : m.matchType)}";
+
+        if (m.isTitleMatch)
+        {
+            if (!string.IsNullOrEmpty(m.titleName))
+                label = $"★ {label} (Title: {m.titleName})";
+            else
+                label = $"★ {label} (Title Match)";
+        }
+
+        return label;
     }
 
     private string TeamDisplay(string a, string b)
