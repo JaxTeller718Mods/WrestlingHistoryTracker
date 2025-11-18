@@ -242,6 +242,14 @@ FloatField > .unity-float-field__input {
     height: 260px; /* ensures internal scrolling is available */
 }
 
+/* Rivalries virtualized list sizing */
+#rivalryListView {
+    width: 80%;
+    max-width: 340px;
+    min-width: 330px;
+    min-height: 260px;
+}
+
 /* Title history lineage sizing */
 #titleHistoryList {
     width: 100%;
@@ -368,8 +376,8 @@ FloatField > .unity-float-field__input {
 
 /* Narrow the Manage column only on the Stables panel to make room */
 #stablesPanel .tournament-detail-column {
-    flex: 1 1 480px;
-    min-width: 460px;
+    flex: 1 1 440px;
+    min-width: 420px;
 }
 
 /* Matches column sizing */
@@ -394,9 +402,9 @@ FloatField > .unity-float-field__input {
 }
 
 .rivalry-list-column {
-    width: 320px;
-    max-width: 360px;
-    min-width: 280px;
+    width: 540px;
+    max-width: 600px;
+    min-width: 450px;
 }
 
 .rivalry-detail-column {
@@ -409,8 +417,8 @@ FloatField > .unity-float-field__input {
 .rivalry-detail-column > * { margin-bottom: 12px; }
 
 .rivalry-timeline-column {
-    width: 450px;
-    max-width: 450px;
+    width: 500px;
+    max-width: 500px;
     min-width: 300px;
 }
 /* Per-panel tighter layout for tournaments */
@@ -728,11 +736,11 @@ Label {
   white-space: normal;
 }
 
-/* Make ranking entries more compact and truncate long names gracefully */
+/* Allow button text to wrap inside list entries so full titles are visible */
 .list-entry .unity-button__text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* ===== CALENDAR ===== */
