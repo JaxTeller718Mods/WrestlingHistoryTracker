@@ -40,6 +40,9 @@ public class PromotionDashboard : MonoBehaviour
     private readonly List<VisualElement> mainPanels = new();
     private readonly List<VisualElement> focusablePanels = new();
     private Coroutine initializationRoutine;
+    private VisualElement toastBar;
+    private Label toastLabel;
+    private Coroutine toastRoutine;
 
     // Virtualized lists (Step 1)
     private ScrollView wrestlerListScroll, showsListScroll, historyShowsListScroll, rankingsListScroll;
@@ -214,6 +217,8 @@ public class PromotionDashboard : MonoBehaviour
         returnButton = root.Q<Button>("returnButton");
         minimizeButton = root.Q<Button>("minimizeButton");
         statusLabel = root.Q<Label>("statusLabel");
+        toastBar = root.Q<VisualElement>("toastBar");
+        toastLabel = root.Q<Label>("toastLabel");
 
         // Query panels
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
@@ -1160,6 +1165,17 @@ public class PromotionDashboard : MonoBehaviour
         DateTime firstDate = DateTime.MaxValue;
         DateTime lastDate = DateTime.MinValue;
         float rawScore = 0f;
+        // Build indexes for fast show/match lookup
+        var showsById = new Dictionary<string, ShowData>(StringComparer.OrdinalIgnoreCase);
+        if (currentPromotion?.shows != null)
+        {
+            foreach (var s in currentPromotion.shows)
+            {
+                if (s != null && !string.IsNullOrEmpty(s.id) && !showsById.ContainsKey(s.id))
+                    showsById[s.id] = s;
+            }
+        }
+        var matchesByShowId = new Dictionary<string, Dictionary<string, MatchData>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var e in r.events)
         {
@@ -1192,10 +1208,24 @@ public class PromotionDashboard : MonoBehaviour
                      t.IndexOf("Segment", StringComparison.OrdinalIgnoreCase) >= 0) score += 0.5f;
 
             // Stip/importance based on linked match
-            if (!string.IsNullOrEmpty(e.matchId) && !string.IsNullOrEmpty(e.showId) && currentPromotion?.shows != null)
+            if (!string.IsNullOrEmpty(e.matchId) && !string.IsNullOrEmpty(e.showId) && showsById.Count > 0)
             {
-                var show = currentPromotion.shows.FirstOrDefault(s => s != null && string.Equals(s.id, e.showId, StringComparison.OrdinalIgnoreCase));
-                var match = show?.matches?.FirstOrDefault(m => m != null && string.Equals(m.id, e.matchId, StringComparison.OrdinalIgnoreCase));
+                matchesByShowId.TryGetValue(e.showId, out var map);
+                if (map == null)
+                {
+                    if (showsById.TryGetValue(e.showId, out var s) && s?.matches != null)
+                    {
+                        map = new Dictionary<string, MatchData>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var m in s.matches)
+                        {
+                            if (m != null && !string.IsNullOrEmpty(m.id))
+                                map[m.id] = m;
+                        }
+                        matchesByShowId[e.showId] = map;
+                    }
+                }
+                MatchData match = null;
+                if (map != null) map.TryGetValue(e.matchId, out match);
                 if (match != null)
                 {
                     if (match.isTitleMatch) score += 0.5f;
@@ -1491,12 +1521,90 @@ public class PromotionDashboard : MonoBehaviour
         {
             currentPromotion.shows.Add(show);
         }
+        // Validate references on the final show instance
+        var targetShow = existing ?? show;
+        string validation = ValidateShowReferences(targetShow);
         // Save promotion and update histories
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, show, prevName, prevDate);
         // Refresh calendar
         calendarView?.Refresh();
+        if (!string.IsNullOrEmpty(validation) && statusLabel != null)
+            statusLabel.text = validation;
+        if (!string.IsNullOrEmpty(validation))
+            ShowToast(validation, false);
+        else
+            ShowToast("Show saved.", false);
         SetActivePanel(calendarPanel);
+    }
+
+    private string ValidateShowReferences(ShowData show)
+    {
+        if (show == null || currentPromotion == null) return string.Empty;
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        titleCollection ??= DataManager.LoadTitles(currentPromotion.promotionName);
+
+        var wrestlerNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            if (!string.IsNullOrEmpty(w?.name)) wrestlerNames.Add(w.name.Trim());
+
+        var titleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var t in titleCollection?.titles ?? new List<TitleData>())
+            if (!string.IsNullOrEmpty(t?.titleName)) titleNames.Add(t.titleName.Trim());
+
+        var brands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        currentPromotion.brands ??= new List<string>();
+        foreach (var b in currentPromotion.brands)
+            if (!string.IsNullOrWhiteSpace(b)) brands.Add(b.Trim());
+
+        int missingWrestlers = 0;
+        int unknownTitleFlags = 0;
+        bool brandAdded = false;
+
+        // Brand: if show uses a brand not on the promotion, auto-add it
+        if (!string.IsNullOrWhiteSpace(show.brand) && !brands.Contains(show.brand.Trim()))
+        {
+            currentPromotion.brands.Add(show.brand.Trim());
+            brandAdded = true;
+        }
+
+        void CheckWrestler(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            if (!wrestlerNames.Contains(name.Trim())) missingWrestlers++;
+        }
+
+        if (show.matches != null)
+        {
+            foreach (var m in show.matches)
+            {
+                if (m == null) continue;
+                CheckWrestler(m.wrestlerA);
+                CheckWrestler(m.wrestlerB);
+                CheckWrestler(m.wrestlerC);
+                CheckWrestler(m.wrestlerD);
+
+                if (m.isTitleMatch)
+                {
+                    if (string.IsNullOrWhiteSpace(m.titleName) || !titleNames.Contains(m.titleName.Trim()))
+                    {
+                        // Clear flag but keep the display name so history remains readable
+                        m.isTitleMatch = false;
+                        unknownTitleFlags++;
+                    }
+                }
+            }
+        }
+
+        if (!brandAdded && missingWrestlers == 0 && unknownTitleFlags == 0)
+            return "Show saved (all references valid).";
+
+        var parts = new List<string> { "Show saved with notes:" };
+        if (brandAdded) parts.Add("brand added to promotion.");
+        if (missingWrestlers > 0) parts.Add($"{missingWrestlers} wrestler name(s) not in roster.");
+        if (unknownTitleFlags > 0) parts.Add($"{unknownTitleFlags} title flag(s) cleared for missing titles.");
+        return string.Join(" ", parts);
     }
 
     // ----- Virtualized List helpers -----
@@ -1573,6 +1681,7 @@ public class PromotionDashboard : MonoBehaviour
         wrestlerCollection.promotionName = currentPromotion.promotionName;
         DataManager.SaveWrestlers(wrestlerCollection);
         if (statusLabel != null) statusLabel.text = "Wrestlers saved.";
+        ShowToast("Wrestlers saved.", false);
     }
 
     private void SelectWrestler(int index)
@@ -2153,6 +2262,32 @@ public class PromotionDashboard : MonoBehaviour
 #else
         Debug.Log("Minimize is only supported in Windows standalone builds.");
 #endif
+    }
+
+    private void ShowToast(string message, bool isError = false, float duration = 2.5f)
+    {
+        if (toastBar == null || toastLabel == null)
+        {
+            if (statusLabel != null) statusLabel.text = message;
+            return;
+        }
+        toastLabel.text = message ?? string.Empty;
+        toastBar.RemoveFromClassList("hidden");
+        toastBar.RemoveFromClassList("toast-success");
+        toastBar.RemoveFromClassList("toast-error");
+        toastBar.AddToClassList(isError ? "toast-error" : "toast-success");
+        toastBar.BringToFront();
+
+        if (toastRoutine != null) StopCoroutine(toastRoutine);
+        toastRoutine = StartCoroutine(HideToastAfter(duration));
+    }
+
+    private IEnumerator HideToastAfter(float duration)
+    {
+        yield return new WaitForSecondsRealtime(duration);
+        if (toastBar != null)
+            toastBar.AddToClassList("hidden");
+        toastRoutine = null;
     }
 
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
@@ -3120,12 +3255,18 @@ public class PromotionDashboard : MonoBehaviour
             var t = (newShowTypeDropdown.value ?? string.Empty).Trim();
             show.showType = string.IsNullOrEmpty(t) ? null : t;
         }
+        if (newShowTypeDropdown != null)
+        {
+            var t = (newShowTypeDropdown.value ?? string.Empty).Trim();
+            show.showType = string.IsNullOrEmpty(t) ? null : t;
+        }
         if (newShowBrandDropdown != null)
         {
             var b = (newShowBrandDropdown.value ?? string.Empty).Trim();
             show.brand = string.IsNullOrEmpty(b) ? null : b;
         }
         currentPromotion.shows.Add(show);
+        string validation = ValidateShowReferences(show);
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
         if (newShowField != null) newShowField.value = string.Empty;
@@ -3135,7 +3276,9 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowBrandDropdown != null) newShowBrandDropdown.value = "";
         if (newShowAttendanceField != null) newShowAttendanceField.value = 0;
         if (newShowRatingField != null) newShowRatingField.value = 0f;
-        if (statusLabel != null) statusLabel.text = "Show added.";
+        string msg = string.IsNullOrEmpty(validation) ? "Show added." : validation;
+        if (statusLabel != null) statusLabel.text = msg;
+        ShowToast(msg, false);
     }
 
     private void OnSaveShows()
@@ -3201,10 +3344,13 @@ public class PromotionDashboard : MonoBehaviour
             var t = (showTypeDropdown.value ?? string.Empty).Trim();
             s.showType = string.IsNullOrEmpty(t) ? null : t;
         }
+        string validation = ValidateShowReferences(s);
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
         RefreshShowList();
-        if (statusLabel != null) statusLabel.text = "Show updated.";
+        string msg2 = string.IsNullOrEmpty(validation) ? "Show updated." : validation;
+        if (statusLabel != null) statusLabel.text = msg2;
+        ShowToast(msg2, false);
     }
 
     private void OnDeleteSelectedShow()
@@ -4607,6 +4753,7 @@ public class PromotionDashboard : MonoBehaviour
         var entries = ComputeWeekly(type, gender, division, DateTime.MinValue, DateTime.MaxValue);
         currentRankingResults = entries;
         DisplayRankingEntries(entries, 10);
+        ShowToast("Rankings computed for entire history.");
     }
 
     private void OnPrevWeekClicked()

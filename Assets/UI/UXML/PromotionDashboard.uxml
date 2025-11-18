@@ -7,9 +7,14 @@
     <ui:VisualElement name="dashboardChrome" class="dashboard-chrome">
       <ui:VisualElement class="dashboard-header-row">
         <ui:Label text="Promotion Dashboard" class="title" />
-        <ui:Button name="minimizeButton" text="–" class="window-button-minimize" />
+        <ui:Button name="minimizeButton" text="-" class="window-button-minimize" />
       </ui:VisualElement>
       <ui:Label name="statusLabel" text="Ready." class="status-label" />
+    </ui:VisualElement>
+
+    <!-- Toast / status bar -->
+    <ui:VisualElement name="toastBar" class="toast-bar hidden">
+      <ui:Label name="toastLabel" text="" class="toast-label" />
     </ui:VisualElement>
 
     <!-- ===== BODY: SIDEBAR + CONTENT ===== -->
