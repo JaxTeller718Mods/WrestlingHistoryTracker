@@ -24,6 +24,9 @@ public class PromotionDashboard : MonoBehaviour
     // Root and navigation
     private VisualElement root;
     private Label statusLabel;
+    // Dashboard chrome
+    private VisualElement dashboardChrome;
+    private Label dashboardTitleLabel;
     private Button promotionButton, wrestlersButton, titlesButton, tournamentsButton, stablesButton, tagTeamsButton, showsButton, calendarButton, historyButton, rivalriesButton, rankingsButton, awardsButton, returnButton, minimizeButton;
 
     // Panels
@@ -142,7 +145,7 @@ public class PromotionDashboard : MonoBehaviour
     private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
     private IntegerField showAttendanceField, newShowAttendanceField;
     private FloatField showRatingField, newShowRatingField;
-    private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown;
+    private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, showsBrandFilterDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
@@ -201,6 +204,11 @@ public class PromotionDashboard : MonoBehaviour
             return;
         }
 
+        // Dashboard chrome
+        dashboardChrome = root.Q<VisualElement>("dashboardChrome");
+        dashboardTitleLabel = root.Q<Label>("dashboardTitleLabel");
+        statusLabel = root.Q<Label>("statusLabel");
+
         // Query navigation
         promotionButton = root.Q<Button>("promotionButton");
         wrestlersButton = root.Q<Button>("wrestlersButton");
@@ -216,9 +224,11 @@ public class PromotionDashboard : MonoBehaviour
         awardsButton = root.Q<Button>("awardsButton");
         returnButton = root.Q<Button>("returnButton");
         minimizeButton = root.Q<Button>("minimizeButton");
-        statusLabel = root.Q<Label>("statusLabel");
         toastBar = root.Q<VisualElement>("toastBar");
         toastLabel = root.Q<Label>("toastLabel");
+
+        // Apply promotion-wide theme (brand-driven, if available)
+        ApplyPromotionTheme();
 
         // Query panels
         promotionInfoPanel = root.Q<VisualElement>("promotionInfoPanel");
@@ -5062,6 +5072,42 @@ public class PromotionDashboard : MonoBehaviour
 
         rankingsListView.itemsSource = items;
         rankingsListView.Rebuild();
+    }
+
+    private void ApplyPromotionTheme()
+    {
+        // Choose the first defined brand as the primary identity, if any
+        string primaryBrand = currentPromotion?.brands != null
+            ? currentPromotion.brands.FirstOrDefault(b => !string.IsNullOrWhiteSpace(b))
+            : null;
+
+        var primary = BrandColors.GetPrimary(primaryBrand);
+        var accent = BrandColors.GetAccent(primaryBrand);
+        var text = BrandColors.GetText(primaryBrand);
+
+        if (dashboardChrome != null)
+        {
+            dashboardChrome.style.backgroundColor = new StyleColor(primary);
+        }
+        if (dashboardTitleLabel != null)
+        {
+            dashboardTitleLabel.style.color = new StyleColor(accent);
+        }
+        if (statusLabel != null)
+        {
+            statusLabel.style.color = new StyleColor(accent);
+        }
+
+        // Optionally tint sidebar buttons slightly using the accent color
+        var sidebar = root != null ? root.Q<VisualElement>("sidebar") : null;
+        if (sidebar != null)
+        {
+            foreach (var btn in sidebar.Query<Button>().ToList())
+            {
+                btn.style.borderTopColor = new StyleColor(accent);
+                btn.style.borderBottomColor = new StyleColor(accent);
+            }
+        }
     }
 
     private void SaveCurrentWeekSnapshot()

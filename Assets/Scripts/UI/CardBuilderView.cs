@@ -7,6 +7,7 @@ using UnityEngine.UIElements;
 public class CardBuilderView
 {
     private VisualElement panel;
+    private VisualElement brandStripe;
     private TextField showNameField, showDateField, showVenueField, showCityField;
     private IntegerField showAttendanceField; private FloatField showRatingField;
     private DropdownField showTypeDropdown, showBrandDropdown;
@@ -42,6 +43,7 @@ public class CardBuilderView
         panel = cardBuilderPanel;
         promotionProvider = promotionGetter;
 
+        brandStripe = panel.Q<VisualElement>("cbBrandStripe");
         showNameField = panel.Q<TextField>("cbShowNameField");
         showDateField = panel.Q<TextField>("cbShowDateField");
         showVenueField = panel.Q<TextField>("cbShowVenueField");
@@ -85,6 +87,12 @@ public class CardBuilderView
             brandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
             showBrandDropdown.choices = brandChoices;
             showBrandDropdown.value = "";
+
+            showBrandDropdown.RegisterValueChangedCallback(e =>
+            {
+                if (workingShow != null) workingShow.brand = e.newValue;
+                UpdateBrandStripe(e.newValue);
+            });
         }
         if (showTypeDropdown != null)
         {
@@ -256,9 +264,17 @@ public class CardBuilderView
                 showBrandDropdown.choices = list;
             }
             showBrandDropdown.value = b;
+            UpdateBrandStripe(b);
         }
         RefreshEntryList();
         SelectEntry(-1); // clear selection
+    }
+
+    private void UpdateBrandStripe(string brand)
+    {
+        if (brandStripe == null) return;
+        var primary = BrandColors.GetPrimary(brand);
+        brandStripe.style.backgroundColor = new StyleColor(primary);
     }
 
     private void RefreshEntryList()

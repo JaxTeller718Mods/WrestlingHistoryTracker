@@ -14,16 +14,18 @@ public class CalendarView
     private Button prevMonthButton, nextMonthButton, todayButton, createShowButton;
 
     private Func<PromotionData> promotionProvider;
+    private Func<string> brandFilterProvider;
     private DateTime currentMonth;
     private DateTime selectedDate;
 
     public event Action<DateTime> CreateShowRequested;
     public event Action<ShowData> EditShowRequested;
 
-    public void Initialize(VisualElement calendarPanel, Func<PromotionData> promotionGetter)
+    public void Initialize(VisualElement calendarPanel, Func<PromotionData> promotionGetter, Func<string> brandFilterGetter = null)
     {
         panel = calendarPanel;
         promotionProvider = promotionGetter;
+        brandFilterProvider = brandFilterGetter;
         monthLabel = panel.Q<Label>("monthLabel");
         grid = panel.Q<VisualElement>("calendarGrid");
         selectedDateLabel = panel.Q<Label>("selectedDateLabel");
@@ -49,6 +51,14 @@ public class CalendarView
         if (panel == null) return;
         var promotion = promotionProvider?.Invoke();
         var shows = promotion?.shows ?? new List<ShowData>();
+        string brandFilter = brandFilterProvider != null ? (brandFilterProvider() ?? string.Empty).Trim() : string.Empty;
+        bool MatchBrand(ShowData s)
+        {
+            if (s == null) return false;
+            if (string.IsNullOrEmpty(brandFilter) || string.Equals(brandFilter, "All Brands", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return !string.IsNullOrEmpty(s.brand) && string.Equals(s.brand, brandFilter, StringComparison.OrdinalIgnoreCase);
+        }
 
         if (monthLabel != null)
         {
@@ -111,6 +121,7 @@ public class CalendarView
                     foreach (var s in shows)
                     {
                         if (!CalendarUtils.TryParseAny(s.date, out var sd)) continue;
+                        if (!MatchBrand(s)) continue;
                         if (sd.Date != thisDate.Date) continue;
                         var badge = new Button(() => EditShowRequested?.Invoke(s)) { text = s.showName };
                         badge.AddToClassList("calendar-badge");
@@ -120,6 +131,12 @@ public class CalendarView
                         var showType = !string.IsNullOrEmpty(s.showType) ? s.showType : InferShowType(s);
                         if (!string.IsNullOrEmpty(showType))
                             badge.AddToClassList($"calendar-badge--{showType}");
+
+                        // Brand-driven background/text colors
+                        var brandPrimary = BrandColors.GetPrimary(s.brand);
+                        var brandText = BrandColors.GetText(s.brand);
+                        badge.style.backgroundColor = new StyleColor(brandPrimary);
+                        badge.style.color = new StyleColor(brandText);
 
                         // Highlight shows that include any title match
                         if (ShowHasTitleMatch(s))
@@ -178,7 +195,15 @@ public class CalendarView
             dayShowsList.Clear();
             var promotion = promotionProvider?.Invoke();
             var shows = promotion?.shows ?? new List<ShowData>();
-            var todays = shows.Where(s => CalendarUtils.TryParseAny(s.date, out var sd) && sd.Date == selectedDate.Date)
+            string brandFilter = brandFilterProvider != null ? (brandFilterProvider() ?? string.Empty).Trim() : string.Empty;
+            bool MatchBrand(ShowData s)
+            {
+                if (s == null) return false;
+                if (string.IsNullOrEmpty(brandFilter) || string.Equals(brandFilter, "All Brands", StringComparison.OrdinalIgnoreCase))
+                    return true;
+                return !string.IsNullOrEmpty(s.brand) && string.Equals(s.brand, brandFilter, StringComparison.OrdinalIgnoreCase);
+            }
+            var todays = shows.Where(s => MatchBrand(s) && CalendarUtils.TryParseAny(s.date, out var sd) && sd.Date == selectedDate.Date)
                               .OrderBy(s => s.showName)
                               .ToList();
             if (todays.Count == 0)

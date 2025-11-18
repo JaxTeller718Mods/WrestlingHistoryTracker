@@ -812,6 +812,13 @@ Label {
 }
 .card-builder > * { margin-right: 16px; margin-bottom: 16px; }
 
+.brand-stripe {
+    height: 4px;
+    margin-bottom: 4px;
+    border-radius: 2px;
+    background-color: #444444;
+}
+
 .cb-center .row > Button[name="cbAddMatchButton"],
 .cb-center .row > Button[name="cbAddSegmentButton"] {
     flex: 0 0 120px;

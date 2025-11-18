@@ -8,7 +8,6 @@
     align-items: center;
     justify-content: flex-start;
     padding: 40px;
-    gap: 20px;
     background-color: rgba(12, 12, 12, 0.85);
 }
 
@@ -26,8 +25,7 @@
     border-radius: 8px;
     padding: 24px;
     flex-direction: column;
-    gap: 12px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    /* emulate vertical gap via child margins */
 }
 
 Label {
@@ -69,8 +67,20 @@ FloatField > .unity-float-field__input {
 .button-row {
     flex-direction: row;
     justify-content: flex-end;
-    gap: 12px;
     margin-top: 16px;
+}
+
+/* emulate gaps via child margins */
+.screen-root > * {
+    margin-bottom: 20px;
+}
+
+.form-panel > * {
+    margin-bottom: 12px;
+}
+
+.button-row > * {
+    margin-left: 12px;
 }
 
 button {

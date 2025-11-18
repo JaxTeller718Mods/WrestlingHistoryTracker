@@ -6,7 +6,7 @@
     <!-- ===== HEADER & NAVIGATION ===== -->
     <ui:VisualElement name="dashboardChrome" class="dashboard-chrome">
       <ui:VisualElement class="dashboard-header-row">
-        <ui:Label text="Promotion Dashboard" class="title" />
+        <ui:Label name="dashboardTitleLabel" text="Promotion Dashboard" class="title" />
         <ui:Button name="minimizeButton" text="-" class="window-button-minimize" />
       </ui:VisualElement>
       <ui:Label name="statusLabel" text="Ready." class="status-label" />
@@ -48,6 +48,7 @@
         <ui:Label name="monthLabel" text="Month 0000" class="calendar-month-label" />
         <ui:Button name="nextMonthButton" text="&gt;" />
         <ui:Button name="todayButton" text="Today" />
+        <ui:DropdownField name="calendarBrandDropdown" label="Brand" />
       </ui:VisualElement>
       <ui:VisualElement class="calendar-layout">
         <ui:VisualElement name="calendarGrid" class="calendar-grid" />
@@ -66,6 +67,7 @@
       <ui:Label text="Card Builder" class="section-title" />
       <ui:VisualElement class="card-builder">
         <ui:VisualElement class="cb-meta">
+          <ui:VisualElement name="cbBrandStripe" class="brand-stripe" />
           <ui:TextField name="cbShowNameField" label="Show Name" />
           <ui:TextField name="cbShowDateField" label="Date (yyyy-MM-dd)" />
           <ui:TextField name="cbShowVenueField" label="Venue" />
@@ -407,6 +409,9 @@
     <ui:ScrollView name="showsPanel" class="hidden">
       <ui:Label text="Shows &amp; Events" class="section-title" />
       <ui:Label text="Bulk edit shows and details." class="label" />
+      <ui:VisualElement class="row">
+        <ui:DropdownField name="showsBrandFilterDropdown" label="Brand Filter" />
+      </ui:VisualElement>
       <ui:VisualElement class="shows-layout">
         <ui:ScrollView name="showsList" class="list" />
 
