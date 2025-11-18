@@ -188,6 +188,35 @@ public class CardBuilderView
         ApplyWorkingShowToUI();
     }
 
+    /// <summary>
+    /// Open an existing show in edit mode and, if possible, select
+    /// a specific match or segment entry by its ID.
+    /// </summary>
+    /// <param name="existing">Show to edit.</param>
+    /// <param name="kind">Entry kind: 'M' for match, 'S' for segment.</param>
+    /// <param name="entryId">MatchData.id or SegmentData.id to focus.</param>
+    public void BeginEditAndSelectEntry(ShowData existing, char kind, string entryId)
+    {
+        BeginEdit(existing);
+        if (string.IsNullOrEmpty(entryId))
+            return;
+
+        int idx = -1;
+        for (int i = 0; i < order.Count; i++)
+        {
+            var (k, id) = ParseToken(order[i]);
+            if (k == kind && string.Equals(id, entryId, StringComparison.OrdinalIgnoreCase))
+            {
+                idx = i;
+                break;
+            }
+        }
+        if (idx >= 0)
+        {
+            SelectEntry(idx);
+        }
+    }
+
     private void ApplyWorkingShowToUI()
     {
         if (workingShow == null) return;
