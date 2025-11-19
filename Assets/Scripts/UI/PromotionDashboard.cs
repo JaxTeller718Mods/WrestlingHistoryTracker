@@ -1047,18 +1047,35 @@ public class PromotionDashboard : MonoBehaviour
         if (string.Equals(t, "Tag Team", StringComparison.OrdinalIgnoreCase))
         {
             var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
-            foreach (var g in tags?.teams ?? new List<TagTeamData>()) if (!string.IsNullOrEmpty(g?.teamName)) { a.Add(g.teamName); b.Add(g.teamName); }
+            foreach (var g in tags?.teams ?? new List<TagTeamData>())
+                if (!string.IsNullOrEmpty(g?.teamName)) { a.Add(g.teamName); b.Add(g.teamName); }
         }
         else if (string.Equals(t, "Stables", StringComparison.OrdinalIgnoreCase))
         {
             var st = DataManager.LoadStables(currentPromotion?.promotionName);
-            foreach (var s in st?.stables ?? new List<StableData>()) if (!string.IsNullOrEmpty(s?.stableName)) { a.Add(s.stableName); b.Add(s.stableName); }
+            foreach (var s in st?.stables ?? new List<StableData>())
+                if (!string.IsNullOrEmpty(s?.stableName)) { a.Add(s.stableName); b.Add(s.stableName); }
         }
         else
         {
             wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
-            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>()) if (!string.IsNullOrEmpty(w?.name)) { a.Add(w.name); b.Add(w.name); }
+            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+                if (!string.IsNullOrEmpty(w?.name)) { a.Add(w.name); b.Add(w.name); }
         }
+
+        a = a
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        b = b
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         if (a.Count == 0) a.Add(string.Empty);
         if (b.Count == 0) b.Add(string.Empty);
         if (rivalryParticipantADropdown != null) { rivalryParticipantADropdown.choices = a; if (string.IsNullOrEmpty(rivalryParticipantADropdown.value)) rivalryParticipantADropdown.value = a[0]; }
@@ -4371,6 +4388,12 @@ public class PromotionDashboard : MonoBehaviour
         var choices = new List<string>();
         foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
             if (!string.IsNullOrEmpty(w?.name)) choices.Add(w.name);
+        choices = choices
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         if (choices.Count == 0) choices.Add(string.Empty);
         stableMemberDropdown.choices = choices;
         stableMemberDropdown.value = choices[0];
