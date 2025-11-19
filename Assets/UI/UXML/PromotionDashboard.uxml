@@ -49,10 +49,13 @@
         <ui:Label name="monthLabel" text="Month 0000" class="calendar-month-label" />
         <ui:Button name="nextMonthButton" text="&gt;" />
         <ui:Button name="todayButton" text="Today" />
-        <ui:DropdownField name="calendarBrandDropdown" label="Brand" />
+        <ui:DropdownField name="calendarBrandDropdown" label="Filter by Brand" />
       </ui:VisualElement>
       <ui:VisualElement class="calendar-header">
         <ui:DropdownField name="calendarRecurrenceDropdown" label="Recurrence Template" />
+        <ui:DropdownField name="calendarWeeklyDayDropdown" label="Day of Week" />
+        <ui:DropdownField name="calendarGenerationBrandDropdown" label="Generation Brand" />
+        <ui:TextField name="calendarTemplateNameField" label="Show Name (optional)" />
         <ui:VisualElement class="row">
           <ui:TextField name="calendarYearField" label="Year" />
           <ui:Button name="calendarGenerateYearButton" text="Generate Year" />

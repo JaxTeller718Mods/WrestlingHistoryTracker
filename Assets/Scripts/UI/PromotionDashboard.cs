@@ -151,7 +151,7 @@ public class PromotionDashboard : MonoBehaviour
     private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
     private IntegerField showAttendanceField, newShowAttendanceField;
     private FloatField showRatingField, newShowRatingField;
-    private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, showsBrandFilterDropdown;
+    private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, calendarGenerationBrandDropdown, showsBrandFilterDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
@@ -269,6 +269,8 @@ public class PromotionDashboard : MonoBehaviour
         historyShowMatchesList = root.Q<ScrollView>("historyShowMatchesList");
         historyLocationFilterField = root.Q<TextField>("historyLocationFilterField");
         historyBrandDropdown = root.Q<DropdownField>("historyBrandDropdown");
+        calendarBrandDropdown = root.Q<DropdownField>("calendarBrandDropdown");
+        calendarGenerationBrandDropdown = root.Q<DropdownField>("calendarGenerationBrandDropdown");
         rankingsPanel = root.Q<VisualElement>("rankingsPanel");
         // Rivalries queries
         rivalryListScroll = root.Q<ScrollView>("rivalryList");
@@ -2169,6 +2171,26 @@ public class PromotionDashboard : MonoBehaviour
             rankingsBrandDropdown.choices = rankChoices;
             if (!rankChoices.Contains(rankingsBrandDropdown.value))
                 rankingsBrandDropdown.value = "All Brands";
+        }
+
+        // Calendar filter
+        if (calendarBrandDropdown != null)
+        {
+            var calChoices = new List<string> { "All Brands" };
+            calChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            calendarBrandDropdown.choices = calChoices;
+            if (!calChoices.Contains(calendarBrandDropdown.value))
+                calendarBrandDropdown.value = "All Brands";
+        }
+
+        // Calendar generation brand (optional, per-template)
+        if (calendarGenerationBrandDropdown != null)
+        {
+            var genChoices = new List<string> { "" };
+            genChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+            calendarGenerationBrandDropdown.choices = genChoices;
+            if (!genChoices.Contains(calendarGenerationBrandDropdown.value))
+                calendarGenerationBrandDropdown.value = "";
         }
     }
 

@@ -280,18 +280,27 @@ FloatField > .unity-float-field__input {
 
 #wrestlerList {
     max-width: 320px;
-    min-height: 360px;
+    min-height: 420px;
+    height: 420px; /* ensures internal scrolling is available */
 }
 
 /* Virtualized ListView replacements sizing */
-#wrestlerListView,
+/* Wrestlers list: taller to show more entries */
+#wrestlerListView {
+    width: 100%;
+    max-width: 320px;
+    min-height: 540px;
+    height: 540px; /* ensures internal scrolling is available */
+}
+
+/* Other lists keep a more compact height */
 #titleListView,
 #showsListView,
 #historyShowsListView {
     width: 100%;
     max-width: 320px;
     min-height: 360px;
-    height: 360px; /* ensures internal scrolling is available */
+    height: 360px;
 }
 
 /* Rivalries virtualized list sizing */
@@ -692,6 +701,7 @@ FloatField > .unity-float-field__input {
     border-left-width: 0;
     border-right-width: 0;
     border-bottom-width: 0;
+    min-height: 600px;
 }
 
 /* ===== SMALL UI TWEAKS ===== */

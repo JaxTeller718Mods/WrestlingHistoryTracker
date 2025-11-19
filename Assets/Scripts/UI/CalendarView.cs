@@ -12,8 +12,8 @@ public class CalendarView
     private Label selectedDateLabel;
     private ScrollView dayShowsList;
     private Button prevMonthButton, nextMonthButton, todayButton, createShowButton, generateYearButton;
-    private DropdownField recurrenceDropdown;
-    private TextField yearField;
+    private DropdownField recurrenceDropdown, weeklyDayDropdown, brandDropdown, generationBrandDropdown;
+    private TextField yearField, templateNameField;
 
     private Func<PromotionData> promotionProvider;
     private Func<string> brandFilterProvider;
@@ -37,6 +37,10 @@ public class CalendarView
         todayButton = panel.Q<Button>("todayButton");
         createShowButton = panel.Q<Button>("createShowButton");
         recurrenceDropdown = panel.Q<DropdownField>("calendarRecurrenceDropdown");
+        weeklyDayDropdown = panel.Q<DropdownField>("calendarWeeklyDayDropdown");
+        brandDropdown = panel.Q<DropdownField>("calendarBrandDropdown");
+        generationBrandDropdown = panel.Q<DropdownField>("calendarGenerationBrandDropdown");
+        templateNameField = panel.Q<TextField>("calendarTemplateNameField");
         yearField = panel.Q<TextField>("calendarYearField");
         generateYearButton = panel.Q<Button>("calendarGenerateYearButton");
 
@@ -60,9 +64,37 @@ public class CalendarView
             if (choices.Count > 0) recurrenceDropdown.value = choices[0];
         }
 
+        if (weeklyDayDropdown != null)
+        {
+            weeklyDayDropdown.choices = new List<string>
+            {
+                DayOfWeek.Sunday.ToString(),
+                DayOfWeek.Monday.ToString(),
+                DayOfWeek.Tuesday.ToString(),
+                DayOfWeek.Wednesday.ToString(),
+                DayOfWeek.Thursday.ToString(),
+                DayOfWeek.Friday.ToString(),
+                DayOfWeek.Saturday.ToString()
+            };
+            weeklyDayDropdown.value = DayOfWeek.Monday.ToString();
+        }
+
         if (yearField != null)
         {
             yearField.value = DateTime.Today.Year.ToString();
+        }
+
+        if (brandDropdown != null)
+        {
+            // Default value; choices are typically populated elsewhere based on promotion brands
+            if (brandDropdown.choices == null || brandDropdown.choices.Count == 0)
+            {
+                brandDropdown.choices = new List<string> { "All Brands" };
+            }
+            if (string.IsNullOrEmpty(brandDropdown.value))
+                brandDropdown.value = "All Brands";
+
+            brandDropdown.RegisterValueChangedCallback(_ => Refresh());
         }
 
         if (generateYearButton != null)
@@ -78,7 +110,11 @@ public class CalendarView
         if (panel == null) return;
         var promotion = promotionProvider?.Invoke();
         var shows = promotion?.shows ?? new List<ShowData>();
-        string brandFilter = brandFilterProvider != null ? (brandFilterProvider() ?? string.Empty).Trim() : string.Empty;
+        string brandFilter = string.Empty;
+        if (brandDropdown != null && !string.IsNullOrEmpty(brandDropdown.value))
+            brandFilter = brandDropdown.value.Trim();
+        else if (brandFilterProvider != null)
+            brandFilter = (brandFilterProvider() ?? string.Empty).Trim();
         bool MatchBrand(ShowData s)
         {
             if (s == null) return false;
@@ -222,7 +258,11 @@ public class CalendarView
             dayShowsList.Clear();
             var promotion = promotionProvider?.Invoke();
             var shows = promotion?.shows ?? new List<ShowData>();
-            string brandFilter = brandFilterProvider != null ? (brandFilterProvider() ?? string.Empty).Trim() : string.Empty;
+            string brandFilter = string.Empty;
+            if (brandDropdown != null && !string.IsNullOrEmpty(brandDropdown.value))
+                brandFilter = brandDropdown.value.Trim();
+            else if (brandFilterProvider != null)
+                brandFilter = (brandFilterProvider() ?? string.Empty).Trim();
             bool MatchBrand(ShowData s)
             {
                 if (s == null) return false;
@@ -247,12 +287,35 @@ public class CalendarView
                     var lbl = new Label(s.showName);
                     lbl.style.flexGrow = 1;
                     var edit = new Button(() => EditShowRequested?.Invoke(s)) { text = "Edit" };
+                    var delete = new Button(() => DeleteShow(s)) { text = "Delete" };
                     row.Add(lbl);
                     row.Add(edit);
+                    row.Add(delete);
                     dayShowsList.Add(row);
                 }
             }
         }
+    }
+
+    private void DeleteShow(ShowData show)
+    {
+        if (show == null) return;
+        var promotion = promotionProvider?.Invoke();
+        if (promotion?.shows == null) return;
+
+        if (!promotion.shows.Remove(show))
+        {
+            // Fallback: match by name and date if reference removal fails
+            promotion.shows.RemoveAll(s =>
+                s != null &&
+                string.Equals(s.showName, show.showName, StringComparison.OrdinalIgnoreCase) &&
+                CalendarUtils.TryParseAny(s.date, out var d1) &&
+                CalendarUtils.TryParseAny(show.date, out var d2) &&
+                d1.Date == d2.Date);
+        }
+
+        DataManager.SavePromotion(promotion);
+        Refresh();
     }
 
     private void OnGenerateYearClicked()
@@ -284,22 +347,57 @@ public class CalendarView
             return;
         }
 
-        var dates = GenerateDatesForYear(recurring, year);
+        // Optional override for day-of-week (for both weekly TV and monthly PPVs)
+        DayOfWeek? overrideDay = null;
+        if (weeklyDayDropdown != null && !string.IsNullOrEmpty(weeklyDayDropdown.value))
+        {
+            if (Enum.TryParse<DayOfWeek>(weeklyDayDropdown.value, out var parsed))
+                overrideDay = parsed;
+        }
+
+        var dates = GenerateDatesForYear(recurring, year, overrideDay);
         if (dates.Count == 0)
             return;
 
         promotion.shows ??= new List<ShowData>();
 
+        // Determine brand to assign to generated shows:
+        // 1) Use explicit generation brand selection if provided
+        // 2) Otherwise fall back to the template's brand (if any)
+        // 3) As a last resort, use the calendar filter brand (if not "All Brands")
+        string generatedBrand = string.Empty;
+        if (generationBrandDropdown != null && !string.IsNullOrEmpty(generationBrandDropdown.value))
+        {
+            generatedBrand = generationBrandDropdown.value.Trim();
+        }
+        else if (!string.IsNullOrEmpty(recurring.brand))
+        {
+            generatedBrand = recurring.brand;
+        }
+        else if (brandDropdown != null && !string.IsNullOrEmpty(brandDropdown.value) &&
+            !string.Equals(brandDropdown.value, "All Brands", StringComparison.OrdinalIgnoreCase))
+        {
+            generatedBrand = brandDropdown.value.Trim();
+        }
+
         foreach (var date in dates)
         {
             string iso = CalendarUtils.FormatIso(date);
-            bool exists = promotion.shows.Any(s => s != null && CalendarUtils.TryParseAny(s.date, out var d) && d.Date == date.Date && string.Equals(s.showName, recurring.showName, StringComparison.OrdinalIgnoreCase));
+            // Optional override for show name from the template name field
+            string showName = recurring.showName;
+            if (templateNameField != null && !string.IsNullOrWhiteSpace(templateNameField.value))
+                showName = templateNameField.value.Trim();
+
+            bool exists = promotion.shows.Any(s => s != null &&
+                CalendarUtils.TryParseAny(s.date, out var d) &&
+                d.Date == date.Date &&
+                string.Equals(s.showName, showName, StringComparison.OrdinalIgnoreCase));
             if (exists) continue;
 
-            var show = new ShowData(recurring.showName, iso)
+            var show = new ShowData(showName, iso)
             {
                 showType = recurring.showType,
-                brand = recurring.brand ?? string.Empty,
+                brand = generatedBrand ?? string.Empty,
                 venue = string.Empty,
                 city = string.Empty,
                 attendance = 0,
@@ -312,7 +410,7 @@ public class CalendarView
         Refresh();
     }
 
-    private List<DateTime> GenerateDatesForYear(ShowTemplates.RecurringTemplate recurring, int year)
+    private List<DateTime> GenerateDatesForYear(ShowTemplates.RecurringTemplate recurring, int year, DayOfWeek? overrideDay)
     {
         var list = new List<DateTime>();
         if (recurring == null) return list;
@@ -322,7 +420,8 @@ public class CalendarView
             // From Jan 1 to Dec 31, pick all given weekday
             var start = new DateTime(year, 1, 1);
             var end = new DateTime(year, 12, 31);
-            int offset = ((int)recurring.weeklyDay - (int)start.DayOfWeek + 7) % 7;
+            var weeklyDay = overrideDay ?? recurring.weeklyDay;
+            int offset = ((int)weeklyDay - (int)start.DayOfWeek + 7) % 7;
             var first = start.AddDays(offset);
             for (var d = first; d <= end; d = d.AddDays(7))
                 list.Add(d);
@@ -331,7 +430,8 @@ public class CalendarView
         {
             for (int month = 1; month <= 12; month++)
             {
-                var date = GetMonthlyDate(year, month, recurring.monthlyWeekIndex, recurring.monthlyDay);
+                var dayOfWeek = overrideDay ?? recurring.monthlyDay;
+                var date = GetMonthlyDate(year, month, recurring.monthlyWeekIndex, dayOfWeek);
                 if (date != DateTime.MinValue)
                     list.Add(date);
             }
