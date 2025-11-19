@@ -738,4 +738,59 @@ public static class DataManager
         }
         return changed;
     }
+
+    /// <summary>
+    /// Deletes a promotion and all associated data files (roster, titles, teams, stables,
+    /// tournaments, rivalries, history, rankings) for the given promotion name.
+    /// </summary>
+    public static bool DeletePromotionAndAllData(string promotionName)
+    {
+        if (string.IsNullOrWhiteSpace(promotionName))
+        {
+            Debug.LogWarning("DeletePromotionAndAllData: promotionName is null or empty.");
+            return false;
+        }
+
+        string safeName = MakeSafeFileName(promotionName);
+        bool success = true;
+
+        void TryDelete(string folder, string fileName, string label)
+        {
+            if (string.IsNullOrEmpty(folder) || string.IsNullOrEmpty(fileName)) return;
+            try
+            {
+                string path = Path.Combine(folder, fileName);
+                if (!File.Exists(path)) return;
+                File.Delete(path);
+                Debug.Log($"Deleted {label} for promotion '{promotionName}': {path}");
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                Debug.LogError($"Error deleting {label} for promotion '{promotionName}': {ex.Message}");
+            }
+        }
+
+        // Core promotion save (includes shows and brands)
+        TryDelete(promotionFolder, $"{safeName}.json", "promotion");
+
+        // Roster and divisions
+        TryDelete(wrestlerFolder, $"{safeName}_Wrestlers.json", "wrestlers");
+        TryDelete(titleFolder, $"{safeName}_Titles.json", "titles");
+        TryDelete(tagTeamFolder, $"{safeName}_TagTeams.json", "tag teams");
+        TryDelete(stableFolder, $"{safeName}_Stables.json", "stables");
+
+        // Tournaments and rivalries
+        TryDelete(tournamentsFolder, $"{safeName}_Tournaments.json", "tournaments");
+        TryDelete(rivalryFolder, $"{safeName}_Rivalries.json", "rivalries");
+
+        // Match/title history and rankings
+        TryDelete(historyFolder, $"{safeName}_History.json", "match history");
+        TryDelete(rankingsFolder, $"{safeName}_Rankings.json", "rankings");
+
+        if (success)
+            Debug.Log($"Promotion '{promotionName}' and associated data deleted.");
+
+        return success;
+    }
 }

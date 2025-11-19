@@ -3151,6 +3151,7 @@ public class PromotionDashboard : MonoBehaviour
         tagTeamCollection.promotionName = currentPromotion.promotionName;
         DataManager.SaveTagTeams(tagTeamCollection);
         statusLabel.text = "Teams saved.";
+        ShowToast("Teams saved.", false);
     }
 
     private void OnSaveSelectedTeam()
@@ -3171,6 +3172,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveTagTeams(tagTeamCollection);
         RefreshTagTeamList();
         statusLabel.text = "Team updated.";
+        ShowToast("Team updated.", false);
     }
 
     private void OnDeleteSelectedTeam()
@@ -3181,6 +3183,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveTagTeams(tagTeamCollection);
         RefreshTagTeamList();
         statusLabel.text = "Team deleted.";
+        ShowToast("Team deleted.", false);
     }
 
     private void OnCancelEditTeam()

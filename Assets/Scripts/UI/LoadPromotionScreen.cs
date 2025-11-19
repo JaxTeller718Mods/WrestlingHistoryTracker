@@ -96,7 +96,7 @@ public class LoadPromotionScreen : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(promotionName)) return;
 
-        bool deleted = DataManager.DeletePromotion(promotionName);
+        bool deleted = DataManager.DeletePromotionAndAllData(promotionName);
         if (deleted)
         {
             statusLabel.text = $"Promotion '{promotionName}' deleted.";
@@ -108,4 +108,3 @@ public class LoadPromotionScreen : MonoBehaviour
         }
     }
 }
-
