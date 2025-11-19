@@ -620,14 +620,6 @@ public class PromotionDashboard : MonoBehaviour
             if (selectedShowIndex >= 0 && currentPromotion?.shows != null && selectedShowIndex < currentPromotion.shows.Count)
                 EditShow(currentPromotion.shows[selectedShowIndex]);
         };
-        // Stables handlers (registered outside of other callbacks)
-        if (addStableButton != null) addStableButton.clicked += OnAddStable;
-        if (saveStablesButton != null) saveStablesButton.clicked += OnSaveStables;
-        if (saveStableButton != null) saveStableButton.clicked += OnSaveSelectedStable;
-        if (deleteStableButton != null) deleteStableButton.clicked += OnDeleteSelectedStable;
-        if (cancelStableButton != null) cancelStableButton.clicked += OnCancelEditStable;
-        if (addStableMemberButton != null) addStableMemberButton.clicked += OnAddStableMember;
-        if (removeStableMemberButton != null) removeStableMemberButton.clicked += OnRemoveStableMember;
         if (addMatchButton != null) addMatchButton.clicked += ShowMatchEditor;
         if (addSegmentButton != null) addSegmentButton.clicked += ShowSegmentEditor;
         if (saveMatchButton != null) saveMatchButton.clicked += SaveMatch;
@@ -2857,9 +2849,11 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (teamMemberADropdown == null || teamMemberBDropdown == null) return;
         wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
-        var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
-        names.Add("Draw");
-        names.Add("No Contest");
+        var names = wrestlerCollection?.wrestlers?
+            .Where(w => !string.IsNullOrEmpty(w?.name))
+            ?.Select(w => w.name)
+            .OrderBy(n => n)
+            .ToList() ?? new List<string>();
         if (names.Count == 0) names.Add(string.Empty);
         teamMemberADropdown.choices = names; teamMemberADropdown.value = names[0];
         teamMemberBDropdown.choices = names; teamMemberBDropdown.value = names[0];
@@ -3443,9 +3437,11 @@ public class PromotionDashboard : MonoBehaviour
         if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
         EnsureDefaultMatchTypes();
         EnsureRosterAndTitlesLoaded();
-        var names = wrestlerCollection?.wrestlers?.Where(w => !string.IsNullOrEmpty(w?.name))?.Select(w => w.name).OrderBy(n => n).ToList() ?? new List<string>();
-        names.Add("Draw");
-        names.Add("No Contest");
+        var names = wrestlerCollection?.wrestlers?
+            .Where(w => !string.IsNullOrEmpty(w?.name))
+            ?.Select(w => w.name)
+            .OrderBy(n => n)
+            .ToList() ?? new List<string>();
         if (names.Count == 0) names.Add(string.Empty);
         SetChoices(wrestlerADropdown, names);
         SetChoices(wrestlerBDropdown, names);
