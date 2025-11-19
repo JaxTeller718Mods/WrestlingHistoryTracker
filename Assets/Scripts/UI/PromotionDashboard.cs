@@ -83,7 +83,10 @@ public class PromotionDashboard : MonoBehaviour
     private ListView titleListView;
     private VisualElement titleDetailsPanel, titleAddPanel;
     private Button viewHistoryButton;
-    private TextField titleNameField, titleDivisionField, titleChampionField, titleNotesField;
+    private TextField titleNameField, titleDivisionField, titleNotesField;
+    private DropdownField titleChampionDropdown, titleTagChampionADropdown, titleTagChampionBDropdown;
+    private Toggle titleIsTagTeamToggle;
+    private VisualElement titleTagTeamRow;
     private TextField newTitleField, newTitleDivisionField;
     private Button addTitleButton, saveTitlesButton, saveTitleButton, deleteTitleButton, cancelTitleButton;
     private TitleCollection titleCollection;
@@ -395,7 +398,11 @@ public class PromotionDashboard : MonoBehaviour
         titleAddPanel = root.Q<VisualElement>("titleAddPanel");
         titleNameField = root.Q<TextField>("titleNameField");
         titleDivisionField = root.Q<TextField>("titleDivisionField");
-        titleChampionField = root.Q<TextField>("titleChampionField");
+        titleChampionDropdown = root.Q<DropdownField>("titleChampionDropdown");
+        titleIsTagTeamToggle = root.Q<Toggle>("titleIsTagTeamToggle");
+        titleTagTeamRow = root.Q<VisualElement>("titleTagTeamRow");
+        titleTagChampionADropdown = root.Q<DropdownField>("titleTagChampionADropdown");
+        titleTagChampionBDropdown = root.Q<DropdownField>("titleTagChampionBDropdown");
         titleNotesField = root.Q<TextField>("titleNotesField");
         newTitleDivisionField = root.Q<TextField>("newTitleDivisionField");
         viewHistoryButton = root.Q<Button>("viewHistoryButton");
@@ -585,6 +592,22 @@ public class PromotionDashboard : MonoBehaviour
         if (advanceRoundButton != null) advanceRoundButton.clicked += OnAdvanceRound;
         if (clearBracketButton != null) clearBracketButton.clicked += OnClearBracket;
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
+        if (titleIsTagTeamToggle != null)
+        {
+            titleIsTagTeamToggle.RegisterValueChangedCallback(evt =>
+            {
+                if (titleTagTeamRow != null)
+                {
+                    if (evt.newValue) titleTagTeamRow.RemoveFromClassList("hidden");
+                    else titleTagTeamRow.AddToClassList("hidden");
+                }
+                if (titleChampionDropdown != null)
+                {
+                    if (evt.newValue) titleChampionDropdown.AddToClassList("hidden");
+                    else titleChampionDropdown.RemoveFromClassList("hidden");
+                }
+            });
+        }
         if (titleStatsCloseButton != null) titleStatsCloseButton.clicked += () =>
         {
             // Return to lineage view
@@ -3220,7 +3243,48 @@ public class PromotionDashboard : MonoBehaviour
         var t = titleCollection.titles[index];
         if (titleNameField != null) titleNameField.value = t.titleName;
         if (titleDivisionField != null) titleDivisionField.value = t.division;
-        if (titleChampionField != null) titleChampionField.value = t.currentChampion;
+        EnsureRosterAndTitlesLoaded();
+        // Populate champion dropdown choices with individual wrestlers (alphabetical)
+        var champNames = wrestlerCollection?.wrestlers?
+            .Where(w => w != null && !string.IsNullOrEmpty(w.name) && !w.isTagTeam)
+            .Select(w => w.name)
+            .OrderBy(n => n)
+            .ToList() ?? new List<string>();
+        if (!champNames.Contains(string.Empty)) champNames.Insert(0, string.Empty);
+        SetChoices(titleChampionDropdown, champNames);
+        SetChoices(titleTagChampionADropdown, champNames);
+        SetChoices(titleTagChampionBDropdown, champNames);
+
+        // Apply current champion values based on singles/tag-team mode
+        string current = t.currentChampion ?? string.Empty;
+        if (titleIsTagTeamToggle != null) titleIsTagTeamToggle.value = t.isTagTeamTitle;
+
+        if (t.isTagTeamTitle)
+        {
+            // Parse stored "A & B" format into two names
+            string aName = string.Empty, bName = string.Empty;
+            if (!string.IsNullOrEmpty(current))
+            {
+                var parts = current.Split('&');
+                if (parts.Length > 0) aName = parts[0].Trim();
+                if (parts.Length > 1) bName = parts[1].Trim();
+            }
+
+            if (titleTagChampionADropdown != null && titleTagChampionADropdown.choices != null && titleTagChampionADropdown.choices.Contains(aName))
+                titleTagChampionADropdown.value = aName;
+            if (titleTagChampionBDropdown != null && titleTagChampionBDropdown.choices != null && titleTagChampionBDropdown.choices.Contains(bName))
+                titleTagChampionBDropdown.value = bName;
+
+            if (titleChampionDropdown != null) titleChampionDropdown.value = string.Empty;
+        }
+        else
+        {
+            if (titleChampionDropdown != null && titleChampionDropdown.choices != null && titleChampionDropdown.choices.Contains(current))
+                titleChampionDropdown.value = current;
+            if (titleTagChampionADropdown != null) titleTagChampionADropdown.value = string.Empty;
+            if (titleTagChampionBDropdown != null) titleTagChampionBDropdown.value = string.Empty;
+        }
+
         if (titleNotesField != null) titleNotesField.value = t.notes;
         // Keep stats out of the edit panel
         titleStatsPanel?.AddToClassList("hidden");
@@ -3316,6 +3380,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveTitles(titleCollection);
         RefreshDivisionChoices();
         if (statusLabel != null) statusLabel.text = "Titles saved.";
+        ShowToast("Titles saved.", false);
     }
 
     private void OnSaveSelectedTitle()
@@ -3324,12 +3389,30 @@ public class PromotionDashboard : MonoBehaviour
         var t = titleCollection.titles[selectedTitleIndex];
         if (titleNameField != null) t.titleName = titleNameField.value;
         if (titleDivisionField != null) t.division = titleDivisionField.value;
-        if (titleChampionField != null) t.currentChampion = titleChampionField.value;
+        if (titleIsTagTeamToggle != null) t.isTagTeamTitle = titleIsTagTeamToggle.value;
+
+        if (t.isTagTeamTitle)
+        {
+            var a = titleTagChampionADropdown != null ? (titleTagChampionADropdown.value ?? string.Empty).Trim() : string.Empty;
+            var b = titleTagChampionBDropdown != null ? (titleTagChampionBDropdown.value ?? string.Empty).Trim() : string.Empty;
+            if (!string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b))
+                t.currentChampion = $"{a} & {b}";
+            else if (!string.IsNullOrEmpty(a) || !string.IsNullOrEmpty(b))
+                t.currentChampion = string.Join(" & ", new[] { a, b }.Where(s => !string.IsNullOrEmpty(s)));
+            else
+                t.currentChampion = string.Empty;
+        }
+        else
+        {
+            if (titleChampionDropdown != null)
+                t.currentChampion = titleChampionDropdown.value;
+        }
         if (titleNotesField != null) t.notes = titleNotesField.value;
         DataManager.SaveTitles(titleCollection);
         RefreshDivisionChoices();
         RefreshTitleList();
         if (statusLabel != null) statusLabel.text = "Title updated.";
+        ShowToast("Title updated.", false);
     }
 
     private void OnDeleteSelectedTitle()

@@ -10,6 +10,7 @@ public class TitleData
     public string division;
     public string establishedYear;
     public string currentChampion;
+    public bool isTagTeamTitle;
     public string notes;
 }
 

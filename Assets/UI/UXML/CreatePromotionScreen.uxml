@@ -5,7 +5,7 @@
         <ui:VisualElement name="formContainer" class="form-panel">
             <ui:TextField name="promotionNameField" label="Promotion Name" class="field" />
             <ui:TextField name="locationField" label="Location" class="field" />
-            <ui:TextField name="foundedField" label="Founded Year" class="field" />
+            <ui:TextField name="foundedField" label="Owner" class="field" />
             <ui:TextField name="descriptionField" label="Description" multiline="true" class="field description-field" />
             <ui:VisualElement class="button-row">
                 <ui:Button name="saveButton" text="Save Promotion" class="primary-button" />

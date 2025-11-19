@@ -315,7 +315,14 @@
             <ui:Label text="Title Details" class="subsection-title" />
             <ui:TextField name="titleNameField" label="Title Name" />
             <ui:TextField name="titleDivisionField" label="Division" />
-            <ui:TextField name="titleChampionField" label="Current Champion" />
+            <ui:DropdownField name="titleChampionDropdown" label="Current Champion" />
+            <ui:VisualElement class="row">
+              <ui:Toggle name="titleIsTagTeamToggle" label="Tag Team Title" />
+            </ui:VisualElement>
+            <ui:VisualElement name="titleTagTeamRow" class="row hidden">
+              <ui:DropdownField name="titleTagChampionADropdown" label="Champion A" />
+              <ui:DropdownField name="titleTagChampionBDropdown" label="Champion B" />
+            </ui:VisualElement>
             <ui:TextField name="titleNotesField" label="Notes" multiline="true" />
             <ui:VisualElement class="row">
               <ui:Button name="saveTitleButton" text="Save Changes" />
