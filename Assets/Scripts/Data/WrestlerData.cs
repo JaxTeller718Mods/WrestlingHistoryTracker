@@ -16,6 +16,7 @@ public class WrestlerData
     public float height;   // in centimeters
     public bool isFemale;  // gender flag for divisions/rankings
     public bool isTagTeam; // tag team flag for rankings
+    public string division; // optional singles division label (e.g., Heavyweight)
 
     // ✅ Parameterless constructor (needed for JSONUtility & object initializers)
     public WrestlerData() { }

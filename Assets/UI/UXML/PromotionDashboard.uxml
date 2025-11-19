@@ -32,6 +32,7 @@
         <ui:Button name="historyButton" text="History" />
         <ui:Button name="rivalriesButton" text="Rivalries" />
         <ui:Button name="rankingsButton" text="Rankings" />
+        <ui:Button name="divisionsButton" text="Divisions" />
         <ui:Button name="awardsButton" text="Awards" />
         <ui:Button name="returnButton" text="Return to Main Menu" />
       </ui:VisualElement>
@@ -205,6 +206,31 @@
       </ui:VisualElement>
     </ui:ScrollView>
 
+    <!-- ===== DIVISIONS PANEL ===== -->
+    <ui:ScrollView name="divisionsPanel" class="hidden">
+      <ui:Label text="Divisions Overview" class="section-title" />
+      <ui:VisualElement class="row">
+        <ui:DropdownField name="divisionsOverviewDivisionDropdown" label="Division" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Titles in Division" class="subsection-title" />
+        <ui:ScrollView name="divisionTitlesList" class="list" />
+      </ui:VisualElement>
+
+      <ui:VisualElement class="divisions-two-column">
+        <ui:VisualElement class="title-detail-card">
+          <ui:Label text="Singles Wrestlers in Division" class="subsection-title" />
+          <ui:ScrollView name="divisionWrestlersList" class="list" />
+        </ui:VisualElement>
+
+        <ui:VisualElement class="title-detail-card">
+          <ui:Label text="Tag Teams in Division" class="subsection-title" />
+          <ui:ScrollView name="divisionTeamsList" class="list" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:ScrollView>
+
     <!-- ===== PROMOTION INFO PANEL ===== -->
     <ui:ScrollView name="promotionInfoPanel">
       <ui:Label name="promotionTitle" text="Promotion Information" class="section-title" />
@@ -246,6 +272,7 @@
             <ui:Label text="Wrestler Details" class="subsection-title" />
             <ui:TextField name="wrestlerNameField" label="Name" />
             <ui:Toggle name="wrestlerIsFemaleToggle" label="Female" />
+            <ui:DropdownField name="wrestlerDivisionDropdown" label="Division (optional)" />
             <ui:VisualElement class="row">
               <ui:Button name="saveWrestlerButton" text="Save Changes" />
               <ui:Button name="deleteWrestlerButton" text="Delete" />
@@ -264,6 +291,7 @@
           <ui:VisualElement name="wrestlerAddPanel" class="wrestler-add-card">
             <ui:TextField name="newWrestlerField" label="New Wrestler Name" />
             <ui:Toggle name="newWrestlerIsFemaleToggle" label="Female" />
+            <ui:DropdownField name="newWrestlerDivisionDropdown" label="Division (optional)" />
             <ui:VisualElement class="row">
               <ui:Button name="addWrestlerButton" text="Add Wrestler" />
               <ui:Button name="saveWrestlersButton" text="Save All" />
@@ -307,6 +335,7 @@
 
           <ui:VisualElement name="titleAddPanel" class="title-add-card">
             <ui:TextField name="newTitleField" label="New Title Name" />
+            <ui:TextField name="newTitleDivisionField" label="Division (optional)" />
             <ui:VisualElement class="row">
               <ui:Button name="addTitleButton" text="Add Title" />
               <ui:Button name="saveTitlesButton" text="Save All" />
@@ -404,6 +433,7 @@
               <ui:DropdownField name="teamMemberADropdown" label="Member A" />
               <ui:DropdownField name="teamMemberBDropdown" label="Member B" />
             </ui:VisualElement>
+            <ui:DropdownField name="teamDivisionDropdown" label="Division (optional)" />
             <ui:VisualElement class="row">
               <ui:Button name="addTeamButton" text="Add Team" />
               <ui:Button name="saveTeamsButton" text="Save All" />

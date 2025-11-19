@@ -95,7 +95,8 @@
 #awardsPanel,
 #tournamentsPanel,
 #calendarPanel,
-#cardBuilderPanel {
+#cardBuilderPanel,
+#divisionsPanel {
     width: 100%;
     max-width: 1500px;
     background-color: rgba(40, 40, 40, 0.8);
@@ -110,6 +111,18 @@
 
 /* Give Titles panel extra width to fit lineage */
 #titlesPanel { max-width: 1400px; }
+
+/* Give Promotion Info panel a bit more vertical space */
+#promotionInfoPanel {
+    max-height: 900px;
+    height: 900px;
+}
+
+/* Give Divisions panel more vertical space */
+#divisionsPanel {
+    max-height: 900px;
+    height: 900px;
+}
 
 /* Keep Rankings panel from growing off-screen; ScrollView will scroll vertically */
 #rankingsPanel {
@@ -768,6 +781,29 @@ Label {
     margin-left: 16px; /* spacing from controls column */
     width: 640px;      /* keep rankings column reasonably narrow */
     height: auto;
+}
+
+.divisions-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.divisions-two-column {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+.divisions-two-column > * {
+    flex-grow: 1;
+    margin-right: 16px;
+}
+
+/* Make division lists taller to fill the panel */
+#divisionWrestlersList,
+#divisionTeamsList {
+    min-height: 500px;
+    max-height: 700px;
 }
 
 

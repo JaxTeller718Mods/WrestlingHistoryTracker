@@ -9,6 +9,7 @@ public class TagTeamData
     public string memberA; // wrestler name
     public string memberB; // wrestler name
     public bool active = true;
+    public string division; // optional tag division label
 }
 
 [Serializable]
