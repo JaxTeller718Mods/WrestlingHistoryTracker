@@ -79,6 +79,16 @@ public class CardBuilderView
         segmentNameField = panel.Q<TextField>("cbSegmentNameField");
         segmentTextField = panel.Q<TextField>("cbSegmentTextField");
 
+        if (isTitleMatchToggle != null)
+        {
+            isTitleMatchToggle.RegisterValueChangedCallback(evt => UpdateCardBuilderTitleDropdownState(evt.newValue));
+            UpdateCardBuilderTitleDropdownState(isTitleMatchToggle.value);
+        }
+        else
+        {
+            UpdateCardBuilderTitleDropdownState(false);
+        }
+
         // Defaults
         matchTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Triple Threat", "Four Way" };
         templateDropdown.choices = ShowTemplates.Templates.Select(t => t.name).ToList();
@@ -420,6 +430,31 @@ public class CardBuilderView
         else dd.value = list.FirstOrDefault();
     }
 
+    private void UpdateCardBuilderTitleDropdownState(bool enabled)
+    {
+        if (titleDropdown == null) return;
+        titleDropdown.SetEnabled(enabled);
+        if (!enabled)
+            ResetDropdownToEmpty(titleDropdown);
+    }
+
+    private void ResetDropdownToEmpty(DropdownField dropdown)
+    {
+        if (dropdown == null) return;
+        if (dropdown.choices == null)
+        {
+            dropdown.value = string.Empty;
+            return;
+        }
+        if (!dropdown.choices.Any(c => string.IsNullOrEmpty(c)))
+        {
+            var list = new List<string>(dropdown.choices);
+            list.Insert(0, string.Empty);
+            dropdown.choices = list;
+        }
+        dropdown.value = dropdown.choices.FirstOrDefault(c => string.IsNullOrEmpty(c)) ?? string.Empty;
+    }
+
     private void UpdateWinnerChoices(string preferred = null)
     {
         if (winnerDropdown == null) return;
@@ -475,7 +510,8 @@ public class CardBuilderView
                 ? ""
                 : FindChoice(wrestlerChoices, m.wrestlerD);
             isTitleMatchToggle.value = m.isTitleMatch;
-            if (titleDropdown != null) titleDropdown.value = FindChoice(titleChoices, m.titleName);
+            if (titleDropdown != null)
+                titleDropdown.value = m.isTitleMatch ? FindChoice(titleChoices, m.titleName) : string.Empty;
             UpdateWinnerChoices(m.winner);
             matchNotesField.value = m.notes;
         }
@@ -637,7 +673,7 @@ public class CardBuilderView
                 m.wrestlerC = wrestlerCDropdown?.value;
                 m.wrestlerD = wrestlerDDropdown?.value;
                 m.isTitleMatch = isTitleMatchToggle.value;
-                m.titleName = titleDropdown?.value;
+                m.titleName = (isTitleMatchToggle != null && isTitleMatchToggle.value) ? titleDropdown?.value : null;
                 m.winner = winnerDropdown?.value;
                 m.notes = matchNotesField.value;
             }

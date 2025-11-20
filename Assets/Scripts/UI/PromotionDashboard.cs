@@ -467,6 +467,15 @@ public class PromotionDashboard : MonoBehaviour
         winnerDropdown = root.Q<DropdownField>("winnerDropdown");
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
+        if (isTitleMatchToggle != null)
+        {
+            isTitleMatchToggle.RegisterValueChangedCallback(evt => UpdateMatchTitleDropdownState(evt.newValue));
+            UpdateMatchTitleDropdownState(isTitleMatchToggle.value);
+        }
+        else
+        {
+            UpdateMatchTitleDropdownState(false);
+        }
         segmentNameField = root.Q<TextField>("segmentNameField");
         segmentTextField = root.Q<TextField>("segmentTextField");
         saveSegmentButton = root.Q<Button>("saveSegmentButton");
@@ -4099,7 +4108,7 @@ public class PromotionDashboard : MonoBehaviour
         if (!titleNames.Contains(string.Empty)) titleNames.Insert(0, string.Empty);
         SetChoices(titleDropdown, titleNames);
         if (isTitleMatchToggle != null) isTitleMatchToggle.value = false;
-        if (titleDropdown != null) titleDropdown.SetEnabled(false);
+        UpdateMatchTitleDropdownState(false);
 
         // For a new match, keep optional C/D blank so they don't
         // accidentally turn every match into a multi-person/tag match.
@@ -4121,13 +4130,6 @@ public class PromotionDashboard : MonoBehaviour
         RegisterWinnerAutoUpdate(wrestlerDDropdown);
         if (matchTypeDropdown != null)
             matchTypeDropdown.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
-        if (isTitleMatchToggle != null)
-        {
-            isTitleMatchToggle.RegisterValueChangedCallback(evt =>
-            {
-                titleDropdown?.SetEnabled(evt.newValue);
-            });
-        }
     }
 
     private void ShowSegmentEditor()
@@ -4301,6 +4303,31 @@ public class PromotionDashboard : MonoBehaviour
         dropdown.choices = choices ?? new List<string>();
         if (!string.IsNullOrEmpty(prev) && dropdown.choices.Contains(prev)) dropdown.value = prev;
         else dropdown.value = dropdown.choices.Count > 0 ? dropdown.choices[0] : string.Empty;
+    }
+
+    private void ResetDropdownToEmpty(DropdownField dropdown)
+    {
+        if (dropdown == null) return;
+        if (dropdown.choices == null || dropdown.choices.Count == 0)
+        {
+            dropdown.value = string.Empty;
+            return;
+        }
+        if (!dropdown.choices.Any(c => string.IsNullOrEmpty(c)))
+        {
+            var list = new List<string>(dropdown.choices);
+            list.Insert(0, string.Empty);
+            dropdown.choices = list;
+        }
+        dropdown.value = dropdown.choices.FirstOrDefault(c => string.IsNullOrEmpty(c)) ?? string.Empty;
+    }
+
+    private void UpdateMatchTitleDropdownState(bool enabled)
+    {
+        if (titleDropdown == null) return;
+        titleDropdown.SetEnabled(enabled);
+        if (!enabled)
+            ResetDropdownToEmpty(titleDropdown);
     }
 
     private void EnsureRosterAndTitlesLoaded()
