@@ -20,6 +20,9 @@ public class PromotionDashboard : MonoBehaviour
     private const string DateFormat = "MM/dd/yyyy";
     // Data
     private PromotionData currentPromotion;
+    private bool suppressStatsRefresh;
+    private bool statsDirty = true;
+    private string statsPromotionKey = string.Empty;
 
     // Root and navigation
     private VisualElement root;
@@ -141,6 +144,7 @@ public class PromotionDashboard : MonoBehaviour
 
     // Promotion info widgets
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
+    private Label statWrestlersLabel, statTeamsLabel, statTitlesLabel, statShowsLabel, statMatchesLabel, statRivalriesLabel, statBrandsLabel, statTitleChangesLabel;
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
@@ -210,6 +214,8 @@ public class PromotionDashboard : MonoBehaviour
     private void InitializeDashboard()
     {
         currentPromotion = PromotionSession.Instance != null ? PromotionSession.Instance.CurrentPromotion : null;
+        statsDirty = true;
+        statsPromotionKey = string.Empty;
         root = GetComponent<UIDocument>().rootVisualElement;
         if (root == null)
         {
@@ -507,6 +513,14 @@ public class PromotionDashboard : MonoBehaviour
         locationLabel = root.Q<Label>("locationLabel");
         foundedLabel = root.Q<Label>("foundedLabel");
         descriptionLabel = root.Q<Label>("descriptionLabel");
+        statWrestlersLabel = root.Q<Label>("statWrestlersLabel");
+        statTeamsLabel = root.Q<Label>("statTeamsLabel");
+        statTitlesLabel = root.Q<Label>("statTitlesLabel");
+        statShowsLabel = root.Q<Label>("statShowsLabel");
+        statMatchesLabel = root.Q<Label>("statMatchesLabel");
+        statRivalriesLabel = root.Q<Label>("statRivalriesLabel");
+        statBrandsLabel = root.Q<Label>("statBrandsLabel");
+        statTitleChangesLabel = root.Q<Label>("statTitleChangesLabel");
         editPromotionButton = root.Q<Button>("editPromotionButton");
         savePromotionButton = root.Q<Button>("savePromotionButton");
         cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
@@ -750,6 +764,7 @@ public class PromotionDashboard : MonoBehaviour
             EnsureStableIdsAndEntryOrder();
         }
         // Sync division list (from titles) into rankings config and UI dropdowns
+        suppressStatsRefresh = true;
         RefreshDivisionChoices();
         RefreshWrestlerList();
         RefreshTitleList();
@@ -759,6 +774,8 @@ public class PromotionDashboard : MonoBehaviour
         RefreshShowList();
         RefreshVenueCityDropdowns();
         PopulateHistoryShowsList();
+        suppressStatsRefresh = false;
+        RefreshPromotionStats();
         // Rankings 2.0 setup
         InitializeRankingsControls();
         ComputeOverallRankings();
@@ -980,6 +997,7 @@ public class PromotionDashboard : MonoBehaviour
             if (locationLabel != null) locationLabel.text = "Location: [None]";
             if (foundedLabel != null) foundedLabel.text = "Founded: [None]";
             if (descriptionLabel != null) descriptionLabel.text = "Description: [None]";
+            RefreshPromotionStats();
             return;
         }
 
@@ -987,6 +1005,95 @@ public class PromotionDashboard : MonoBehaviour
         if (locationLabel != null) locationLabel.text = $"Location: {currentPromotion.location}";
         if (foundedLabel != null) foundedLabel.text = $"Founded: {currentPromotion.foundedYear}";
         if (descriptionLabel != null) descriptionLabel.text = $"Description: {currentPromotion.description}";
+        InvalidatePromotionStats();
+    }
+
+    private void InvalidatePromotionStats()
+    {
+        statsDirty = true;
+        RefreshPromotionStats();
+    }
+
+    private void RefreshPromotionStats()
+    {
+        if (suppressStatsRefresh)
+            return;
+
+        var promotionKey = currentPromotion?.promotionName ?? string.Empty;
+        if (!statsDirty && string.Equals(statsPromotionKey, promotionKey, StringComparison.Ordinal))
+            return;
+
+        statsPromotionKey = promotionKey;
+        statsDirty = false;
+
+        void SetStat(Label label, string value)
+        {
+            if (label != null) label.text = value;
+        }
+
+        if (currentPromotion == null)
+        {
+            SetStat(statWrestlersLabel, "--");
+            SetStat(statTeamsLabel, "--");
+            SetStat(statTitlesLabel, "--");
+            SetStat(statShowsLabel, "--");
+            SetStat(statMatchesLabel, "--");
+            SetStat(statRivalriesLabel, "--");
+            SetStat(statBrandsLabel, "--");
+            SetStat(statTitleChangesLabel, "--");
+            return;
+        }
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
+        titleCollection ??= DataManager.LoadTitles(currentPromotion.promotionName);
+        tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+        rivalryCollection ??= DataManager.LoadRivalries(currentPromotion.promotionName);
+
+        int wrestlerCount = wrestlerCollection?.wrestlers?.Count(w => w != null) ?? 0;
+        int tagTeamCount = tagTeamCollection?.teams?.Count(t => t != null) ?? 0;
+        int titleCount = titleCollection?.titles?.Count(t => t != null) ?? 0;
+        int showCount = currentPromotion.shows?.Count(s => s != null) ?? 0;
+        int matchCount = 0;
+        if (currentPromotion.shows != null)
+        {
+            foreach (var show in currentPromotion.shows)
+            {
+                if (show?.matches == null) continue;
+                matchCount += show.matches.Count(m => m != null);
+            }
+        }
+
+        int recordedMatches = matchCount;
+        int titleReigns = 0;
+        try
+        {
+            var historyMatches = TitleHistoryManager.GetAllMatchResults(currentPromotion.promotionName);
+            if (historyMatches != null && historyMatches.Count > 0)
+                recordedMatches = historyMatches.Count;
+
+            var lineages = TitleHistoryManager.GetTitleLineages(currentPromotion.promotionName);
+            if (lineages != null)
+            {
+                foreach (var lineage in lineages)
+                    titleReigns += lineage?.reigns?.Count ?? 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"PromotionDashboard: failed to compute historical stats: {ex.Message}");
+        }
+
+        int rivalryCount = rivalryCollection?.rivalries?.Count(r => r != null) ?? 0;
+        int brandCount = currentPromotion.brands?.Count(b => !string.IsNullOrWhiteSpace(b)) ?? 0;
+
+        SetStat(statWrestlersLabel, wrestlerCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statTeamsLabel, tagTeamCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statTitlesLabel, titleCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statShowsLabel, showCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statMatchesLabel, recordedMatches.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statRivalriesLabel, rivalryCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statBrandsLabel, brandCount.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statTitleChangesLabel, titleReigns.ToString("N0", CultureInfo.InvariantCulture));
     }
 
     private void ShowPromotionEditPanel()
@@ -1169,6 +1276,7 @@ public class PromotionDashboard : MonoBehaviour
             RecomputeRivalryMetrics(r);
         rivalryListView.itemsSource = src;
         rivalryListView.Rebuild();
+        InvalidatePromotionStats();
     }
 
     private void SelectRivalry(int index)
@@ -1910,6 +2018,7 @@ public class PromotionDashboard : MonoBehaviour
         var src = wrestlerCollection?.wrestlers ?? new List<WrestlerData>();
         wrestlerListView.itemsSource = src;
         wrestlerListView.Rebuild();
+        InvalidatePromotionStats();
     }
 
     private void OnAddWrestler()
@@ -2642,6 +2751,7 @@ public class PromotionDashboard : MonoBehaviour
         if (brands.Count == 0)
         {
             brandListScroll.Add(new Label("No brands defined."));
+            InvalidatePromotionStats();
             return;
         }
 
@@ -2661,6 +2771,7 @@ public class PromotionDashboard : MonoBehaviour
             row.Add(deleteBtn);
             brandListScroll.Add(row);
         }
+        InvalidatePromotionStats();
     }
 
     private void OnDeleteBrand(string brand)
@@ -3123,6 +3234,7 @@ public class PromotionDashboard : MonoBehaviour
             if (src.Count == 0) tagTeamEmptyLabel.RemoveFromClassList("hidden");
             else tagTeamEmptyLabel.AddToClassList("hidden");
         }
+        InvalidatePromotionStats();
     }
 
     private void RefreshTeamMemberChoices()
@@ -3248,6 +3360,7 @@ public class PromotionDashboard : MonoBehaviour
         var src = titleCollection?.titles ?? new List<TitleData>();
         titleListView.itemsSource = src;
         titleListView.Rebuild();
+        InvalidatePromotionStats();
     }
 
     private void SelectTitle(int index)
@@ -3638,6 +3751,7 @@ public class PromotionDashboard : MonoBehaviour
         var shows = currentPromotion?.shows ?? new List<ShowData>();
         showsListView.itemsSource = shows;
         showsListView.Rebuild();
+        InvalidatePromotionStats();
     }
 
     private void RefreshVenueCityDropdowns()

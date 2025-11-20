@@ -245,6 +245,44 @@
       <ui:Label name="foundedLabel" text="Owner: [None]" />
       <ui:Label name="descriptionLabel" text="Description: [None]" />
 
+      <ui:VisualElement name="promotionStatsCard" class="title-detail-card promotion-stats-card">
+        <ui:Label text="Promotion Snapshot" class="subsection-title" />
+        <ui:VisualElement name="promotionStatsGrid" class="promotion-stats-grid">
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Wrestlers" class="stat-label" />
+            <ui:Label name="statWrestlersLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Tag Teams" class="stat-label" />
+            <ui:Label name="statTeamsLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Titles" class="stat-label" />
+            <ui:Label name="statTitlesLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Shows Logged" class="stat-label" />
+            <ui:Label name="statShowsLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Matches Logged" class="stat-label" />
+            <ui:Label name="statMatchesLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Rivalries" class="stat-label" />
+            <ui:Label name="statRivalriesLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Brands" class="stat-label" />
+            <ui:Label name="statBrandsLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Title Reigns" class="stat-label" />
+            <ui:Label name="statTitleChangesLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+
       <ui:VisualElement class="row">
         <ui:Button name="editPromotionButton" text="Edit Promotion" />
       </ui:VisualElement>
