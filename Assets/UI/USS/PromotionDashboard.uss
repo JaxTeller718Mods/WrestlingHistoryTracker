@@ -566,6 +566,7 @@ FloatField > .unity-float-field__input {
 
 .title-detail-card .row,
 .title-add-card .row {
+    flex-direction: row;
     justify-content: flex-start;
     /* emulate gap */
 }
@@ -814,6 +815,12 @@ Label {
 #divisionTeamsList {
     min-height: 500px;
     max-height: 700px;
+}
+
+/* Generic column helper for two-column layouts */
+.title-detail-card .column {
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 

@@ -66,6 +66,7 @@ public class PromotionDashboard : MonoBehaviour
     private CalendarView calendarView;
     private CardBuilderView cardBuilderView;
     private WrestlerCollection wrestlerCollection;
+    private VenueCityConfig venueCityConfig;
     // Wrestler UI
     private VisualElement wrestlerDetails, wrestlerAddPanel;
     private TextField wrestlerNameField, wrestlerHometownField, newWrestlerField;
@@ -151,7 +152,10 @@ public class PromotionDashboard : MonoBehaviour
     // Shows UI (details + editors)
     private VisualElement showDetailsPanel, showAddPanel, matchEditor, segmentEditor;
     private TextField newShowField, newShowDateField, showNameField, showDateField;
-    private TextField showVenueField, showCityField, newShowVenueField, newShowCityField;
+    private DropdownField showVenueField, showCityField, newShowVenueField, newShowCityField;
+    private ScrollView venueListScroll, cityListScroll;
+    private TextField newVenueField, newCityField;
+    private Button addVenueButton, addCityButton;
     private IntegerField showAttendanceField, newShowAttendanceField;
     private FloatField showRatingField, newShowRatingField;
     private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, calendarGenerationBrandDropdown, showsBrandFilterDropdown;
@@ -420,8 +424,8 @@ public class PromotionDashboard : MonoBehaviour
         // Shows add/save widgets
         newShowField = root.Q<TextField>("newShowField");
         newShowDateField = root.Q<TextField>("newShowDateField");
-        newShowVenueField = root.Q<TextField>("newShowVenueField");
-        newShowCityField = root.Q<TextField>("newShowCityField");
+        newShowVenueField = root.Q<DropdownField>("newShowVenueField");
+        newShowCityField = root.Q<DropdownField>("newShowCityField");
         newShowTypeDropdown = root.Q<DropdownField>("newShowTypeDropdown");
         newShowBrandDropdown = root.Q<DropdownField>("newShowBrandDropdown");
         newShowAttendanceField = root.Q<IntegerField>("newShowAttendanceField");
@@ -433,8 +437,8 @@ public class PromotionDashboard : MonoBehaviour
         showAddPanel = root.Q<VisualElement>("showAddPanel");
         showNameField = root.Q<TextField>("showNameField");
         showDateField = root.Q<TextField>("showDateField");
-        showVenueField = root.Q<TextField>("showVenueField");
-        showCityField = root.Q<TextField>("showCityField");
+        showVenueField = root.Q<DropdownField>("showVenueField");
+        showCityField = root.Q<DropdownField>("showCityField");
         showTypeDropdown = root.Q<DropdownField>("showTypeDropdown");
         showBrandDropdown = root.Q<DropdownField>("showBrandDropdown");
         showAttendanceField = root.Q<IntegerField>("showAttendanceField");
@@ -461,6 +465,13 @@ public class PromotionDashboard : MonoBehaviour
         segmentTextField = root.Q<TextField>("segmentTextField");
         saveSegmentButton = root.Q<Button>("saveSegmentButton");
         cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
+        // Venues & Cities management
+        venueListScroll = root.Q<ScrollView>("venueList");
+        cityListScroll = root.Q<ScrollView>("cityList");
+        newVenueField = root.Q<TextField>("newVenueField");
+        newCityField = root.Q<TextField>("newCityField");
+        addVenueButton = root.Q<Button>("addVenueButton");
+        addCityButton = root.Q<Button>("addCityButton");
 
         // Attach date picker buttons and normalization to date fields
         if (showDateField != null)
@@ -665,6 +676,8 @@ public class PromotionDashboard : MonoBehaviour
         if (saveShowButton != null) saveShowButton.clicked += OnSaveSelectedShow;
         if (deleteShowButton != null) deleteShowButton.clicked += OnDeleteSelectedShow;
         if (cancelShowButton != null) cancelShowButton.clicked += OnCancelEditShow;
+        if (addVenueButton != null) addVenueButton.clicked += OnAddVenue;
+        if (addCityButton != null) addCityButton.clicked += OnAddCity;
         if (viewMatchesButton != null) viewMatchesButton.clicked += () =>
         {
             if (selectedShowIndex >= 0 && currentPromotion?.shows != null && selectedShowIndex < currentPromotion.shows.Count)
@@ -744,6 +757,7 @@ public class PromotionDashboard : MonoBehaviour
         RefreshTournamentList();
         RefreshStableList();
         RefreshShowList();
+        RefreshVenueCityDropdowns();
         PopulateHistoryShowsList();
         // Rankings 2.0 setup
         InitializeRankingsControls();
@@ -3626,6 +3640,175 @@ public class PromotionDashboard : MonoBehaviour
         showsListView.Rebuild();
     }
 
+    private void RefreshVenueCityDropdowns()
+    {
+        if (currentPromotion == null) return;
+
+        venueCityConfig ??= VenueCityConfigStore.LoadOrCreateDefault();
+
+        var venues = new List<string> { string.Empty };
+        if (venueCityConfig.venues != null)
+            venues.AddRange(venueCityConfig.venues);
+
+        var cities = new List<string> { string.Empty };
+        if (venueCityConfig.cities != null)
+            cities.AddRange(venueCityConfig.cities);
+
+        foreach (var s in currentPromotion.shows ?? new List<ShowData>())
+        {
+            if (!string.IsNullOrWhiteSpace(s?.venue) && !venues.Contains(s.venue, StringComparer.OrdinalIgnoreCase))
+                venues.Add(s.venue);
+            if (!string.IsNullOrWhiteSpace(s?.city) && !cities.Contains(s.city, StringComparer.OrdinalIgnoreCase))
+                cities.Add(s.city);
+        }
+
+        venues = venues
+            .Where(v => v != null)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v)
+            .ToList();
+        cities = cities
+            .Where(c => c != null)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+
+        if (newShowVenueField != null)
+        {
+            newShowVenueField.choices = venues;
+            if (!venues.Contains(newShowVenueField.value))
+                newShowVenueField.value = string.Empty;
+        }
+        if (newShowCityField != null)
+        {
+            newShowCityField.choices = cities;
+            if (!cities.Contains(newShowCityField.value))
+                newShowCityField.value = string.Empty;
+        }
+        if (showVenueField != null)
+        {
+            showVenueField.choices = venues;
+            if (!venues.Contains(showVenueField.value))
+                showVenueField.value = string.Empty;
+        }
+        if (showCityField != null)
+        {
+            showCityField.choices = cities;
+            if (!cities.Contains(showCityField.value))
+                showCityField.value = string.Empty;
+        }
+
+        // Also refresh the visible lists in the Shows panel with removable rows
+        if (venueListScroll != null)
+        {
+            venueListScroll.Clear();
+            foreach (var v in venues.Where(v => !string.IsNullOrEmpty(v)))
+            {
+                venueListScroll.Add(CreateVenueRow(v));
+            }
+        }
+        if (cityListScroll != null)
+        {
+            cityListScroll.Clear();
+            foreach (var c in cities.Where(c => !string.IsNullOrEmpty(c)))
+            {
+                cityListScroll.Add(CreateCityRow(c));
+            }
+        }
+    }
+
+    private VisualElement CreateVenueRow(string venueName)
+    {
+        var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+        var label = new Label(venueName) { style = { flexGrow = 1 } };
+        var deleteButton = new Button(() => RemoveVenue(venueName)) { text = "X" };
+        deleteButton.style.width = 24;
+        deleteButton.style.marginLeft = 4;
+        row.Add(label);
+        row.Add(deleteButton);
+        return row;
+    }
+
+    private VisualElement CreateCityRow(string cityName)
+    {
+        var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+        var label = new Label(cityName) { style = { flexGrow = 1 } };
+        var deleteButton = new Button(() => RemoveCity(cityName)) { text = "X" };
+        deleteButton.style.width = 24;
+        deleteButton.style.marginLeft = 4;
+        row.Add(label);
+        row.Add(deleteButton);
+        return row;
+    }
+
+    private void OnAddVenue()
+    {
+        var v = newVenueField != null ? (newVenueField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(v)) return;
+        venueCityConfig ??= VenueCityConfigStore.LoadOrCreateDefault();
+        if (!venueCityConfig.venues.Contains(v, StringComparer.OrdinalIgnoreCase))
+        {
+            venueCityConfig.venues.Add(v);
+            venueCityConfig.venues = venueCityConfig.venues
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+            VenueCityConfigStore.Save(venueCityConfig);
+            RefreshVenueCityDropdowns();
+            if (statusLabel != null) statusLabel.text = "Venue added.";
+        }
+        if (newVenueField != null) newVenueField.value = string.Empty;
+    }
+
+    private void OnAddCity()
+    {
+        var c = newCityField != null ? (newCityField.value ?? string.Empty).Trim() : string.Empty;
+        if (string.IsNullOrEmpty(c)) return;
+        venueCityConfig ??= VenueCityConfigStore.LoadOrCreateDefault();
+        if (!venueCityConfig.cities.Contains(c, StringComparer.OrdinalIgnoreCase))
+        {
+            venueCityConfig.cities.Add(c);
+            venueCityConfig.cities = venueCityConfig.cities
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+            VenueCityConfigStore.Save(venueCityConfig);
+            RefreshVenueCityDropdowns();
+            if (statusLabel != null) statusLabel.text = "City added.";
+        }
+        if (newCityField != null) newCityField.value = string.Empty;
+    }
+
+    private void RemoveVenue(string venueName)
+    {
+        if (string.IsNullOrWhiteSpace(venueName)) return;
+        venueCityConfig ??= VenueCityConfigStore.LoadOrCreateDefault();
+        int removed = venueCityConfig.venues.RemoveAll(v => string.Equals(v, venueName, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+        {
+            VenueCityConfigStore.Save(venueCityConfig);
+            RefreshVenueCityDropdowns();
+            if (statusLabel != null) statusLabel.text = $"Venue removed: {venueName}";
+        }
+    }
+
+    private void RemoveCity(string cityName)
+    {
+        if (string.IsNullOrWhiteSpace(cityName)) return;
+        venueCityConfig ??= VenueCityConfigStore.LoadOrCreateDefault();
+        int removed = venueCityConfig.cities.RemoveAll(c => string.Equals(c, cityName, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+        {
+            VenueCityConfigStore.Save(venueCityConfig);
+            RefreshVenueCityDropdowns();
+            if (statusLabel != null) statusLabel.text = $"City removed: {cityName}";
+        }
+    }
+
     private void OnAddShow()
     {
         if (currentPromotion == null)
@@ -3673,6 +3856,7 @@ public class PromotionDashboard : MonoBehaviour
         string validation = ValidateShowReferences(show);
         DataManager.SavePromotion(currentPromotion);
         RefreshShowList();
+        RefreshVenueCityDropdowns();
         if (newShowField != null) newShowField.value = string.Empty;
         if (newShowDateField != null) newShowDateField.value = string.Empty;
         if (newShowVenueField != null) newShowVenueField.value = string.Empty;
@@ -3734,8 +3918,8 @@ public class PromotionDashboard : MonoBehaviour
         string prevDate = s.date;
         if (showNameField != null) s.showName = showNameField.value;
         if (showDateField != null) { s.date = NormalizeDateString(showDateField.value); showDateField.value = s.date; }
-        if (showVenueField != null) s.venue = showVenueField.value;
-        if (showCityField != null) s.city = showCityField.value;
+        if (showVenueField != null) s.venue = (showVenueField.value ?? string.Empty).Trim();
+        if (showCityField != null) s.city = (showCityField.value ?? string.Empty).Trim();
         if (showAttendanceField != null) s.attendance = showAttendanceField.value;
         if (showRatingField != null) s.rating = showRatingField.value;
         if (showBrandDropdown != null)
@@ -3752,6 +3936,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SavePromotion(currentPromotion);
         TitleHistoryManager.UpdateShowResults(currentPromotion, s, prevName, prevDate);
         RefreshShowList();
+        RefreshVenueCityDropdowns();
         string msg2 = string.IsNullOrEmpty(validation) ? "Show updated." : validation;
         if (statusLabel != null) statusLabel.text = msg2;
         ShowToast(msg2, false);
@@ -3801,6 +3986,12 @@ public class PromotionDashboard : MonoBehaviour
         SetChoices(titleDropdown, titleNames);
         if (isTitleMatchToggle != null) isTitleMatchToggle.value = false;
         if (titleDropdown != null) titleDropdown.SetEnabled(false);
+
+        // For a new match, keep optional C/D blank so they don't
+        // accidentally turn every match into a multi-person/tag match.
+        if (wrestlerCDropdown != null) wrestlerCDropdown.value = string.Empty;
+        if (wrestlerDDropdown != null) wrestlerDDropdown.value = string.Empty;
+
         UpdateWinnerChoices();
         matchEditor?.RemoveFromClassList("hidden");
         segmentEditor?.AddToClassList("hidden");

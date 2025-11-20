@@ -81,8 +81,8 @@
           <ui:VisualElement name="cbBrandStripe" class="brand-stripe" />
           <ui:TextField name="cbShowNameField" label="Show Name" />
           <ui:TextField name="cbShowDateField" label="Date (yyyy-MM-dd)" />
-          <ui:TextField name="cbShowVenueField" label="Venue" />
-          <ui:TextField name="cbShowCityField" label="City" />
+          <ui:DropdownField name="cbShowVenueField" label="Venue" />
+          <ui:DropdownField name="cbShowCityField" label="City" />
           <ui:DropdownField name="cbShowTypeDropdown" label="Type (TV/PPV/House)" />
           <ui:DropdownField name="cbShowBrandDropdown" label="Brand (optional)" />
           <ui:IntegerField name="cbShowAttendanceField" label="Attendance" />
@@ -120,6 +120,9 @@
           <ui:VisualElement name="cbSegmentEditor" class="hidden">
             <ui:TextField name="cbSegmentNameField" label="Segment Label" />
             <ui:TextField name="cbSegmentTextField" label="Text" multiline="true" />
+          </ui:VisualElement>
+          <ui:VisualElement class="row">
+            <ui:Button name="cbDeleteEntryButton" text="Delete Entry" />
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
@@ -474,8 +477,8 @@
           <ui:Label text="Show Details" class="subsection-title" />
           <ui:TextField name="showNameField" label="Show Name" />
           <ui:TextField name="showDateField" label="Date" value="MM/DD/YYYY" />
-          <ui:TextField name="showVenueField" label="Venue" />
-          <ui:TextField name="showCityField" label="City" />
+          <ui:DropdownField name="showVenueField" label="Venue" />
+          <ui:DropdownField name="showCityField" label="City" />
           <ui:DropdownField name="showTypeDropdown" label="Type (TV/PPV/House)" />
           <ui:DropdownField name="showBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="showAttendanceField" label="Attendance" />
@@ -531,8 +534,8 @@
           <ui:VisualElement name="showAddPanel" class="show-add-card">
           <ui:TextField name="newShowField" label="New Show Name" />
           <ui:TextField name="newShowDateField" label="Date" value="MM/DD/YYYY" />
-          <ui:TextField name="newShowVenueField" label="Venue" />
-          <ui:TextField name="newShowCityField" label="City" />
+          <ui:DropdownField name="newShowVenueField" label="Venue" />
+          <ui:DropdownField name="newShowCityField" label="City" />
           <ui:DropdownField name="newShowTypeDropdown" label="Type (TV/PPV/House)" />
           <ui:DropdownField name="newShowBrandDropdown" label="Brand (optional)" />
             <ui:IntegerField name="newShowAttendanceField" label="Attendance" />
@@ -540,6 +543,29 @@
             <ui:VisualElement class="row">
               <ui:Button name="addShowButton" text="Add Show" />
               <ui:Button name="saveShowsButton" text="Save All" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <!-- Venues & Cities management -->
+      <ui:VisualElement class="title-detail-card">
+        <ui:Label text="Venues &amp; Cities" class="subsection-title" />
+        <ui:VisualElement class="row">
+          <ui:VisualElement class="column">
+            <ui:Label text="Cities" class="subsection-title" />
+            <ui:ScrollView name="cityList" class="list" />
+            <ui:VisualElement class="row">
+              <ui:TextField name="newCityField" label="New City" />
+              <ui:Button name="addCityButton" text="Add City" />
+            </ui:VisualElement>
+          </ui:VisualElement>
+          <ui:VisualElement class="column">
+            <ui:Label text="Venues" class="subsection-title" />
+            <ui:ScrollView name="venueList" class="list" />
+            <ui:VisualElement class="row">
+              <ui:TextField name="newVenueField" label="New Venue" />
+              <ui:Button name="addVenueButton" text="Add Venue" />
             </ui:VisualElement>
           </ui:VisualElement>
         </ui:VisualElement>

@@ -8,13 +8,14 @@ public class CardBuilderView
 {
     private VisualElement panel;
     private VisualElement brandStripe;
-    private TextField showNameField, showDateField, showVenueField, showCityField;
+    private TextField showNameField, showDateField;
+    private DropdownField showVenueField, showCityField;
     private IntegerField showAttendanceField; private FloatField showRatingField;
     private DropdownField showTypeDropdown, showBrandDropdown;
     private DropdownField templateDropdown; private Button applyTemplateButton;
     private ScrollView entryListScroll; // container
     private ListView entryListView;
-    private Button addMatchButton, addSegmentButton, saveButton, cancelButton;
+    private Button addMatchButton, addSegmentButton, saveButton, cancelButton, deleteEntryButton;
 
     private VisualElement noSelectionHint, matchEditor, segmentEditor;
     private TextField matchNameField, matchNotesField;
@@ -34,6 +35,7 @@ public class CardBuilderView
 
     private List<string> wrestlerChoices = new();
     private List<string> titleChoices = new();
+    private VenueCityConfig venueCityConfig;
 
     public event Action<ShowData, string, string> Saved; // (show, prevName, prevDate)
     public event Action Canceled;
@@ -46,8 +48,8 @@ public class CardBuilderView
         brandStripe = panel.Q<VisualElement>("cbBrandStripe");
         showNameField = panel.Q<TextField>("cbShowNameField");
         showDateField = panel.Q<TextField>("cbShowDateField");
-        showVenueField = panel.Q<TextField>("cbShowVenueField");
-        showCityField = panel.Q<TextField>("cbShowCityField");
+        showVenueField = panel.Q<DropdownField>("cbShowVenueField");
+        showCityField = panel.Q<DropdownField>("cbShowCityField");
         showTypeDropdown = panel.Q<DropdownField>("cbShowTypeDropdown");
         showBrandDropdown = panel.Q<DropdownField>("cbShowBrandDropdown");
         showAttendanceField = panel.Q<IntegerField>("cbShowAttendanceField");
@@ -59,6 +61,7 @@ public class CardBuilderView
         addSegmentButton = panel.Q<Button>("cbAddSegmentButton");
         saveButton = panel.Q<Button>("cbSaveShowButton");
         cancelButton = panel.Q<Button>("cbCancelShowButton");
+        deleteEntryButton = panel.Q<Button>("cbDeleteEntryButton");
 
         noSelectionHint = panel.Q<VisualElement>("cbNoSelectionHint");
         matchEditor = panel.Q<VisualElement>("cbMatchEditor");
@@ -105,6 +108,7 @@ public class CardBuilderView
         if (addSegmentButton != null) addSegmentButton.clicked += () => { AddSegment(); RefreshEntryList(); };
         if (saveButton != null) saveButton.clicked += Save;
         if (cancelButton != null) cancelButton.clicked += () => { Canceled?.Invoke(); };
+        if (deleteEntryButton != null) deleteEntryButton.clicked += DeleteSelectedEntry;
 
         // Build ListView for entries inside the scroll container
         if (entryListScroll != null && entryListView == null)
@@ -143,6 +147,10 @@ public class CardBuilderView
         SetupDropdownOverlay(wrestlerDDropdown);
         SetupDropdownOverlay(titleDropdown);
         SetupDropdownOverlay(winnerDropdown);
+
+        // Load venue/city config once
+        venueCityConfig = VenueCityConfigStore.LoadOrCreateDefault();
+        RefreshVenueCityChoices();
     }
 
     private void SetupDropdownOverlay(DropdownField dd)
@@ -151,6 +159,33 @@ public class CardBuilderView
         // Avoid changing layout order; if needed, bring the containing panel forward.
         dd.RegisterCallback<PointerDownEvent>(_ => { panel?.BringToFront(); });
         dd.RegisterCallback<FocusInEvent>(_ => { panel?.BringToFront(); });
+    }
+
+    private void RefreshVenueCityChoices()
+    {
+        if (venueCityConfig == null)
+            venueCityConfig = VenueCityConfigStore.LoadOrCreateDefault();
+
+        var venueChoices = new List<string> { string.Empty };
+        if (venueCityConfig.venues != null)
+            venueChoices.AddRange(venueCityConfig.venues);
+
+        var cityChoices = new List<string> { string.Empty };
+        if (venueCityConfig.cities != null)
+            cityChoices.AddRange(venueCityConfig.cities);
+
+        if (showVenueField != null)
+        {
+            showVenueField.choices = venueChoices;
+            if (!venueChoices.Contains(showVenueField.value))
+                showVenueField.value = string.Empty;
+        }
+        if (showCityField != null)
+        {
+            showCityField.choices = cityChoices;
+            if (!cityChoices.Contains(showCityField.value))
+                showCityField.value = string.Empty;
+        }
     }
 
     public void BeginNew(DateTime date)
@@ -236,8 +271,29 @@ public class CardBuilderView
         if (workingShow == null) return;
         showNameField.value = workingShow.showName ?? string.Empty;
         showDateField.value = CalendarUtils.NormalizeToIso(workingShow.date);
-        showVenueField.value = workingShow.venue ?? string.Empty;
-        showCityField.value = workingShow.city ?? string.Empty;
+        RefreshVenueCityChoices();
+        if (showVenueField != null)
+        {
+            var v = workingShow.venue ?? string.Empty;
+            if (!string.IsNullOrEmpty(v) && showVenueField.choices != null && !showVenueField.choices.Contains(v))
+            {
+                var list = new List<string>(showVenueField.choices);
+                list.Add(v);
+                showVenueField.choices = list;
+            }
+            showVenueField.value = v;
+        }
+        if (showCityField != null)
+        {
+            var c = workingShow.city ?? string.Empty;
+            if (!string.IsNullOrEmpty(c) && showCityField.choices != null && !showCityField.choices.Contains(c))
+            {
+                var list = new List<string>(showCityField.choices);
+                list.Add(c);
+                showCityField.choices = list;
+            }
+            showCityField.value = c;
+        }
         showAttendanceField.value = workingShow.attendance;
         showRatingField.value = workingShow.rating;
         if (showTypeDropdown != null)
@@ -412,8 +468,12 @@ public class CardBuilderView
             matchTypeDropdown.value = string.IsNullOrEmpty(m.matchType) ? matchTypeDropdown.choices.FirstOrDefault() : m.matchType;
             wrestlerADropdown.value = FindChoice(wrestlerChoices, m.wrestlerA);
             wrestlerBDropdown.value = FindChoice(wrestlerChoices, m.wrestlerB);
-            wrestlerCDropdown.value = FindChoice(wrestlerChoices, m.wrestlerC);
-            wrestlerDDropdown.value = FindChoice(wrestlerChoices, m.wrestlerD);
+            wrestlerCDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerC)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerC);
+            wrestlerDDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerD)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerD);
             isTitleMatchToggle.value = m.isTitleMatch;
             if (titleDropdown != null) titleDropdown.value = FindChoice(titleChoices, m.titleName);
             UpdateWinnerChoices(m.winner);
@@ -475,6 +535,31 @@ public class CardBuilderView
         order.Add($"S:{s.id}");
     }
 
+    private void DeleteSelectedEntry()
+    {
+        if (selectedIndex < 0 || selectedIndex >= order.Count) return;
+
+        var (kind, id) = ParseToken(order[selectedIndex]);
+
+        if (kind == 'M' && workingShow?.matches != null)
+        {
+            workingShow.matches.RemoveAll(m => m != null && m.id == id);
+        }
+        else if (kind == 'S' && workingShow?.segments != null)
+        {
+            workingShow.segments.RemoveAll(s => s != null && s.id == id);
+        }
+
+        order.RemoveAt(selectedIndex);
+        selectedIndex = -1;
+
+        matchEditor?.AddToClassList("hidden");
+        segmentEditor?.AddToClassList("hidden");
+        noSelectionHint?.RemoveFromClassList("hidden");
+
+        RefreshEntryList();
+    }
+
     private void Save()
     {
         if (workingShow == null) return;
@@ -498,7 +583,54 @@ public class CardBuilderView
             if (kind == 'M')
             {
                 var m = EnsureMatch(id);
-                m.matchName = matchNameField.value;
+                // Auto-generate match name if user left it blank
+                var name = matchNameField != null ? (matchNameField.value ?? string.Empty).Trim() : string.Empty;
+                if (string.IsNullOrEmpty(name))
+                {
+                    string type = matchTypeDropdown != null ? (matchTypeDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string title = titleDropdown != null ? (titleDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    bool isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value;
+
+                    string a = wrestlerADropdown != null ? (wrestlerADropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string b = wrestlerBDropdown != null ? (wrestlerBDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string c = wrestlerCDropdown != null ? (wrestlerCDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string d = wrestlerDDropdown != null ? (wrestlerDDropdown.value ?? string.Empty).Trim() : string.Empty;
+
+                    var participants = new List<string>();
+                    if (!string.IsNullOrEmpty(a)) participants.Add(a);
+                    if (!string.IsNullOrEmpty(b)) participants.Add(b);
+                    if (!string.IsNullOrEmpty(c)) participants.Add(c);
+                    if (!string.IsNullOrEmpty(d)) participants.Add(d);
+
+                    string vsPart = string.Empty;
+                    if (participants.Count == 2)
+                        vsPart = $"{participants[0]} vs {participants[1]}";
+                    else if (participants.Count == 3)
+                        vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]}";
+                    else if (participants.Count == 4)
+                        vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]} vs {participants[3]}";
+                    else if (participants.Count > 1)
+                        vsPart = string.Join(" vs ", participants);
+                    else if (participants.Count == 1)
+                        vsPart = participants[0];
+
+                    string prefix = string.Empty;
+                    if (isTitleMatch && !string.IsNullOrEmpty(title))
+                        prefix = $"{title} - ";
+                    else if (!string.IsNullOrEmpty(type))
+                        prefix = $"{type} - ";
+
+                    if (!string.IsNullOrEmpty(vsPart))
+                        name = prefix + vsPart;
+                    else if (!string.IsNullOrEmpty(title))
+                        name = title;
+                    else if (!string.IsNullOrEmpty(type))
+                        name = type;
+                    else
+                        name = "Match";
+                }
+
+                m.matchName = name;
                 m.matchType = matchTypeDropdown.value;
                 m.wrestlerA = wrestlerADropdown?.value;
                 m.wrestlerB = wrestlerBDropdown?.value;
