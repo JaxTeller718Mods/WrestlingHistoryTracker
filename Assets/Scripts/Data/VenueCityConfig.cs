@@ -39,16 +39,29 @@ public static class VenueCityConfigStore
         {
             config.venues = new List<string>
             {
-                "Madison Square Garden",
-                "Tokyo Dome",
-                "Wembley Stadium",
-                "United Center",
-                "Cow Palace",
-                "Korakuen Hall",
-                "Barclays Center",
+                "2300 Arena",
                 "Allstate Arena",
+                "Barclays Center",
+                "Boston Garden",
+                "Caesars Palace",
+                "Cobo Arena",
+                "Cow Palace",
+                "Daily's Place",
+                "ECW Arena",
+                "Greensboro Coliseum",
+                "Hammerstein Ballroom",
+                "Impact Arena",
+                "Korakuen Hall",
+                "Madison Square Garden",
+                "Manhattan Center",
+                "Mid-South Coliseum",
+                "Nassau Coliseum",
+                "Rocket Arena",
+                "Rosemont Horizon",
                 "Staples Center",
-                "Caesars Palace"
+                "The Sportatorium",
+                "Tokyo Dome",
+                "United Center"
             };
         }
 
@@ -56,20 +69,28 @@ public static class VenueCityConfigStore
         {
             config.cities = new List<string>
             {
-                "New York, NY",
-                "Chicago, IL",
-                "Los Angeles, CA",
-                "Philadelphia, PA",
-                "Boston, MA",
                 "Atlanta, GA",
+                "Boston, MA",
+                "Chicago, IL",
+                "Cleveland, OH",
                 "Dallas, TX",
+                "Detroit, MI",
+                "Greensboro, NC",
                 "Houston, TX",
+                "Jacksonville, FL",
                 "Las Vegas, NV",
-                "Tokyo, Japan",
                 "London, England",
-                "Toronto, ON",
+                "Los Angeles, CA",
+                "Memphis, TN",
+                "Mexico City, Mexico",
                 "Montreal, QC",
-                "Mexico City, Mexico"
+                "New York, NY",
+                "Orlando, FL",
+                "Philadelphia, PA",
+                "Phoenix, AZ",
+                "San Francisco, CA",
+                "Tokyo, Japan",
+                "Toronto, ON"
             };
         }
 

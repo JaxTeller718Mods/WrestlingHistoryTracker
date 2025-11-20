@@ -237,7 +237,7 @@ public static class TitleHistoryManager
                 wrestlerB = ResolveWrestler(match.wrestlerBId, match.wrestlerB),
                 winner = ResolveWrestler(match.winnerId, match.winner),
                 isTitleMatch = match.isTitleMatch,
-                titleInvolved = ResolveTitle(match.titleId, match.titleName)
+                titleInvolved = match.isTitleMatch ? ResolveTitle(match.titleId, match.titleName) : null
             };
 
             history.matchResults.Add(result);
