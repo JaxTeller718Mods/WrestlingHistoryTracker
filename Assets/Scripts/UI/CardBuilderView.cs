@@ -190,6 +190,7 @@ public class CardBuilderView
 
     public void BeginNew(DateTime date)
     {
+        LoadRosterAndTitles();
         workingShow = new ShowData("New Show", CalendarUtils.FormatIso(date))
         {
             venue = string.Empty,
@@ -207,6 +208,7 @@ public class CardBuilderView
 
     public void BeginEdit(ShowData existing)
     {
+        LoadRosterAndTitles();
         workingShow = existing;
         previousName = existing.showName;
         previousDate = existing.date;
