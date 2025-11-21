@@ -100,7 +100,7 @@
           </ui:VisualElement>
           <ui:ScrollView name="cbEntryListScroll" class="list" />
         </ui:VisualElement>
-        <ui:VisualElement class="cb-props">
+         <ui:VisualElement class="cb-props">
           <ui:Label text="Entry Properties" class="subsection-title" />
           <ui:VisualElement name="cbNoSelectionHint">
             <ui:Label text="Select an entry to edit" />
@@ -119,6 +119,11 @@
           </ui:VisualElement>
           <ui:VisualElement name="cbSegmentEditor" class="hidden">
             <ui:TextField name="cbSegmentNameField" label="Segment Label" />
+            <ui:DropdownField name="cbSegmentTypeDropdown" label="Segment / Angle Type" />
+            <ui:DropdownField name="cbSegmentParticipantADropdown" label="Participant A (opt)" />
+            <ui:DropdownField name="cbSegmentParticipantBDropdown" label="Participant B (opt)" />
+            <ui:DropdownField name="cbSegmentParticipantCDropdown" label="Participant C (opt)" />
+            <ui:DropdownField name="cbSegmentParticipantDDropdown" label="Participant D (opt)" />
             <ui:TextField name="cbSegmentTextField" label="Text" multiline="true" />
           </ui:VisualElement>
           <ui:VisualElement class="row">
@@ -160,11 +165,13 @@
             <ui:VisualElement class="row">
               <ui:FloatField name="rankingsWinPointsField" label="Win" />
               <ui:FloatField name="rankingsDrawPointsField" label="Draw" />
-              <ui:FloatField name="rankingsLossPointsField" label="Loss" />
             </ui:VisualElement>
             <ui:VisualElement class="row">
               <ui:FloatField name="rankingsMainEventBonusField" label="Main Event Bonus" />
               <ui:FloatField name="rankingsTitleMatchBonusField" label="Title Match Bonus" />
+            </ui:VisualElement>
+            <ui:VisualElement class="row">
+              <ui:FloatField name="rankingsLossPointsField" label="Loss" />
               <ui:Button name="saveFormulaButton" text="Save Formula" />
             </ui:VisualElement>
           </ui:VisualElement>
@@ -551,9 +558,14 @@
             </ui:VisualElement>
 
             <!-- Segment editor appears alongside show details -->
-            <ui:VisualElement name="segmentEditor" class="hidden segment-editor-card">
+             <ui:VisualElement name="segmentEditor" class="hidden segment-editor-card">
               <ui:Label text="Add Segment" class="subsection-title" />
               <ui:TextField name="segmentNameField" label="Segment Name" />
+              <ui:DropdownField name="segmentTypeDropdown" label="Segment / Angle Type" />
+              <ui:DropdownField name="segmentParticipantADropdown" label="Participant A (opt)" />
+              <ui:DropdownField name="segmentParticipantBDropdown" label="Participant B (opt)" />
+              <ui:DropdownField name="segmentParticipantCDropdown" label="Participant C (opt)" />
+              <ui:DropdownField name="segmentParticipantDDropdown" label="Participant D (opt)" />
               <ui:TextField name="segmentTextField" label="Segment / Promo" multiline="true" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveSegmentButton" text="Save Segment" />

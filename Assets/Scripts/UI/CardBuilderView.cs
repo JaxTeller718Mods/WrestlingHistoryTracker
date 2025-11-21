@@ -22,6 +22,7 @@ public class CardBuilderView
     private DropdownField matchTypeDropdown; private Toggle isTitleMatchToggle;
     private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
     private TextField segmentNameField, segmentTextField;
+    private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
 
     private Func<PromotionData> promotionProvider;
     private PromotionData Promotion => promotionProvider?.Invoke();
@@ -34,6 +35,8 @@ public class CardBuilderView
     private int selectedIndex = -1;
 
     private List<string> wrestlerChoices = new();
+    private readonly Dictionary<string, string> wrestlerIdByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> wrestlerNameById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private List<string> titleChoices = new();
     private VenueCityConfig venueCityConfig;
 
@@ -77,6 +80,11 @@ public class CardBuilderView
         winnerDropdown = panel.Q<DropdownField>("cbWinnerDropdown");
         matchNotesField = panel.Q<TextField>("cbMatchNotesField");
         segmentNameField = panel.Q<TextField>("cbSegmentNameField");
+        segmentTypeDropdown = panel.Q<DropdownField>("cbSegmentTypeDropdown");
+        segmentParticipantADropdown = panel.Q<DropdownField>("cbSegmentParticipantADropdown");
+        segmentParticipantBDropdown = panel.Q<DropdownField>("cbSegmentParticipantBDropdown");
+        segmentParticipantCDropdown = panel.Q<DropdownField>("cbSegmentParticipantCDropdown");
+        segmentParticipantDDropdown = panel.Q<DropdownField>("cbSegmentParticipantDDropdown");
         segmentTextField = panel.Q<TextField>("cbSegmentTextField");
 
         // Defaults
@@ -101,6 +109,15 @@ public class CardBuilderView
         {
             showTypeDropdown.choices = new List<string> { "TV", "PPV", "House" };
             showTypeDropdown.value = "TV";
+        }
+
+        if (segmentTypeDropdown != null)
+        {
+            var types = SegmentTypeCatalog.Types != null && SegmentTypeCatalog.Types.Count > 0
+                ? new List<string>(SegmentTypeCatalog.Types)
+                : new List<string> { "Segment" };
+            segmentTypeDropdown.choices = types;
+            if (string.IsNullOrEmpty(segmentTypeDropdown.value)) segmentTypeDropdown.value = types[0];
         }
 
         if (applyTemplateButton != null) applyTemplateButton.clicked += ApplyTemplate;
@@ -374,6 +391,8 @@ public class CardBuilderView
             var pn = Promotion?.promotionName;
             // Wrestlers
             wrestlerChoices = new List<string>();
+            wrestlerIdByName.Clear();
+            wrestlerNameById.Clear();
             var wc = DataManager.LoadWrestlers(pn);
             if (wc?.wrestlers != null)
             {
@@ -383,6 +402,13 @@ public class CardBuilderView
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(n => n)
                     .ToList();
+                foreach (var w in wc.wrestlers)
+                {
+                    if (w == null || string.IsNullOrEmpty(w.name) || string.IsNullOrEmpty(w.id)) continue;
+                    wrestlerIdByName[w.name] = w.id;
+                    if (!wrestlerNameById.ContainsKey(w.id))
+                        wrestlerNameById[w.id] = w.name;
+                }
             }
             // Titles
             titleChoices = new List<string>();
@@ -403,12 +429,21 @@ public class CardBuilderView
             SetDropdownChoices(wrestlerCDropdown, wrestlerChoices, allowEmpty: true);
             SetDropdownChoices(wrestlerDDropdown, wrestlerChoices, allowEmpty: true);
             SetDropdownChoices(titleDropdown, titleChoices, allowEmpty: true);
+            SetSegmentParticipantChoices();
             UpdateWinnerChoices();
         }
         catch (Exception ex)
         {
             Debug.LogWarning($"CardBuilder: failed to load roster/titles: {ex.Message}");
         }
+    }
+
+    private void SetSegmentParticipantChoices()
+    {
+        SetDropdownChoices(segmentParticipantADropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(segmentParticipantBDropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(segmentParticipantCDropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(segmentParticipantDDropdown, wrestlerChoices, allowEmpty: true);
     }
 
     private void SetDropdownChoices(DropdownField dd, List<string> source, bool allowEmpty = false)
@@ -487,6 +522,23 @@ public class CardBuilderView
             segmentEditor?.RemoveFromClassList("hidden");
             matchEditor?.AddToClassList("hidden");
             segmentNameField.value = s.name;
+            if (segmentTypeDropdown != null)
+            {
+                if (segmentTypeDropdown.choices == null || segmentTypeDropdown.choices.Count == 0)
+                {
+                    var types = SegmentTypeCatalog.Types != null && SegmentTypeCatalog.Types.Count > 0
+                        ? new List<string>(SegmentTypeCatalog.Types)
+                        : new List<string> { "Segment" };
+                    segmentTypeDropdown.choices = types;
+                }
+                segmentTypeDropdown.value = string.IsNullOrEmpty(s.segmentType)
+                    ? (segmentTypeDropdown.choices?.FirstOrDefault() ?? string.Empty)
+                    : s.segmentType;
+            }
+            segmentParticipantADropdown.value = ResolveSegmentParticipantName(s, 0);
+            segmentParticipantBDropdown.value = ResolveSegmentParticipantName(s, 1);
+            segmentParticipantCDropdown.value = ResolveSegmentParticipantName(s, 2);
+            segmentParticipantDDropdown.value = ResolveSegmentParticipantName(s, 3);
             segmentTextField.value = s.text;
         }
     }
@@ -653,12 +705,49 @@ public class CardBuilderView
             else
             {
                 var s = EnsureSegment(id);
-                s.name = segmentNameField.value;
+                var rawName = segmentNameField != null ? segmentNameField.value : null;
+                var segType = segmentTypeDropdown != null ? (segmentTypeDropdown.value ?? string.Empty).Trim() : string.Empty;
+                s.segmentType = string.IsNullOrEmpty(segType) ? null : segType;
                 s.text = segmentTextField.value;
+                var participantNames = new List<string>();
+                void add(DropdownField dd)
+                {
+                    var v = dd != null ? (dd.value ?? string.Empty).Trim() : string.Empty;
+                    if (string.IsNullOrEmpty(v)) return;
+                    if (!participantNames.Any(x => string.Equals(x, v, StringComparison.OrdinalIgnoreCase)))
+                        participantNames.Add(v);
+                }
+                add(segmentParticipantADropdown);
+                add(segmentParticipantBDropdown);
+                add(segmentParticipantCDropdown);
+                add(segmentParticipantDDropdown);
+                s.participantNames = participantNames;
+                s.participantIds = participantNames
+                    .Select(GetWrestlerId)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .ToList();
+                s.name = BuildSegmentAutoName(rawName, s.segmentType, s.participantNames);
             }
         }
 
         Saved?.Invoke(workingShow, previousName, previousDate);
+    }
+
+    private string GetWrestlerId(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        return wrestlerIdByName.TryGetValue(name, out var id) ? id : null;
+    }
+
+    private string BuildSegmentAutoName(string specifiedName, string segType, List<string> participants)
+    {
+        if (!string.IsNullOrWhiteSpace(specifiedName)) return specifiedName.Trim();
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(segType)) parts.Add(segType.Trim());
+        if (participants != null && participants.Count > 0)
+            parts.Add(string.Join(", ", participants));
+        if (parts.Count > 0) return string.Join(" - ", parts);
+        return "Segment";
     }
 
     private (char kind, string id) ParseToken(string token)
@@ -688,10 +777,26 @@ public class CardBuilderView
         var s = workingShow.segments.FirstOrDefault(x => x != null && x.id == id);
         if (s == null)
         {
-            s = new SegmentData { id = id };
-            workingShow.segments.Add(s);
+                s = new SegmentData { id = id };
+                workingShow.segments.Add(s);
+            }
+            return s;
         }
-        return s;
+
+    private string ResolveSegmentParticipantName(SegmentData segment, int index)
+    {
+        if (segment == null || index < 0) return string.Empty;
+        var names = segment.participantNames ?? new List<string>();
+        if (index < names.Count && !string.IsNullOrEmpty(names[index])) return FindChoice(wrestlerChoices, names[index]);
+
+        var ids = segment.participantIds ?? new List<string>();
+        if (index < ids.Count)
+        {
+            var id = ids[index];
+            if (!string.IsNullOrEmpty(id) && wrestlerNameById.TryGetValue(id, out var resolved))
+                return FindChoice(wrestlerChoices, resolved);
+        }
+        return string.Empty;
     }
 
     private string GetMatchLabel(string id)

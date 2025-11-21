@@ -530,6 +530,13 @@ FloatField > .unity-float-field__input {
     overflow: visible; /* ensure child popups are not clipped */
 }
 .rivalry-detail-column > * { margin-bottom: 12px; }
+.rivalry-detail-column #rivalryParticipantsLabel,
+.rivalry-detail-column #rivalryHeatLabel {
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    display: block;
+}
 
 .rivalry-timeline-column {
     width: 500px;
@@ -807,7 +814,7 @@ Label {
 .rankings-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
 .rankings-nav {
-    width: 440px;
+    width: 540px;
     display: flex;
     flex-direction: column;
     /* emulate gap */

@@ -168,6 +168,7 @@ public class PromotionDashboard : MonoBehaviour
     private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
     private Toggle isTitleMatchToggle;
     private TextField segmentNameField, segmentTextField;
+    private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
     private int selectedShowIndex = -1;
 
     // Date picker (for show dates)
@@ -468,6 +469,11 @@ public class PromotionDashboard : MonoBehaviour
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
         segmentNameField = root.Q<TextField>("segmentNameField");
+        segmentTypeDropdown = root.Q<DropdownField>("segmentTypeDropdown");
+        segmentParticipantADropdown = root.Q<DropdownField>("segmentParticipantADropdown");
+        segmentParticipantBDropdown = root.Q<DropdownField>("segmentParticipantBDropdown");
+        segmentParticipantCDropdown = root.Q<DropdownField>("segmentParticipantCDropdown");
+        segmentParticipantDDropdown = root.Q<DropdownField>("segmentParticipantDDropdown");
         segmentTextField = root.Q<TextField>("segmentTextField");
         saveSegmentButton = root.Q<Button>("saveSegmentButton");
         cancelSegmentButton = root.Q<Button>("cancelSegmentButton");
@@ -1365,7 +1371,9 @@ public class PromotionDashboard : MonoBehaviour
             {
                 if (!string.IsNullOrEmpty(sg?.id))
                 {
-                    var display = $"Segment: {(!string.IsNullOrEmpty(sg.name) ? sg.name : "(unnamed)")}";
+                    var segName = !string.IsNullOrEmpty(sg.name) ? sg.name : "(unnamed)";
+                    var typeSuffix = string.IsNullOrEmpty(sg.segmentType) ? string.Empty : $" [{sg.segmentType}]";
+                    var display = $"Segment: {segName}{typeSuffix}";
                     entries.Add(display);
                     rivalryEntryMap[display] = $"S:{sg.id}";
                 }
@@ -1386,46 +1394,37 @@ public class PromotionDashboard : MonoBehaviour
 
     private void PopulateRivalryParticipantChoices(string type)
     {
-        // Initial scaffold: use wrestler names for Singles; tag teams for Tag Team; stables for Stables
-        var a = new List<string>();
-        var b = new List<string>();
         string t = type ?? "Singles";
+        var names = new List<string>();
         if (string.Equals(t, "Tag Team", StringComparison.OrdinalIgnoreCase))
         {
-            var tags = DataManager.LoadTagTeams(currentPromotion?.promotionName);
-            foreach (var g in tags?.teams ?? new List<TagTeamData>())
-                if (!string.IsNullOrEmpty(g?.teamName)) { a.Add(g.teamName); b.Add(g.teamName); }
+            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion?.promotionName);
+            foreach (var g in tagTeamCollection?.teams ?? new List<TagTeamData>())
+                if (!string.IsNullOrEmpty(g?.teamName)) names.Add(g.teamName);
         }
         else if (string.Equals(t, "Stables", StringComparison.OrdinalIgnoreCase))
         {
-            var st = DataManager.LoadStables(currentPromotion?.promotionName);
-            foreach (var s in st?.stables ?? new List<StableData>())
-                if (!string.IsNullOrEmpty(s?.stableName)) { a.Add(s.stableName); b.Add(s.stableName); }
+            stableCollection ??= DataManager.LoadStables(currentPromotion?.promotionName);
+            foreach (var s in stableCollection?.stables ?? new List<StableData>())
+                if (!string.IsNullOrEmpty(s?.stableName)) names.Add(s.stableName);
         }
         else
         {
             wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
             foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-                if (!string.IsNullOrEmpty(w?.name)) { a.Add(w.name); b.Add(w.name); }
+                if (!string.IsNullOrEmpty(w?.name)) names.Add(w.name);
         }
 
-        a = a
+        names = names
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Select(n => n.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        b = b
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => n.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        if (!names.Contains(string.Empty)) names.Insert(0, string.Empty);
 
-        if (a.Count == 0) a.Add(string.Empty);
-        if (b.Count == 0) b.Add(string.Empty);
-        if (rivalryParticipantADropdown != null) { rivalryParticipantADropdown.choices = a; if (string.IsNullOrEmpty(rivalryParticipantADropdown.value)) rivalryParticipantADropdown.value = a[0]; }
-        if (rivalryParticipantBDropdown != null) { rivalryParticipantBDropdown.choices = b; if (string.IsNullOrEmpty(rivalryParticipantBDropdown.value)) rivalryParticipantBDropdown.value = b[0]; }
+        SetChoices(rivalryParticipantADropdown, names);
+        SetChoices(rivalryParticipantBDropdown, names);
     }
 
     private void PopulateRivalryEventsUI(RivalryData r)
@@ -1738,6 +1737,8 @@ public class PromotionDashboard : MonoBehaviour
         var aName = (rivalryParticipantADropdown?.value ?? string.Empty).Trim();
         var bName = (rivalryParticipantBDropdown?.value ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(aName) || string.IsNullOrEmpty(bName)) { statusLabel.text = "Enter title and both participants."; return; }
+        if (!string.IsNullOrEmpty(aName) && string.Equals(aName, bName, StringComparison.OrdinalIgnoreCase)) { statusLabel.text = "Participants must differ."; return; }
+        if (!string.IsNullOrEmpty(aName) && string.Equals(aName, bName, StringComparison.OrdinalIgnoreCase)) { statusLabel.text = "Participants must differ."; return; }
         var aId = ResolveTypedId(type, aName);
         var bId = ResolveTypedId(type, bName);
         if (string.IsNullOrEmpty(aId) || string.IsNullOrEmpty(bId) || string.Equals(aId, bId, StringComparison.OrdinalIgnoreCase)) { statusLabel.text = "Invalid participants."; return; }
@@ -1748,6 +1749,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveRivalries(rivalryCollection);
         RefreshRivalryList();
         statusLabel.text = "Rivalry added.";
+        ShowToast("Rivalry added.", false);
     }
 
     private void OnSaveRivalries()
@@ -1756,6 +1758,7 @@ public class PromotionDashboard : MonoBehaviour
         rivalryCollection.promotionName = currentPromotion.promotionName;
         DataManager.SaveRivalries(rivalryCollection);
         statusLabel.text = "Rivalries saved.";
+        ShowToast("Rivalries saved.", false);
     }
 
     private void OnSaveSelectedRivalry()
@@ -1775,6 +1778,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveRivalries(rivalryCollection);
         RefreshRivalryList();
         statusLabel.text = "Rivalry updated.";
+        ShowToast("Rivalry updated.", false);
     }
 
     private void OnDeleteSelectedRivalry()
@@ -1785,6 +1789,7 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveRivalries(rivalryCollection);
         RefreshRivalryList();
         statusLabel.text = "Rivalry deleted.";
+        ShowToast("Rivalry deleted.", false);
     }
 
     private void OnCancelEditRivalry()
@@ -4133,7 +4138,15 @@ public class PromotionDashboard : MonoBehaviour
     private void ShowSegmentEditor()
     {
         if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
+        EnsureSegmentTypeChoices();
+        PopulateSegmentParticipantChoices();
         if (segmentNameField != null) segmentNameField.value = string.Empty;
+        if (segmentTypeDropdown != null && string.IsNullOrEmpty(segmentTypeDropdown.value) && segmentTypeDropdown.choices != null && segmentTypeDropdown.choices.Count > 0)
+            segmentTypeDropdown.value = segmentTypeDropdown.choices[0];
+        if (segmentParticipantADropdown != null) segmentParticipantADropdown.value = string.Empty;
+        if (segmentParticipantBDropdown != null) segmentParticipantBDropdown.value = string.Empty;
+        if (segmentParticipantCDropdown != null) segmentParticipantCDropdown.value = string.Empty;
+        if (segmentParticipantDDropdown != null) segmentParticipantDDropdown.value = string.Empty;
         if (segmentTextField != null) segmentTextField.value = string.Empty;
         segmentEditor?.RemoveFromClassList("hidden");
         matchEditor?.AddToClassList("hidden");
@@ -4240,7 +4253,23 @@ public class PromotionDashboard : MonoBehaviour
         var name = segmentNameField != null ? (segmentNameField.value ?? string.Empty).Trim() : string.Empty;
         var text = segmentTextField != null ? (segmentTextField.value ?? string.Empty).Trim() : string.Empty;
         if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(text)) { if (statusLabel != null) statusLabel.text = "Enter a segment name or text."; return; }
-        var s = new SegmentData { id = System.Guid.NewGuid().ToString("N"), name = name, text = text };
+        EnsureSegmentTypeChoices();
+        PopulateSegmentParticipantChoices();
+        var segType = segmentTypeDropdown != null ? (segmentTypeDropdown.value ?? string.Empty).Trim() : string.Empty;
+        var participantNames = CollectSegmentParticipantNames();
+        var participantIds = participantNames
+            .Select(GetWrestlerIdByName)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList();
+        var s = new SegmentData
+        {
+            id = System.Guid.NewGuid().ToString("N"),
+            text = text,
+            segmentType = string.IsNullOrEmpty(segType) ? null : segType,
+            participantNames = participantNames,
+            participantIds = participantIds
+        };
+        s.name = BuildSegmentAutoName(name, s.segmentType, s.participantNames);
         var show = currentPromotion.shows[selectedShowIndex];
         show.segments ??= new List<SegmentData>();
         show.segments.Add(s);
@@ -4256,6 +4285,73 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(showDetailsPanel ?? showsPanel);
         PopulateHistoryShowsList();
         RefreshShowList();
+    }
+
+    private void EnsureSegmentTypeChoices()
+    {
+        if (segmentTypeDropdown == null) return;
+        if (segmentTypeDropdown.choices == null || segmentTypeDropdown.choices.Count == 0)
+        {
+            var types = SegmentTypeCatalog.Types != null && SegmentTypeCatalog.Types.Count > 0
+                ? new List<string>(SegmentTypeCatalog.Types)
+                : new List<string> { "Segment" };
+            segmentTypeDropdown.choices = types;
+        }
+    }
+
+    private void PopulateSegmentParticipantChoices()
+    {
+        if (segmentParticipantADropdown == null && segmentParticipantBDropdown == null &&
+            segmentParticipantCDropdown == null && segmentParticipantDDropdown == null) return;
+
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+        var names = wrestlerCollection?.wrestlers?
+            .Where(w => !string.IsNullOrEmpty(w?.name))
+            .Select(w => w.name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+        if (!names.Contains(string.Empty)) names.Insert(0, string.Empty);
+        SetChoices(segmentParticipantADropdown, names);
+        SetChoices(segmentParticipantBDropdown, names);
+        SetChoices(segmentParticipantCDropdown, names);
+        SetChoices(segmentParticipantDDropdown, names);
+    }
+
+    private List<string> CollectSegmentParticipantNames()
+    {
+        var result = new List<string>();
+        void add(DropdownField dd)
+        {
+            var v = dd != null ? (dd.value ?? string.Empty).Trim() : string.Empty;
+            if (string.IsNullOrEmpty(v)) return;
+            if (!result.Any(x => string.Equals(x, v, StringComparison.OrdinalIgnoreCase)))
+                result.Add(v);
+        }
+        add(segmentParticipantADropdown);
+        add(segmentParticipantBDropdown);
+        add(segmentParticipantCDropdown);
+        add(segmentParticipantDDropdown);
+        return result;
+    }
+
+    private string GetWrestlerIdByName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+        var w = wrestlerCollection?.wrestlers?.FirstOrDefault(x => string.Equals(x?.name, name, StringComparison.OrdinalIgnoreCase));
+        return w?.id;
+    }
+
+    private string BuildSegmentAutoName(string specifiedName, string segType, List<string> participants)
+    {
+        if (!string.IsNullOrWhiteSpace(specifiedName)) return specifiedName.Trim();
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(segType)) parts.Add(segType.Trim());
+        if (participants != null && participants.Count > 0)
+            parts.Add(string.Join(", ", participants));
+        if (parts.Count > 0) return string.Join(" - ", parts);
+        return "Segment";
     }
 
     private void RegisterWinnerAutoUpdate(DropdownField field)
@@ -4678,9 +4774,38 @@ public class PromotionDashboard : MonoBehaviour
             if (show.segments == null || idx < 0 || idx >= show.segments.Count) return string.Empty;
             var s = show.segments[idx];
             var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
-            return $"Segment: {segName}";
+            var typeSuffix = string.IsNullOrEmpty(s?.segmentType) ? string.Empty : $" [{s.segmentType}]";
+            return $"Segment: {segName}{typeSuffix}";
         }
         return string.Empty;
+    }
+
+    private List<string> GetSegmentParticipantDisplayNames(SegmentData segment)
+    {
+        var names = new List<string>();
+        if (segment == null) return names;
+        if (segment.participantNames != null)
+        {
+            foreach (var n in segment.participantNames)
+            {
+                if (string.IsNullOrWhiteSpace(n)) continue;
+                var trimmed = n.Trim();
+                if (!names.Any(x => string.Equals(x, trimmed, StringComparison.OrdinalIgnoreCase)))
+                    names.Add(trimmed);
+            }
+        }
+        if (names.Count == 0 && segment.participantIds != null)
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+            foreach (var id in segment.participantIds)
+            {
+                if (string.IsNullOrEmpty(id)) continue;
+                var resolved = wrestlerCollection?.wrestlers?.FirstOrDefault(w => string.Equals(w?.id, id, StringComparison.OrdinalIgnoreCase))?.name;
+                if (!string.IsNullOrWhiteSpace(resolved) && !names.Any(x => string.Equals(x, resolved, StringComparison.OrdinalIgnoreCase)))
+                    names.Add(resolved);
+            }
+        }
+        return names;
     }
 
     private static bool TryParseEntryToken(string token, out char kind, out string id)
@@ -4804,6 +4929,9 @@ public class PromotionDashboard : MonoBehaviour
                     entry.style.marginBottom = 6;
                     var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
                     entry.Add(new Label($"Segment: {segName}"));
+                    if (!string.IsNullOrEmpty(s?.segmentType)) entry.Add(new Label($"Type: {s.segmentType}"));
+                    var segmentParticipants = GetSegmentParticipantDisplayNames(s);
+                    if (segmentParticipants.Count > 0) entry.Add(new Label($"Participants: {string.Join(", ", segmentParticipants)}"));
                     if (!string.IsNullOrEmpty(s?.text)) entry.Add(new Label(s.text));
                     historyShowMatchesList.Add(entry);
                     any = true;
@@ -4834,7 +4962,11 @@ public class PromotionDashboard : MonoBehaviour
                 {
                     var entry = new VisualElement(); entry.style.marginBottom = 6;
                     var segName = string.IsNullOrEmpty(s?.name) ? "Segment" : s.name;
-                    entry.Add(new Label($"Segment: {segName}")); if (!string.IsNullOrEmpty(s?.text)) entry.Add(new Label(s.text));
+                    entry.Add(new Label($"Segment: {segName}"));
+                    if (!string.IsNullOrEmpty(s?.segmentType)) entry.Add(new Label($"Type: {s.segmentType}"));
+                    var segmentParticipants = GetSegmentParticipantDisplayNames(s);
+                    if (segmentParticipants.Count > 0) entry.Add(new Label($"Participants: {string.Join(", ", segmentParticipants)}"));
+                    if (!string.IsNullOrEmpty(s?.text)) entry.Add(new Label(s.text));
                     historyShowMatchesList.Add(entry);
                 }
             }
