@@ -605,12 +605,19 @@ public class CardBuilderView
                     if (!string.IsNullOrEmpty(d)) participants.Add(d);
 
                     string vsPart = string.Empty;
+                    bool isTagType = !string.IsNullOrEmpty(type) && type.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+
                     if (participants.Count == 2)
                         vsPart = $"{participants[0]} vs {participants[1]}";
                     else if (participants.Count == 3)
                         vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]}";
                     else if (participants.Count == 4)
-                        vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]} vs {participants[3]}";
+                    {
+                        if (isTagType)
+                            vsPart = $"{participants[0]} & {participants[1]} vs {participants[2]} & {participants[3]}";
+                        else
+                            vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]} vs {participants[3]}";
+                    }
                     else if (participants.Count > 1)
                         vsPart = string.Join(" vs ", participants);
                     else if (participants.Count == 1)
@@ -692,13 +699,7 @@ public class CardBuilderView
         var m = workingShow?.matches?.FirstOrDefault(x => x != null && x.id == id);
         if (m == null) return "(Missing Match)";
         string baseName = string.IsNullOrWhiteSpace(m.matchName) ? m.matchType ?? "Match" : m.matchName;
-        if (m.isTitleMatch)
-        {
-            if (!string.IsNullOrEmpty(m.titleName))
-                return $"★ [M] {baseName} (Title: {m.titleName})";
-            return $"★ [M] {baseName} (Title Match)";
-        }
-        return $"[M] {baseName}";
+        return m.isTitleMatch ? $"★ [M] {baseName}" : $"[M] {baseName}";
     }
 
     private string GetSegmentLabel(string id)

@@ -4568,12 +4568,19 @@ public class PromotionDashboard : MonoBehaviour
             fixedItemHeight = 36f
         };
         matchesOrderView.style.flexGrow = 1;
-        matchesOrderView.makeItem = () => { var b = new Button(); b.AddToClassList("list-entry"); return b; };
+        matchesOrderView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.clicked += () => OnMatchesOrderButtonClicked(b);
+            return b;
+        };
         matchesOrderView.bindItem = (ve, i) =>
         {
             var b = (Button)ve;
             var list = matchesOrderView.itemsSource as List<string>;
             b.text = GetDisplayTextForToken(currentEditingShow, (list != null && i >= 0 && i < list.Count) ? list[i] : null);
+            b.userData = i;
         };
         matchesOrderView.itemIndexChanged += (from, to) =>
         {
@@ -4638,6 +4645,20 @@ public class PromotionDashboard : MonoBehaviour
         FocusPanel(showsPanel);
     }
 
+    private void OnMatchesOrderButtonClicked(Button button)
+    {
+        if (button == null || matchesOrderView == null) return;
+        if (cardBuilderView == null || currentEditingShow == null) return;
+        if (matchesOrderView.itemsSource is not List<string> tokens) return;
+        if (button.userData is not int idx || idx < 0 || idx >= tokens.Count) return;
+        if (!TryParseEntryToken(tokens[idx], out var kind, out var entryId)) return;
+        if (kind != 'M' || string.IsNullOrEmpty(entryId)) return;
+
+        CloseMatchesView();
+        cardBuilderView.BeginEditAndSelectEntry(currentEditingShow, 'M', entryId);
+        SetActivePanel(cardBuilderPanel);
+    }
+
     private string GetDisplayTextForToken(ShowData show, string token)
     {
         if (show == null || string.IsNullOrEmpty(token) || token.Length < 3 || token[1] != ':') return string.Empty;
@@ -4660,6 +4681,18 @@ public class PromotionDashboard : MonoBehaviour
             return $"Segment: {segName}";
         }
         return string.Empty;
+    }
+
+    private static bool TryParseEntryToken(string token, out char kind, out string id)
+    {
+        kind = '?';
+        id = string.Empty;
+        if (string.IsNullOrEmpty(token)) return false;
+        int colonIndex = token.IndexOf(':');
+        if (colonIndex <= 0 || colonIndex >= token.Length - 1) return false;
+        kind = token[0];
+        id = token.Substring(colonIndex + 1);
+        return !string.IsNullOrEmpty(id);
     }
 
     private static bool StringEquals(string a, string b)
@@ -5901,15 +5934,7 @@ public class PromotionDashboard : MonoBehaviour
         else if (!string.IsNullOrEmpty(vs)) label = $"Match: {vs}";
         else label = $"Match: {(string.IsNullOrEmpty(m.matchType) ? "Match" : m.matchType)}";
 
-        if (m.isTitleMatch)
-        {
-            if (!string.IsNullOrEmpty(m.titleName))
-                label = $"★ {label} (Title: {m.titleName})";
-            else
-                label = $"★ {label} (Title Match)";
-        }
-
-        return label;
+        return m.isTitleMatch ? $"★ {label}" : label;
     }
 
     private string TeamDisplay(string a, string b)
