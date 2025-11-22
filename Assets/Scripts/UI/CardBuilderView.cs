@@ -19,8 +19,8 @@ public class CardBuilderView
 
     private VisualElement noSelectionHint, matchEditor, segmentEditor;
     private TextField matchNameField, matchNotesField;
-    private DropdownField matchTypeDropdown; private Toggle isTitleMatchToggle;
-    private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
+    private DropdownField matchTypeDropdown, matchStipulationDropdown; private Toggle isTitleMatchToggle;
+    private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
     private TextField segmentNameField, segmentTextField;
     private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
 
@@ -71,10 +71,13 @@ public class CardBuilderView
         segmentEditor = panel.Q<VisualElement>("cbSegmentEditor");
         matchNameField = panel.Q<TextField>("cbMatchNameField");
         matchTypeDropdown = panel.Q<DropdownField>("cbMatchTypeDropdown");
+        matchStipulationDropdown = panel.Q<DropdownField>("cbMatchStipulationDropdown");
         wrestlerADropdown = panel.Q<DropdownField>("cbWrestlerADropdown");
         wrestlerBDropdown = panel.Q<DropdownField>("cbWrestlerBDropdown");
         wrestlerCDropdown = panel.Q<DropdownField>("cbWrestlerCDropdown");
         wrestlerDDropdown = panel.Q<DropdownField>("cbWrestlerDDropdown");
+        wrestlerEDropdown = panel.Q<DropdownField>("cbWrestlerEDropdown");
+        wrestlerFDropdown = panel.Q<DropdownField>("cbWrestlerFDropdown");
         isTitleMatchToggle = panel.Q<Toggle>("cbIsTitleMatchToggle");
         titleDropdown = panel.Q<DropdownField>("cbTitleDropdown");
         winnerDropdown = panel.Q<DropdownField>("cbWinnerDropdown");
@@ -88,9 +91,48 @@ public class CardBuilderView
         segmentTextField = panel.Q<TextField>("cbSegmentTextField");
 
         // Defaults
-        matchTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Triple Threat", "Four Way" };
+        matchTypeDropdown.choices = new List<string>
+        {
+            "Singles",
+            "Tag Team",
+            "Trios",
+            "Triple Threat",
+            "Fatal Four Way",
+            "Five Way",
+            "Six Way",
+            "Battle Royal",
+            "Royal Rumble"
+        };
         templateDropdown.choices = ShowTemplates.Templates.Select(t => t.name).ToList();
         if (templateDropdown.choices.Count > 0) templateDropdown.value = templateDropdown.choices[0];
+        if (matchTypeDropdown.choices.Count > 0) matchTypeDropdown.value = matchTypeDropdown.choices[0];
+        if (matchStipulationDropdown != null)
+        {
+            var stipChoices = new List<string>
+            {
+                string.Empty,
+                "Ladder",
+                "Steel Cage",
+                "No DQ",
+                "Submission",
+                "Falls Count Anywhere",
+                "First Blood",
+                "Last Man Standing",
+                "King of the Ring",
+                "Money in the Bank",
+                "MITB Qualifier",
+                "War Games",
+                "Survivor Series",
+                "Hell in a Cell",
+                "Fight Pit",
+                "Iron Man",
+                "Casket",
+                "Inferno",
+                "Buried Alive"
+            };
+            matchStipulationDropdown.choices = stipChoices;
+            matchStipulationDropdown.value = stipChoices[0];
+        }
         if (showBrandDropdown != null)
         {
             var brands = Promotion?.brands ?? new List<string>();
@@ -152,16 +194,26 @@ public class CardBuilderView
         wrestlerBDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
         wrestlerCDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
         wrestlerDDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
+        wrestlerEDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
+        wrestlerFDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
+        matchTypeDropdown?.RegisterValueChangedCallback(_ =>
+        {
+            UpdateWinnerChoices();
+            UpdateParticipantDropdownState();
+        });
 
         LoadRosterAndTitles();
 
         // Ensure dropdown menus overlay cleanly without reordering rows
         SetupDropdownOverlay(templateDropdown);
         SetupDropdownOverlay(matchTypeDropdown);
+        SetupDropdownOverlay(matchStipulationDropdown);
         SetupDropdownOverlay(wrestlerADropdown);
         SetupDropdownOverlay(wrestlerBDropdown);
         SetupDropdownOverlay(wrestlerCDropdown);
         SetupDropdownOverlay(wrestlerDDropdown);
+        SetupDropdownOverlay(wrestlerEDropdown);
+        SetupDropdownOverlay(wrestlerFDropdown);
         SetupDropdownOverlay(titleDropdown);
         SetupDropdownOverlay(winnerDropdown);
 
@@ -429,8 +481,11 @@ public class CardBuilderView
             SetDropdownChoices(wrestlerCDropdown, wrestlerChoices, allowEmpty: true);
             SetDropdownChoices(wrestlerDDropdown, wrestlerChoices, allowEmpty: true);
             SetDropdownChoices(titleDropdown, titleChoices, allowEmpty: true);
+           SetDropdownChoices(wrestlerEDropdown, wrestlerChoices, allowEmpty: true);
+           SetDropdownChoices(wrestlerFDropdown, wrestlerChoices, allowEmpty: true);
             SetSegmentParticipantChoices();
             UpdateWinnerChoices();
+            UpdateParticipantDropdownState();
         }
         catch (Exception ex)
         {
@@ -462,13 +517,42 @@ public class CardBuilderView
         if (winnerDropdown == null) return;
         var opts = new List<string>();
         void add(string s) { if (!string.IsNullOrWhiteSpace(s) && !opts.Contains(s, StringComparer.OrdinalIgnoreCase)) opts.Add(s); }
-        add(wrestlerADropdown?.value);
-        add(wrestlerBDropdown?.value);
-        add(wrestlerCDropdown?.value);
-        add(wrestlerDDropdown?.value);
+        var a = wrestlerADropdown?.value;
+        var b = wrestlerBDropdown?.value;
+        var c = wrestlerCDropdown?.value;
+        var d = wrestlerDDropdown?.value;
+        var e = wrestlerEDropdown?.value;
+        var f = wrestlerFDropdown?.value;
+        add(a);
+        add(b);
+        add(c);
+        add(d);
+        add(e);
+        add(f);
+        var structure = GetSelectedStructure();
+        bool isTag = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTrios = !string.IsNullOrEmpty(structure) && structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isRumble = IsRoyalRumbleStructure(structure);
+        if (isTag && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) && !string.IsNullOrWhiteSpace(d))
+        {
+            add($"{a} & {b}");
+            add($"{c} & {d}");
+        }
+        if (isTrios && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) &&
+            !string.IsNullOrWhiteSpace(d) && !string.IsNullOrWhiteSpace(e) && !string.IsNullOrWhiteSpace(f))
+        {
+            add($"{a}, {b}, {c}");
+            add($"{d}, {e}, {f}");
+        }
+        if (isRumble)
+        {
+            foreach (var name in wrestlerChoices)
+                add(name);
+        }
         // common outcomes
         opts.Add("Draw");
         opts.Add("No Contest");
+        if (opts.Count == 0) opts.Add(string.Empty);
         winnerDropdown.choices = opts;
         // Try keep previous or preferred winner
         var prev = preferred ?? winnerDropdown.value;
@@ -502,7 +586,15 @@ public class CardBuilderView
             matchEditor?.RemoveFromClassList("hidden");
             segmentEditor?.AddToClassList("hidden");
             matchNameField.value = m.matchName;
-            matchTypeDropdown.value = string.IsNullOrEmpty(m.matchType) ? matchTypeDropdown.choices.FirstOrDefault() : m.matchType;
+            var structure = !string.IsNullOrEmpty(m.matchStructure) ? m.matchStructure : (!string.IsNullOrEmpty(m.matchType) ? m.matchType : matchTypeDropdown?.choices?.FirstOrDefault());
+            matchTypeDropdown.value = structure;
+            if (matchStipulationDropdown != null)
+            {
+                var stip = m.matchStipulation ?? string.Empty;
+                if (!matchStipulationDropdown.choices.Contains(stip))
+                    stip = matchStipulationDropdown.choices.FirstOrDefault() ?? string.Empty;
+                matchStipulationDropdown.value = stip;
+            }
             wrestlerADropdown.value = FindChoice(wrestlerChoices, m.wrestlerA);
             wrestlerBDropdown.value = FindChoice(wrestlerChoices, m.wrestlerB);
             wrestlerCDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerC)
@@ -511,6 +603,12 @@ public class CardBuilderView
             wrestlerDDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerD)
                 ? ""
                 : FindChoice(wrestlerChoices, m.wrestlerD);
+            wrestlerEDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerE)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerE);
+            wrestlerFDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerF)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerF);
             isTitleMatchToggle.value = m.isTitleMatch;
             if (titleDropdown != null) titleDropdown.value = FindChoice(titleChoices, m.titleName);
             UpdateWinnerChoices(m.winner);
@@ -559,7 +657,7 @@ public class CardBuilderView
         }
         for (int i = 0; i < t.matches; i++)
         {
-            var m = new MatchData { id = Guid.NewGuid().ToString("N"), matchType = "Singles", matchName = $"Match {i+1}" };
+            var m = new MatchData { id = Guid.NewGuid().ToString("N"), matchType = "Singles", matchStructure = "Singles", matchName = $"Match {i+1}" };
             workingShow.matches.Add(m);
             order.Add($"M:{m.id}");
         }
@@ -576,7 +674,7 @@ public class CardBuilderView
     private void AddMatch()
     {
         workingShow.matches ??= new List<MatchData>();
-        var m = new MatchData { id = Guid.NewGuid().ToString("N"), matchType = "Singles", matchName = "New Match" };
+        var m = new MatchData { id = Guid.NewGuid().ToString("N"), matchType = "Singles", matchStructure = "Singles", matchName = "New Match" };
         workingShow.matches.Add(m);
         order.Add($"M:{m.id}");
     }
@@ -641,7 +739,8 @@ public class CardBuilderView
                 var name = matchNameField != null ? (matchNameField.value ?? string.Empty).Trim() : string.Empty;
                 if (string.IsNullOrEmpty(name))
                 {
-                    string type = matchTypeDropdown != null ? (matchTypeDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string type = GetSelectedStructure();
+                    string stip = GetSelectedStipulation();
                     string title = titleDropdown != null ? (titleDropdown.value ?? string.Empty).Trim() : string.Empty;
                     bool isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value;
 
@@ -649,37 +748,26 @@ public class CardBuilderView
                     string b = wrestlerBDropdown != null ? (wrestlerBDropdown.value ?? string.Empty).Trim() : string.Empty;
                     string c = wrestlerCDropdown != null ? (wrestlerCDropdown.value ?? string.Empty).Trim() : string.Empty;
                     string d = wrestlerDDropdown != null ? (wrestlerDDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string e = wrestlerEDropdown != null ? (wrestlerEDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string f = wrestlerFDropdown != null ? (wrestlerFDropdown.value ?? string.Empty).Trim() : string.Empty;
 
                     var participants = new List<string>();
                     if (!string.IsNullOrEmpty(a)) participants.Add(a);
                     if (!string.IsNullOrEmpty(b)) participants.Add(b);
                     if (!string.IsNullOrEmpty(c)) participants.Add(c);
                     if (!string.IsNullOrEmpty(d)) participants.Add(d);
+                    if (!string.IsNullOrEmpty(e)) participants.Add(e);
+                    if (!string.IsNullOrEmpty(f)) participants.Add(f);
 
-                    string vsPart = string.Empty;
-                    bool isTagType = !string.IsNullOrEmpty(type) && type.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
-
-                    if (participants.Count == 2)
-                        vsPart = $"{participants[0]} vs {participants[1]}";
-                    else if (participants.Count == 3)
-                        vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]}";
-                    else if (participants.Count == 4)
-                    {
-                        if (isTagType)
-                            vsPart = $"{participants[0]} & {participants[1]} vs {participants[2]} & {participants[3]}";
-                        else
-                            vsPart = $"{participants[0]} vs {participants[1]} vs {participants[2]} vs {participants[3]}";
-                    }
-                    else if (participants.Count > 1)
-                        vsPart = string.Join(" vs ", participants);
-                    else if (participants.Count == 1)
-                        vsPart = participants[0];
+                    string vsPart = BuildVsPart(type, participants);
 
                     string prefix = string.Empty;
-                    if (isTitleMatch && !string.IsNullOrEmpty(title))
-                        prefix = $"{title} - ";
-                    else if (!string.IsNullOrEmpty(type))
-                        prefix = $"{type} - ";
+                    var descriptors = new List<string>();
+                    if (isTitleMatch && !string.IsNullOrEmpty(title)) descriptors.Add(title);
+                    if (!string.IsNullOrEmpty(stip)) descriptors.Add(stip);
+                    if (!string.IsNullOrEmpty(type)) descriptors.Add(type);
+                    if (descriptors.Count > 0)
+                        prefix = string.Join(" ", descriptors) + " - ";
 
                     if (!string.IsNullOrEmpty(vsPart))
                         name = prefix + vsPart;
@@ -692,11 +780,16 @@ public class CardBuilderView
                 }
 
                 m.matchName = name;
-                m.matchType = matchTypeDropdown.value;
+                m.matchStructure = GetSelectedStructure();
+                var selectedStip = GetSelectedStipulation();
+                m.matchStipulation = string.IsNullOrEmpty(selectedStip) ? null : selectedStip;
+                m.matchType = m.matchStructure; // legacy compatibility
                 m.wrestlerA = wrestlerADropdown?.value;
                 m.wrestlerB = wrestlerBDropdown?.value;
                 m.wrestlerC = wrestlerCDropdown?.value;
                 m.wrestlerD = wrestlerDDropdown?.value;
+                m.wrestlerE = wrestlerEDropdown?.value;
+                m.wrestlerF = wrestlerFDropdown?.value;
                 m.isTitleMatch = isTitleMatchToggle.value;
                 m.titleName = titleDropdown?.value;
                 m.winner = winnerDropdown?.value;
@@ -737,6 +830,56 @@ public class CardBuilderView
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
         return wrestlerIdByName.TryGetValue(name, out var id) ? id : null;
+    }
+
+    private string GetSelectedStructure()
+        => matchTypeDropdown != null ? (matchTypeDropdown.value ?? string.Empty).Trim() : string.Empty;
+
+    private string GetSelectedStipulation()
+        => matchStipulationDropdown != null ? (matchStipulationDropdown.value ?? string.Empty).Trim() : string.Empty;
+
+    private static string BuildVsPart(string structure, List<string> participants)
+    {
+        bool isTag = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTrios = !string.IsNullOrEmpty(structure) && structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (isTrios && participants.Count >= 6)
+        {
+            var left = string.Join(" & ", participants.Take(3));
+            var right = string.Join(" & ", participants.Skip(3).Take(3));
+            return $"{left} vs {right}";
+        }
+        if (isTag && participants.Count >= 4)
+        {
+            var left = string.Join(" & ", participants.Take(2));
+            var right = string.Join(" & ", participants.Skip(2).Take(2));
+            return $"{left} vs {right}";
+        }
+        if (participants.Count > 1)
+            return string.Join(" vs ", participants);
+        if (participants.Count == 1)
+            return participants[0];
+        return string.Empty;
+    }
+
+    private bool IsRoyalRumbleStructure(string structure)
+        => !string.IsNullOrEmpty(structure) && structure.Equals("Royal Rumble", StringComparison.OrdinalIgnoreCase);
+
+    private void UpdateParticipantDropdownState()
+    {
+        bool disable = IsRoyalRumbleStructure(GetSelectedStructure());
+        void set(DropdownField dd)
+        {
+            if (dd == null) return;
+            dd.SetEnabled(!disable);
+            if (disable) dd.value = string.Empty;
+        }
+        set(wrestlerADropdown);
+        set(wrestlerBDropdown);
+        set(wrestlerCDropdown);
+        set(wrestlerDDropdown);
+        set(wrestlerEDropdown);
+        set(wrestlerFDropdown);
+        UpdateWinnerChoices();
     }
 
     private string BuildSegmentAutoName(string specifiedName, string segType, List<string> participants)
@@ -803,7 +946,17 @@ public class CardBuilderView
     {
         var m = workingShow?.matches?.FirstOrDefault(x => x != null && x.id == id);
         if (m == null) return "(Missing Match)";
-        string baseName = string.IsNullOrWhiteSpace(m.matchName) ? m.matchType ?? "Match" : m.matchName;
+        string descriptor = string.Empty;
+        if (!string.IsNullOrWhiteSpace(m.matchName)) descriptor = m.matchName;
+        else
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(m.matchStipulation)) parts.Add(m.matchStipulation);
+            if (!string.IsNullOrEmpty(m.matchStructure)) parts.Add(m.matchStructure);
+            else if (!string.IsNullOrEmpty(m.matchType)) parts.Add(m.matchType);
+            descriptor = parts.Count > 0 ? string.Join(" ", parts) : "Match";
+        }
+        string baseName = descriptor;
         return m.isTitleMatch ? $"★ [M] {baseName}" : $"[M] {baseName}";
     }
 

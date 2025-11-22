@@ -18,6 +18,10 @@ public class MatchResultData
     public string matchName;
     public string wrestlerA;
     public string wrestlerB;
+    public string wrestlerC;
+    public string wrestlerD;
+    public string wrestlerE;
+    public string wrestlerF;
     public string winner;
     public bool isTitleMatch;
     public string titleInvolved;

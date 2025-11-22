@@ -144,7 +144,7 @@ public class PromotionDashboard : MonoBehaviour
 
     // Promotion info widgets
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
-    private Label statWrestlersLabel, statTeamsLabel, statTitlesLabel, statShowsLabel, statMatchesLabel, statRivalriesLabel, statBrandsLabel, statTitleChangesLabel;
+    private Label statWrestlersLabel, statTeamsLabel, statTitlesLabel, statShowsLabel, statMatchesLabel, statRivalriesLabel, statBrandsLabel, statTitleChangesLabel, statHighestAttendanceLabel, statHighestRatingLabel;
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
@@ -165,7 +165,7 @@ public class PromotionDashboard : MonoBehaviour
     private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, calendarGenerationBrandDropdown, showsBrandFilterDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
-    private DropdownField matchTypeDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, titleDropdown, winnerDropdown;
+    private DropdownField matchTypeDropdown, matchStipulationDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
     private Toggle isTitleMatchToggle;
     private TextField segmentNameField, segmentTextField;
     private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
@@ -459,10 +459,13 @@ public class PromotionDashboard : MonoBehaviour
         matchEditor = root.Q<VisualElement>("matchEditor");
         segmentEditor = root.Q<VisualElement>("segmentEditor");
         matchTypeDropdown = root.Q<DropdownField>("matchTypeDropdown");
+        matchStipulationDropdown = root.Q<DropdownField>("matchStipulationDropdown");
         wrestlerADropdown = root.Q<DropdownField>("wrestlerADropdown");
         wrestlerBDropdown = root.Q<DropdownField>("wrestlerBDropdown");
         wrestlerCDropdown = root.Q<DropdownField>("wrestlerCDropdown");
         wrestlerDDropdown = root.Q<DropdownField>("wrestlerDDropdown");
+        wrestlerEDropdown = root.Q<DropdownField>("wrestlerEDropdown");
+        wrestlerFDropdown = root.Q<DropdownField>("wrestlerFDropdown");
         isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
         titleDropdown = root.Q<DropdownField>("titleDropdown");
         winnerDropdown = root.Q<DropdownField>("winnerDropdown");
@@ -527,6 +530,8 @@ public class PromotionDashboard : MonoBehaviour
         statRivalriesLabel = root.Q<Label>("statRivalriesLabel");
         statBrandsLabel = root.Q<Label>("statBrandsLabel");
         statTitleChangesLabel = root.Q<Label>("statTitleChangesLabel");
+        statHighestAttendanceLabel = root.Q<Label>("statHighestAttendanceLabel");
+        statHighestRatingLabel = root.Q<Label>("statHighestRatingLabel");
         editPromotionButton = root.Q<Button>("editPromotionButton");
         savePromotionButton = root.Q<Button>("savePromotionButton");
         cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
@@ -745,6 +750,7 @@ public class PromotionDashboard : MonoBehaviour
         EnsureRankingsListView();
         EnsureMatchesOrderListView();
         EnsureDefaultMatchTypes();
+        EnsureMatchStipulationChoices();
         EnsureTournamentTypeChoices();
         if (tournamentTypeDropdown != null)
             tournamentTypeDropdown.RegisterValueChangedCallback(_ => PopulateEntrantChoices(tournamentTypeDropdown.value));
@@ -810,15 +816,43 @@ public class PromotionDashboard : MonoBehaviour
                 "Trios",
                 "Triple Threat",
                 "Fatal Four Way",
-                "Ladder",
-                "Steel Cage",
-                "No DQ",
-                "Submission",
-                "Falls Count Anywhere",
-                "Battle Royal"
+                "Five Way",
+                "Six Way",
+                "Battle Royal",
+                "Royal Rumble"
             };
             matchTypeDropdown.value = matchTypeDropdown.choices[0];
         }
+    }
+
+    private void EnsureMatchStipulationChoices()
+    {
+        if (matchStipulationDropdown == null) return;
+        var stipChoices = new List<string>
+        {
+            string.Empty,
+            "Ladder",
+            "Steel Cage",
+            "No DQ",
+            "Submission",
+            "Falls Count Anywhere",
+            "First Blood",
+            "Last Man Standing",
+            "King of the Ring",
+            "Money in the Bank",
+            "MITB Qualifier",
+            "War Games",
+            "Survivor Series",
+            "Hell in a Cell",
+            "Fight Pit",
+            "Iron Man",
+            "Casket",
+            "Inferno",
+            "Buried Alive"
+        };
+        matchStipulationDropdown.choices = stipChoices;
+        if (string.IsNullOrEmpty(matchStipulationDropdown.value) || !stipChoices.Contains(matchStipulationDropdown.value))
+            matchStipulationDropdown.value = stipChoices[0];
     }
 
     private void RefreshDivisionChoices()
@@ -1047,6 +1081,8 @@ public class PromotionDashboard : MonoBehaviour
             SetStat(statRivalriesLabel, "--");
             SetStat(statBrandsLabel, "--");
             SetStat(statTitleChangesLabel, "--");
+            SetStat(statHighestAttendanceLabel, "--");
+            SetStat(statHighestRatingLabel, "--");
             return;
         }
 
@@ -1091,6 +1127,8 @@ public class PromotionDashboard : MonoBehaviour
 
         int rivalryCount = rivalryCollection?.rivalries?.Count(r => r != null) ?? 0;
         int brandCount = currentPromotion.brands?.Count(b => !string.IsNullOrWhiteSpace(b)) ?? 0;
+        int highestAttendance = currentPromotion.shows?.Where(s => s != null).Select(s => s.attendance).DefaultIfEmpty(0).Max() ?? 0;
+        float highestRating = currentPromotion.shows?.Where(s => s != null).Select(s => s.rating).DefaultIfEmpty(0f).Max() ?? 0f;
 
         SetStat(statWrestlersLabel, wrestlerCount.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statTeamsLabel, tagTeamCount.ToString("N0", CultureInfo.InvariantCulture));
@@ -1100,6 +1138,8 @@ public class PromotionDashboard : MonoBehaviour
         SetStat(statRivalriesLabel, rivalryCount.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statBrandsLabel, brandCount.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statTitleChangesLabel, titleReigns.ToString("N0", CultureInfo.InvariantCulture));
+        SetStat(statHighestAttendanceLabel, highestAttendance > 0 ? highestAttendance.ToString("N0", CultureInfo.InvariantCulture) : "--");
+        SetStat(statHighestRatingLabel, highestRating > 0f ? highestRating.ToString("0.00", CultureInfo.InvariantCulture) : "--");
     }
 
     private void ShowPromotionEditPanel()
@@ -1603,7 +1643,7 @@ public class PromotionDashboard : MonoBehaviour
                 if (match != null)
                 {
                     if (match.isTitleMatch) score += 0.5f;
-                    var mt = match.matchType ?? string.Empty;
+                    var mt = $"{GetMatchStipulation(match)} {GetMatchStructure(match)}";
                     if (mt.IndexOf("cage", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         mt.IndexOf("cell", StringComparison.OrdinalIgnoreCase) >= 0)
                         score += 1.0f;
@@ -1675,6 +1715,26 @@ public class PromotionDashboard : MonoBehaviour
             }
             rivalryHeatLabel.text = string.Join("  |  ", parts);
         }
+        UpdateMatchParticipantInputs();
+    }
+
+    private void UpdateMatchParticipantInputs()
+    {
+        bool disable = matchTypeDropdown != null && StringEquals(matchTypeDropdown.value, "Royal Rumble");
+        void set(DropdownField dd)
+        {
+            if (dd == null) return;
+            dd.SetEnabled(!disable);
+            if (disable) dd.value = string.Empty;
+        }
+        set(wrestlerADropdown);
+        set(wrestlerBDropdown);
+        set(wrestlerCDropdown);
+        set(wrestlerDDropdown);
+        set(wrestlerEDropdown);
+        set(wrestlerFDropdown);
+        if (disable)
+            UpdateWinnerChoices();
     }
     private void ShowAwardsPanel()
     {
@@ -3389,6 +3449,20 @@ public class PromotionDashboard : MonoBehaviour
 
         // Apply current champion values based on singles/tag-team mode
         string current = t.currentChampion ?? string.Empty;
+        if (string.IsNullOrEmpty(current))
+        {
+            try
+            {
+                var summaries = TitleHistoryManager.GetTitleReignSummaries(currentPromotion.promotionName, t.titleName);
+                var reigning = summaries?.FirstOrDefault(s => string.IsNullOrEmpty(s?.dateLost));
+                if (!string.IsNullOrEmpty(reigning?.championName))
+                    current = reigning.championName;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Unable to derive current champion from history for {t.titleName}: {ex.Message}");
+            }
+        }
         if (titleIsTagTeamToggle != null) titleIsTagTeamToggle.value = t.isTagTeamTitle;
 
         if (t.isTagTeamTitle)
@@ -3418,8 +3492,10 @@ public class PromotionDashboard : MonoBehaviour
         }
 
         if (titleNotesField != null) titleNotesField.value = t.notes;
+        if (titleStatsCurrentLabel != null)
+            titleStatsCurrentLabel.text = string.IsNullOrEmpty(current) ? "Current Champion: (vacant)" : $"Current Champion: {current}";
         // Keep stats out of the edit panel
-        titleStatsPanel?.AddToClassList("hidden");
+        titleStatsPanel?.RemoveFromClassList("hidden");
         titleAddPanel?.AddToClassList("hidden");
         titleDetailsPanel?.RemoveFromClassList("hidden");
         titleHistoryList?.AddToClassList("hidden");
@@ -4088,7 +4164,12 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (selectedShowIndex < 0 || currentPromotion?.shows == null || selectedShowIndex >= currentPromotion.shows.Count) return;
         EnsureDefaultMatchTypes();
+        EnsureMatchStipulationChoices();
         EnsureRosterAndTitlesLoaded();
+        if (matchTypeDropdown != null && matchTypeDropdown.choices != null && matchTypeDropdown.choices.Count > 0)
+            matchTypeDropdown.value = matchTypeDropdown.choices[0];
+        if (matchStipulationDropdown != null && matchStipulationDropdown.choices != null && matchStipulationDropdown.choices.Count > 0)
+            matchStipulationDropdown.value = matchStipulationDropdown.choices[0];
         var names = wrestlerCollection?.wrestlers?
             .Where(w => !string.IsNullOrEmpty(w?.name))
             ?.Select(w => w.name)
@@ -4100,6 +4181,8 @@ public class PromotionDashboard : MonoBehaviour
         var optNames = new List<string>(names); if (!optNames.Contains(string.Empty)) optNames.Insert(0, string.Empty);
         SetChoices(wrestlerCDropdown, optNames);
         SetChoices(wrestlerDDropdown, optNames);
+        SetChoices(wrestlerEDropdown, optNames);
+        SetChoices(wrestlerFDropdown, optNames);
         var titleNames = titleCollection?.titles?.Where(t => !string.IsNullOrEmpty(t?.titleName))?.Select(t => t.titleName).OrderBy(n => n).ToList() ?? new List<string>();
         if (!titleNames.Contains(string.Empty)) titleNames.Insert(0, string.Empty);
         SetChoices(titleDropdown, titleNames);
@@ -4110,8 +4193,11 @@ public class PromotionDashboard : MonoBehaviour
         // accidentally turn every match into a multi-person/tag match.
         if (wrestlerCDropdown != null) wrestlerCDropdown.value = string.Empty;
         if (wrestlerDDropdown != null) wrestlerDDropdown.value = string.Empty;
+        if (wrestlerEDropdown != null) wrestlerEDropdown.value = string.Empty;
+        if (wrestlerFDropdown != null) wrestlerFDropdown.value = string.Empty;
 
         UpdateWinnerChoices();
+        UpdateMatchParticipantInputs();
         matchEditor?.RemoveFromClassList("hidden");
         segmentEditor?.AddToClassList("hidden");
         // Hide redundant panels while editing
@@ -4124,8 +4210,14 @@ public class PromotionDashboard : MonoBehaviour
         RegisterWinnerAutoUpdate(wrestlerBDropdown);
         RegisterWinnerAutoUpdate(wrestlerCDropdown);
         RegisterWinnerAutoUpdate(wrestlerDDropdown);
+        RegisterWinnerAutoUpdate(wrestlerEDropdown);
+        RegisterWinnerAutoUpdate(wrestlerFDropdown);
         if (matchTypeDropdown != null)
-            matchTypeDropdown.RegisterValueChangedCallback(_ => UpdateWinnerChoices());
+            matchTypeDropdown.RegisterValueChangedCallback(_ =>
+            {
+                UpdateWinnerChoices();
+                UpdateMatchParticipantInputs();
+            });
         if (isTitleMatchToggle != null)
         {
             isTitleMatchToggle.RegisterValueChangedCallback(evt =>
@@ -4165,14 +4257,23 @@ public class PromotionDashboard : MonoBehaviour
         var B = wrestlerBDropdown?.value?.Trim();
         var C = wrestlerCDropdown?.value?.Trim();
         var D = wrestlerDDropdown?.value?.Trim();
+        string E = wrestlerEDropdown != null ? (wrestlerEDropdown.value ?? string.Empty).Trim() : string.Empty;
+        string F = wrestlerFDropdown != null ? (wrestlerFDropdown.value ?? string.Empty).Trim() : string.Empty;
         var have = new List<string>();
         if (!string.IsNullOrEmpty(A)) have.Add(A);
         if (!string.IsNullOrEmpty(B)) have.Add(B);
         if (!string.IsNullOrEmpty(C)) have.Add(C);
         if (!string.IsNullOrEmpty(D)) have.Add(D);
-        if (have.Count < 2) { if (statusLabel != null) statusLabel.text = "Select at least two wrestlers."; return; }
-        string type = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
-        string matchName; bool isTagType = !string.IsNullOrEmpty(type) && type.IndexOf("tag", System.StringComparison.OrdinalIgnoreCase) >= 0; if (isTagType && !string.IsNullOrEmpty(A) && !string.IsNullOrEmpty(B) && !string.IsNullOrEmpty(C) && !string.IsNullOrEmpty(D)) matchName = $"{type}: {A} & {B} vs {C} & {D}"; else matchName = $"{type}: {string.Join(" vs ", have)}";
+        if (!string.IsNullOrEmpty(E)) have.Add(E);
+        if (!string.IsNullOrEmpty(F)) have.Add(F);
+        string structure = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match";
+        string stipulation = matchStipulationDropdown != null ? (matchStipulationDropdown.value ?? string.Empty).Trim() : string.Empty;
+        bool isRoyalRumble = StringEquals(structure, "Royal Rumble");
+        if (!isRoyalRumble && have.Count < 2) { if (statusLabel != null) statusLabel.text = "Select at least two wrestlers."; return; }
+        string descriptor = string.Join(" ", new List<string> { stipulation, structure }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()));
+        if (string.IsNullOrEmpty(descriptor)) descriptor = "Match";
+        var vsSegment = BuildMatchVsPart(structure, new List<string> { A, B, C, D, E, F }.Where(p => !string.IsNullOrEmpty(p)).ToList(), true);
+        string matchName = string.IsNullOrEmpty(vsSegment) ? descriptor : $"{descriptor}: {vsSegment}";
         string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
         // Build id maps
         EnsureRosterAndTitlesLoaded();
@@ -4200,6 +4301,7 @@ public class PromotionDashboard : MonoBehaviour
             }
             return null;
         }
+        bool isTagType = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", System.StringComparison.OrdinalIgnoreCase) >= 0;
         if (!string.IsNullOrEmpty(winner) && isTagType && !string.IsNullOrEmpty(A) && !string.IsNullOrEmpty(B) && !string.IsNullOrEmpty(C) && !string.IsNullOrEmpty(D))
         {
             var leftId = ResolveTeamId(A, B);
@@ -4213,12 +4315,16 @@ public class PromotionDashboard : MonoBehaviour
         var m = new MatchData
         {
             id = System.Guid.NewGuid().ToString("N"),
-            matchType = (matchTypeDropdown != null && !string.IsNullOrEmpty(matchTypeDropdown.value)) ? matchTypeDropdown.value : "Match",
+            matchType = structure,
+            matchStructure = structure,
+            matchStipulation = string.IsNullOrEmpty(stipulation) ? null : stipulation,
             matchName = matchName,
             wrestlerA = A,
             wrestlerB = B,
             wrestlerC = C,
             wrestlerD = D,
+            wrestlerE = E,
+            wrestlerF = F,
             isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value,
             titleName = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? titleDropdown.value : null,
             winner = winner,
@@ -4226,6 +4332,8 @@ public class PromotionDashboard : MonoBehaviour
             wrestlerBId = GetId(B),
             wrestlerCId = GetId(C),
             wrestlerDId = GetId(D),
+            wrestlerEId = GetId(E),
+            wrestlerFId = GetId(F),
             winnerId = GetId(winner),
             winnerTeamId = winnerTeamId,
             titleId = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? GetTitleId(titleDropdown.value) : null
@@ -4363,26 +4471,47 @@ public class PromotionDashboard : MonoBehaviour
     private void UpdateWinnerChoices()
     {
         if (winnerDropdown == null) return;
+        EnsureRosterAndTitlesLoaded();
         var names = new List<string>();
         void add(string v) { if (!string.IsNullOrEmpty(v) && !names.Contains(v)) names.Add(v); }
         var a = wrestlerADropdown?.value;
         var b = wrestlerBDropdown?.value;
         var c = wrestlerCDropdown?.value;
         var d = wrestlerDDropdown?.value;
+        var e = wrestlerEDropdown?.value;
+        var f = wrestlerFDropdown?.value;
         add(a);
         add(b);
         add(c);
         add(d);
+        add(e);
+        add(f);
 
         // If Tag Team match type and both sides have two members, include team names as winner options
         var typeVal = matchTypeDropdown != null ? (matchTypeDropdown.value ?? string.Empty) : string.Empty;
         bool isTag = typeVal.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTrios = typeVal.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isRoyalRumble = StringEquals(typeVal, "Royal Rumble");
         if (isTag && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) && !string.IsNullOrWhiteSpace(d))
         {
             var teamLeft = TeamDisplay(a, b);
             var teamRight = TeamDisplay(c, d);
             add(teamLeft);
             add(teamRight);
+        }
+        if (isTrios && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) &&
+            !string.IsNullOrWhiteSpace(d) && !string.IsNullOrWhiteSpace(e) && !string.IsNullOrWhiteSpace(f))
+        {
+            add($"{a}, {b}, {c}");
+            add($"{d}, {e}, {f}");
+        }
+        if (isRoyalRumble && wrestlerCollection?.wrestlers != null)
+        {
+            foreach (var w in wrestlerCollection.wrestlers)
+            {
+                if (!string.IsNullOrEmpty(w?.name))
+                    add(w.name);
+            }
         }
         names.Add("Draw");
         names.Add("No Contest");
@@ -4767,7 +4896,9 @@ public class PromotionDashboard : MonoBehaviour
             if (show.matches == null || idx < 0 || idx >= show.matches.Count) return string.Empty;
             var m = show.matches[idx];
             string vsLine = BuildVsLine(m);
-            return string.IsNullOrEmpty(vsLine) ? m.matchName : $"{m.matchName} - {vsLine}";
+            var descriptor = !string.IsNullOrEmpty(m.matchName) ? m.matchName : GetStructureStipLabel(m);
+            if (string.IsNullOrEmpty(descriptor)) descriptor = "Match";
+            return string.IsNullOrEmpty(vsLine) ? descriptor : $"{descriptor} - {vsLine}";
         }
         else if (kind == 'S')
         {
@@ -4836,8 +4967,23 @@ public class PromotionDashboard : MonoBehaviour
             if (string.IsNullOrEmpty(show.id)) { show.id = System.Guid.NewGuid().ToString("N"); changed = true; }
             // Assign IDs where missing
             if (show.matches != null)
+            {
                 foreach (var m in show.matches)
-                    if (m != null && string.IsNullOrEmpty(m.id)) { m.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+                {
+                    if (m == null) continue;
+                    if (string.IsNullOrEmpty(m.id)) { m.id = System.Guid.NewGuid().ToString("N"); changed = true; }
+                    if (string.IsNullOrEmpty(m.matchStructure) && !string.IsNullOrEmpty(m.matchType))
+                    {
+                        m.matchStructure = m.matchType;
+                        changed = true;
+                    }
+                    if (string.IsNullOrEmpty(m.matchType) && !string.IsNullOrEmpty(m.matchStructure))
+                    {
+                        m.matchType = m.matchStructure;
+                        changed = true;
+                    }
+                }
+            }
             if (show.segments != null)
                 foreach (var s in show.segments)
                     if (s != null && string.IsNullOrEmpty(s.id)) { s.id = System.Guid.NewGuid().ToString("N"); changed = true; }
@@ -4909,7 +5055,9 @@ public class PromotionDashboard : MonoBehaviour
                     var entry = new VisualElement();
                     entry.style.marginBottom = 6;
                     string vsLine = BuildVsLine(m);
-                    entry.Add(new Label(m.matchName));
+                    var matchHeader = !string.IsNullOrEmpty(m.matchName) ? m.matchName : GetStructureStipLabel(m);
+                    if (string.IsNullOrEmpty(matchHeader)) matchHeader = "Match";
+                    entry.Add(new Label(matchHeader));
                     if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
@@ -4947,7 +5095,9 @@ public class PromotionDashboard : MonoBehaviour
                 {
                     var entry = new VisualElement(); entry.style.marginBottom = 6;
                     string vsLine = BuildVsLine(m);
-                    entry.Add(new Label(m.matchName)); if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
+                    var matchHeader = !string.IsNullOrEmpty(m.matchName) ? m.matchName : GetStructureStipLabel(m);
+                    if (string.IsNullOrEmpty(matchHeader)) matchHeader = "Match";
+                    entry.Add(new Label(matchHeader)); if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
                     var linksRow = BuildHistoryLinksRow(show, m);
@@ -5411,42 +5561,53 @@ public class PromotionDashboard : MonoBehaviour
         RefreshRankingControlVisibility();
 
         // Initialize formula UI from config
-        if (rankingStore.config?.formula != null)
-        {
-            var f = rankingStore.config.formula;
-            var winField = root.Q<FloatField>("rankingsWinPointsField");
-            var drawField = root.Q<FloatField>("rankingsDrawPointsField");
-            var lossField = root.Q<FloatField>("rankingsLossPointsField");
-            var mainField = root.Q<FloatField>("rankingsMainEventBonusField");
-            var titleField = root.Q<FloatField>("rankingsTitleMatchBonusField");
-            if (winField != null) winField.value = f.winPoints;
-            if (drawField != null) drawField.value = f.drawPoints;
-            if (lossField != null) lossField.value = f.lossPoints;
-            if (mainField != null) mainField.value = f.mainEventBonus;
-            if (titleField != null) titleField.value = f.titleMatchBonus;
+        rankingStore ??= new RankingStore { promotionName = currentPromotion?.promotionName ?? string.Empty };
+        rankingStore.config ??= new RankingConfig { promotionName = currentPromotion?.promotionName ?? string.Empty };
+        rankingStore.config.formula ??= new RankingFormula();
 
-            var saveFormulaButton = root.Q<Button>("saveFormulaButton");
-            if (saveFormulaButton != null)
+        var formulaFields = new
+        {
+            win = root.Q<FloatField>("rankingsWinPointsField"),
+            draw = root.Q<FloatField>("rankingsDrawPointsField"),
+            loss = root.Q<FloatField>("rankingsLossPointsField"),
+            main = root.Q<FloatField>("rankingsMainEventBonusField"),
+            title = root.Q<FloatField>("rankingsTitleMatchBonusField")
+        };
+
+        var currentFormula = rankingStore.config.formula;
+        if (formulaFields.win != null) formulaFields.win.value = currentFormula.winPoints;
+        if (formulaFields.draw != null) formulaFields.draw.value = currentFormula.drawPoints;
+        if (formulaFields.loss != null) formulaFields.loss.value = currentFormula.lossPoints;
+        if (formulaFields.main != null) formulaFields.main.value = currentFormula.mainEventBonus;
+        if (formulaFields.title != null) formulaFields.title.value = currentFormula.titleMatchBonus;
+
+        var saveFormulaButton = root.Q<Button>("saveFormulaButton");
+        if (saveFormulaButton != null)
+        {
+            saveFormulaButton.clicked += () =>
             {
-                saveFormulaButton.clicked += () =>
+                try
                 {
-                    try
-                    {
-                        if (winField != null) f.winPoints = (int)winField.value;
-                        if (drawField != null) f.drawPoints = (int)drawField.value;
-                        if (lossField != null) f.lossPoints = (int)lossField.value;
-                        if (mainField != null) f.mainEventBonus = mainField.value;
-                        if (titleField != null) f.titleMatchBonus = titleField.value;
-                        DataManager.SaveRankings(rankingStore);
-                        if (statusLabel != null) statusLabel.text = "Ranking formula saved.";
-                        RecomputeForCurrentWeekSelection();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Failed to save ranking formula: {ex.Message}");
-                    }
-                };
-            }
+                    rankingStore ??= new RankingStore { promotionName = currentPromotion?.promotionName ?? string.Empty };
+                    rankingStore.config ??= new RankingConfig { promotionName = currentPromotion?.promotionName ?? string.Empty };
+                    rankingStore.config.formula ??= new RankingFormula();
+                    var f = rankingStore.config.formula;
+
+                    if (formulaFields.win != null) f.winPoints = Mathf.RoundToInt(formulaFields.win.value);
+                    if (formulaFields.draw != null) f.drawPoints = Mathf.RoundToInt(formulaFields.draw.value);
+                    if (formulaFields.loss != null) f.lossPoints = Mathf.RoundToInt(formulaFields.loss.value);
+                    if (formulaFields.main != null) f.mainEventBonus = formulaFields.main.value;
+                    if (formulaFields.title != null) f.titleMatchBonus = formulaFields.title.value;
+
+                    DataManager.SaveRankings(rankingStore);
+                    if (statusLabel != null) statusLabel.text = "Ranking formula saved.";
+                    RecomputeForCurrentWeekSelection();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to save ranking formula: {ex.Message}");
+                }
+            };
         }
     }
 
@@ -5804,8 +5965,12 @@ public class PromotionDashboard : MonoBehaviour
                 add(m.wrestlerB);
                 add(m.wrestlerC);
                 add(m.wrestlerD);
+                add(m.wrestlerE);
+                add(m.wrestlerF);
 
-                bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.ToLowerInvariant().Contains("tag")) || (parts.Count >= 4);
+                var structure = GetMatchStructure(m);
+                bool isTagStructure = !string.IsNullOrEmpty(structure) && (structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0 || structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0);
+                bool isTag = isTagStructure || (parts.Count >= 4);
                 string winner = (m?.winner ?? string.Empty).Trim();
                 bool isDraw = string.Equals(winner, "Draw", StringComparison.OrdinalIgnoreCase) || string.Equals(winner, "No Contest", StringComparison.OrdinalIgnoreCase);
 
@@ -6033,38 +6198,79 @@ public class PromotionDashboard : MonoBehaviour
         return (start, end);
     }
 
+    private string GetMatchStructure(MatchData match)
+    {
+        if (match == null) return string.Empty;
+        if (!string.IsNullOrEmpty(match.matchStructure)) return match.matchStructure;
+        if (!string.IsNullOrEmpty(match.matchType)) return match.matchType;
+        return string.Empty;
+    }
+
+    private string GetMatchStipulation(MatchData match) => match?.matchStipulation ?? string.Empty;
+
+    private string GetStructureStipLabel(MatchData match)
+    {
+        if (match == null) return string.Empty;
+        var parts = new List<string>();
+        var stip = GetMatchStipulation(match);
+        if (!string.IsNullOrEmpty(stip)) parts.Add(stip);
+        var structure = GetMatchStructure(match);
+        if (!string.IsNullOrEmpty(structure)) parts.Add(structure);
+        return parts.Count > 0 ? string.Join(" ", parts) : string.Empty;
+    }
+
+    private string BuildMatchVsPart(string structure, List<string> participants, bool allowTeamNames = false)
+    {
+        bool isTag = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTrios = !string.IsNullOrEmpty(structure) && structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (isTrios && participants.Count >= 6)
+        {
+            var left = allowTeamNames ? string.Join(" & ", participants.Take(3)) : string.Join(" & ", participants.Take(3));
+            var right = allowTeamNames ? string.Join(" & ", participants.Skip(3).Take(3)) : string.Join(" & ", participants.Skip(3).Take(3));
+            return $"{left} vs {right}";
+        }
+        if (isTag && participants.Count >= 4)
+        {
+            var left = allowTeamNames ? TeamDisplay(participants[0], participants[1]) : $"{participants[0]} & {participants[1]}";
+            var right = allowTeamNames ? TeamDisplay(participants[2], participants[3]) : $"{participants[2]} & {participants[3]}";
+            return $"{left} vs {right}";
+        }
+        if (participants.Count > 1)
+            return string.Join(" vs ", participants);
+        if (participants.Count == 1)
+            return participants[0];
+        return string.Empty;
+    }
+
     // Build a readable vs-line for matches, using tag team names when possible
     private string BuildVsLine(MatchData m)
     {
         if (m == null) return string.Empty;
-        bool isTag = (!string.IsNullOrEmpty(m.matchType) && m.matchType.IndexOf("tag", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                     (!string.IsNullOrEmpty(m.wrestlerA) && !string.IsNullOrEmpty(m.wrestlerB) && !string.IsNullOrEmpty(m.wrestlerC) && !string.IsNullOrEmpty(m.wrestlerD));
-        if (isTag)
-        {
-            if (!string.IsNullOrEmpty(m.wrestlerA) && !string.IsNullOrEmpty(m.wrestlerB) && !string.IsNullOrEmpty(m.wrestlerC) && !string.IsNullOrEmpty(m.wrestlerD))
-            {
-                var left = TeamDisplay(m.wrestlerA, m.wrestlerB);
-                var right = TeamDisplay(m.wrestlerC, m.wrestlerD);
-                return $"{left} vs {right}";
-            }
-        }
-        var parts = new System.Collections.Generic.List<string>();
-        if (!string.IsNullOrEmpty(m.wrestlerA)) parts.Add(m.wrestlerA);
-        if (!string.IsNullOrEmpty(m.wrestlerB)) parts.Add(m.wrestlerB);
-        if (!string.IsNullOrEmpty(m.wrestlerC)) parts.Add(m.wrestlerC);
-        if (!string.IsNullOrEmpty(m.wrestlerD)) parts.Add(m.wrestlerD);
-        return parts.Count > 0 ? string.Join(" vs ", parts) : string.Empty;
+        var structure = GetMatchStructure(m);
+        var participants = new List<string>();
+        if (!string.IsNullOrEmpty(m.wrestlerA)) participants.Add(m.wrestlerA);
+        if (!string.IsNullOrEmpty(m.wrestlerB)) participants.Add(m.wrestlerB);
+        if (!string.IsNullOrEmpty(m.wrestlerC)) participants.Add(m.wrestlerC);
+        if (!string.IsNullOrEmpty(m.wrestlerD)) participants.Add(m.wrestlerD);
+        if (!string.IsNullOrEmpty(m.wrestlerE)) participants.Add(m.wrestlerE);
+        if (!string.IsNullOrEmpty(m.wrestlerF)) participants.Add(m.wrestlerF);
+        var vs = BuildMatchVsPart(structure, participants, true);
+        return vs;
     }
 
     private string BuildMatchDisplayLabel(MatchData m)
     {
         if (m == null) return "Match: (invalid)";
-        string name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : string.Empty;
+        string name = !string.IsNullOrEmpty(m.matchName) ? m.matchName : GetStructureStipLabel(m);
         string vs = BuildVsLine(m);
         string label;
         if (!string.IsNullOrEmpty(name)) label = $"Match: {name}";
         else if (!string.IsNullOrEmpty(vs)) label = $"Match: {vs}";
-        else label = $"Match: {(string.IsNullOrEmpty(m.matchType) ? "Match" : m.matchType)}";
+        else
+        {
+            var descriptor = GetStructureStipLabel(m);
+            label = $"Match: {(string.IsNullOrEmpty(descriptor) ? "Match" : descriptor)}";
+        }
 
         return m.isTitleMatch ? $"★ {label}" : label;
     }

@@ -107,11 +107,14 @@
           </ui:VisualElement>
           <ui:VisualElement name="cbMatchEditor" class="hidden">
             <ui:TextField name="cbMatchNameField" label="Match Name" />
-            <ui:DropdownField name="cbMatchTypeDropdown" label="Match Type" />
+            <ui:DropdownField name="cbMatchTypeDropdown" label="Match Structure" />
+            <ui:DropdownField name="cbMatchStipulationDropdown" label="Match Stipulation (optional)" />
             <ui:DropdownField name="cbWrestlerADropdown" label="Wrestler A" />
             <ui:DropdownField name="cbWrestlerBDropdown" label="Wrestler B" />
             <ui:DropdownField name="cbWrestlerCDropdown" label="Wrestler C (opt)" />
             <ui:DropdownField name="cbWrestlerDDropdown" label="Wrestler D (opt)" />
+            <ui:DropdownField name="cbWrestlerEDropdown" label="Wrestler E (opt)" />
+            <ui:DropdownField name="cbWrestlerFDropdown" label="Wrestler F (opt)" />
             <ui:Toggle name="cbIsTitleMatchToggle" label="Title Match" />
             <ui:DropdownField name="cbTitleDropdown" label="Pick Title" />
             <ui:DropdownField name="cbWinnerDropdown" label="Pick Winner" />
@@ -286,6 +289,14 @@
           <ui:VisualElement class="stat-block">
             <ui:Label text="Title Reigns" class="stat-label" />
             <ui:Label name="statTitleChangesLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Highest Attendance" class="stat-label" />
+            <ui:Label name="statHighestAttendanceLabel" text="0" class="stat-value" />
+          </ui:VisualElement>
+          <ui:VisualElement class="stat-block">
+            <ui:Label text="Highest Rating" class="stat-label" />
+            <ui:Label name="statHighestRatingLabel" text="0" class="stat-value" />
           </ui:VisualElement>
         </ui:VisualElement>
       </ui:VisualElement>
@@ -543,11 +554,14 @@
             <!-- Match editor appears alongside show details -->
             <ui:VisualElement name="matchEditor" class="hidden match-editor-card">
               <ui:Label text="Add Match" class="subsection-title" />
-              <ui:DropdownField name="matchTypeDropdown" label="Match Type" />
+              <ui:DropdownField name="matchTypeDropdown" label="Match Structure" />
+              <ui:DropdownField name="matchStipulationDropdown" label="Match Stipulation (optional)" />
               <ui:DropdownField name="wrestlerADropdown" label="Wrestler A" />
               <ui:DropdownField name="wrestlerBDropdown" label="Wrestler B" />
               <ui:DropdownField name="wrestlerCDropdown" label="Wrestler C (optional)" />
               <ui:DropdownField name="wrestlerDDropdown" label="Wrestler D (optional)" />
+              <ui:DropdownField name="wrestlerEDropdown" label="Wrestler E (optional)" />
+              <ui:DropdownField name="wrestlerFDropdown" label="Wrestler F (optional)" />
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
               <ui:DropdownField name="titleDropdown" label="Title (optional)" />
               <ui:DropdownField name="winnerDropdown" label="Winner" />

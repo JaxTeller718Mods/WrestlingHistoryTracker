@@ -235,6 +235,10 @@ public static class TitleHistoryManager
                 matchName = match.matchName,
                 wrestlerA = ResolveWrestler(match.wrestlerAId, match.wrestlerA),
                 wrestlerB = ResolveWrestler(match.wrestlerBId, match.wrestlerB),
+                wrestlerC = ResolveWrestler(match.wrestlerCId, match.wrestlerC),
+                wrestlerD = ResolveWrestler(match.wrestlerDId, match.wrestlerD),
+                wrestlerE = ResolveWrestler(match.wrestlerEId, match.wrestlerE),
+                wrestlerF = ResolveWrestler(match.wrestlerFId, match.wrestlerF),
                 winner = ResolveWrestler(match.winnerId, match.winner),
                 isTitleMatch = match.isTitleMatch,
                 titleInvolved = match.isTitleMatch ? ResolveTitle(match.titleId, match.titleName) : null
@@ -328,6 +332,10 @@ public static class TitleHistoryManager
             matchName = source.matchName,
             wrestlerA = source.wrestlerA,
             wrestlerB = source.wrestlerB,
+            wrestlerC = source.wrestlerC,
+            wrestlerD = source.wrestlerD,
+            wrestlerE = source.wrestlerE,
+            wrestlerF = source.wrestlerF,
             winner = source.winner,
             isTitleMatch = source.isTitleMatch,
             titleInvolved = source.titleInvolved

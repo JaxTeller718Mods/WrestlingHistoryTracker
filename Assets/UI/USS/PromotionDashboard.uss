@@ -534,14 +534,16 @@ FloatField > .unity-float-field__input {
 .rivalry-detail-column #rivalryHeatLabel {
     max-width: 100%;
     white-space: normal;
-    word-break: break-word;
-    display: block;
 }
 
 .rivalry-timeline-column {
     width: 500px;
     max-width: 500px;
     min-width: 300px;
+}
+#rivalryEventsList {
+    height: 420px;
+    min-height: 360px;
 }
 /* Per-panel tighter layout for tournaments */
 #tournamentsPanel .tournament-entrants-column {
