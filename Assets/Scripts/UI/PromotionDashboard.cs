@@ -5571,7 +5571,8 @@ public class PromotionDashboard : MonoBehaviour
             draw = root.Q<FloatField>("rankingsDrawPointsField"),
             loss = root.Q<FloatField>("rankingsLossPointsField"),
             main = root.Q<FloatField>("rankingsMainEventBonusField"),
-            title = root.Q<FloatField>("rankingsTitleMatchBonusField")
+            title = root.Q<FloatField>("rankingsTitleMatchBonusField"),
+            titleWin = root.Q<FloatField>("rankingsTitleWinBonusField")
         };
 
         var currentFormula = rankingStore.config.formula;
@@ -5580,6 +5581,7 @@ public class PromotionDashboard : MonoBehaviour
         if (formulaFields.loss != null) formulaFields.loss.value = currentFormula.lossPoints;
         if (formulaFields.main != null) formulaFields.main.value = currentFormula.mainEventBonus;
         if (formulaFields.title != null) formulaFields.title.value = currentFormula.titleMatchBonus;
+        if (formulaFields.titleWin != null) formulaFields.titleWin.value = currentFormula.titleWinBonus;
 
         var saveFormulaButton = root.Q<Button>("saveFormulaButton");
         if (saveFormulaButton != null)
@@ -5598,6 +5600,7 @@ public class PromotionDashboard : MonoBehaviour
                     if (formulaFields.loss != null) f.lossPoints = Mathf.RoundToInt(formulaFields.loss.value);
                     if (formulaFields.main != null) f.mainEventBonus = formulaFields.main.value;
                     if (formulaFields.title != null) f.titleMatchBonus = formulaFields.title.value;
+                    if (formulaFields.titleWin != null) f.titleWinBonus = formulaFields.titleWin.value;
 
                     DataManager.SaveRankings(rankingStore);
                     if (statusLabel != null) statusLabel.text = "Ranking formula saved.";
@@ -5890,6 +5893,10 @@ public class PromotionDashboard : MonoBehaviour
         float lossPts = formula.lossPoints;
         float mainBonus = formula.mainEventBonus;
         float titleBonus = formula.titleMatchBonus;
+        float titleWinBonus = formula.titleWinBonus;
+
+        tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
+        stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
 
         // Build helpers
         var wrestlerByName = new Dictionary<string, WrestlerData>(System.StringComparer.OrdinalIgnoreCase);
@@ -5915,15 +5922,20 @@ public class PromotionDashboard : MonoBehaviour
             return true;
         }
 
-                string TeamOfWinner(string winnerName)
+        string TeamOfWinner(string winnerName)
         {
-            if (tagTeamCollection?.teams == null) return null;
+            if (string.IsNullOrWhiteSpace(winnerName) || tagTeamCollection?.teams == null) return null;
+            var tokens = SplitNameTokens(winnerName);
             foreach (var t in tagTeamCollection.teams)
             {
                 if (t == null || string.IsNullOrEmpty(t.teamName)) continue;
-                // Winner may be a team name or an individual member
                 if (StringEquals(t.teamName, winnerName) || StringEquals(t.memberA, winnerName) || StringEquals(t.memberB, winnerName))
                     return t.teamName;
+                if (!string.IsNullOrEmpty(t.memberA) && !string.IsNullOrEmpty(t.memberB))
+                {
+                    if (tokens.Contains(t.memberA) && tokens.Contains(t.memberB))
+                        return t.teamName;
+                }
             }
             return null;
         }
@@ -5931,12 +5943,81 @@ public class PromotionDashboard : MonoBehaviour
         string StableOfWinner(string winnerName)
         {
             if (stableCollection?.stables == null) return null;
-            // Find wrestler id for winner
-            string id = wrestlerByName.TryGetValue(winnerName ?? string.Empty, out var ww) ? ww.id : null;
-            if (string.IsNullOrEmpty(id)) return null;
-            foreach (var s in stableCollection.stables)
+            // Expand winner string; pick first matching member id
+            foreach (var candidate in SplitNameTokens(winnerName))
             {
-                if (s?.memberIds != null && s.memberIds.Contains(id)) return s.stableName;
+                if (!wrestlerByName.TryGetValue(candidate, out var ww) || string.IsNullOrEmpty(ww?.id)) continue;
+                foreach (var s in stableCollection.stables)
+                {
+                    if (s?.memberIds != null && s.memberIds.Contains(ww.id)) return s.stableName;
+                }
+            }
+            return null;
+        }
+
+        HashSet<string> SplitNameTokens(string raw)
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(raw)) return set;
+            set.Add(raw.Trim());
+            var parts = raw.Split(new[] { '&', ',', '/', '+' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var p in parts)
+            {
+                var trimmed = p.Trim();
+                if (!string.IsNullOrEmpty(trimmed)) set.Add(trimmed);
+            }
+            return set;
+        }
+
+        List<MatchTeamInfo> CollectMatchTeams(List<string> participants)
+        {
+            var infos = new List<MatchTeamInfo>();
+            if (participants == null || participants.Count < 2) return infos;
+            var partSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in participants)
+            {
+                if (!string.IsNullOrWhiteSpace(p)) partSet.Add(p.Trim());
+            }
+            if (partSet.Count < 2) return infos;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in tagTeamCollection?.teams ?? new List<TagTeamData>())
+            {
+                if (t == null) continue;
+                var a = t.memberA?.Trim();
+                var b = t.memberB?.Trim();
+                if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) continue;
+                if (partSet.Contains(a) && partSet.Contains(b))
+                {
+                    var name = !string.IsNullOrWhiteSpace(t.teamName) ? t.teamName.Trim() : $"{a} & {b}";
+                    if (!seen.Add(name)) continue;
+                    var members = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { a, b };
+                    infos.Add(new MatchTeamInfo { Name = name, Members = members });
+                }
+            }
+            return infos;
+        }
+
+        MatchTeamInfo ResolveWinnerTeamInfo(string winnerName, List<MatchTeamInfo> teams)
+        {
+            if (teams == null || teams.Count == 0 || string.IsNullOrWhiteSpace(winnerName)) return null;
+            foreach (var team in teams)
+            {
+                if (StringEquals(team.Name, winnerName)) return team;
+            }
+            var tokens = SplitNameTokens(winnerName);
+            if (tokens.Count == 0) return null;
+            foreach (var team in teams)
+            {
+                bool allMembers = true;
+                foreach (var member in team.Members)
+                {
+                    if (!tokens.Contains(member))
+                    {
+                        allMembers = false;
+                        break;
+                    }
+                }
+                if (allMembers) return team;
             }
             return null;
         }
@@ -5994,26 +6075,63 @@ public class PromotionDashboard : MonoBehaviour
                     {
                         results[parts[0]].wins++;
                         results[parts[1]].losses++;
-                        if (m.isTitleMatch) results[parts[0]].score += titleBonus;
+                        if (m.isTitleMatch)
+                        {
+                            results[parts[0]].score += titleBonus;
+                            results[parts[0]].score += titleWinBonus;
+                        }
                         if (isMainEvent) results[parts[0]].score += mainBonus;
                     }
                     else if (StringEquals(winner, parts[1]))
                     {
                         results[parts[1]].wins++;
                         results[parts[0]].losses++;
-                        if (m.isTitleMatch) results[parts[1]].score += titleBonus;
+                        if (m.isTitleMatch)
+                        {
+                            results[parts[1]].score += titleBonus;
+                            results[parts[1]].score += titleWinBonus;
+                        }
                         if (isMainEvent) results[parts[1]].score += mainBonus;
                     }
                 }
                 else if (type == RankingType.TagTeam)
                 {
                     if (!isTag) continue;
+                    var matchTeams = CollectMatchTeams(parts);
+                    if (isDraw)
+                    {
+                        if (matchTeams.Count == 0) continue;
+                        foreach (var info in matchTeams)
+                        {
+                            Ensure(results, info.Name);
+                            results[info.Name].draws++;
+                        }
+                        continue;
+                    }
                     var team = TeamOfWinner(winner);
+                    if (string.IsNullOrEmpty(team))
+                    {
+                        var resolved = ResolveWinnerTeamInfo(winner, matchTeams);
+                        if (resolved != null) team = resolved.Name;
+                    }
                     if (string.IsNullOrEmpty(team)) continue;
                     Ensure(results, team);
                     results[team].wins++;
-                    if (m.isTitleMatch) results[team].score += titleBonus;
+                    if (m.isTitleMatch)
+                    {
+                        results[team].score += titleBonus;
+                        results[team].score += titleWinBonus;
+                    }
                     if (isMainEvent) results[team].score += mainBonus;
+                    if (matchTeams.Count > 0)
+                    {
+                        foreach (var info in matchTeams)
+                        {
+                            if (StringEquals(info.Name, team)) continue;
+                            Ensure(results, info.Name);
+                            results[info.Name].losses++;
+                        }
+                    }
                 }
                 else if (type == RankingType.Stable)
                 {
@@ -6021,7 +6139,11 @@ public class PromotionDashboard : MonoBehaviour
                     if (string.IsNullOrEmpty(stable)) continue;
                     Ensure(results, stable);
                     results[stable].wins++;
-                    if (m.isTitleMatch) results[stable].score += titleBonus;
+                    if (m.isTitleMatch)
+                    {
+                        results[stable].score += titleBonus;
+                        results[stable].score += titleWinBonus;
+                    }
                     if (isMainEvent) results[stable].score += mainBonus;
                 }
             }
@@ -6032,6 +6154,33 @@ public class PromotionDashboard : MonoBehaviour
         foreach (var e in list)
         {
             e.score += e.wins * winPts + e.draws * drawPts + e.losses * lossPts;
+        }
+        list.Sort((x, y) =>
+        {
+            int c = y.score.CompareTo(x.score);
+            if (c != 0) return c;
+            c = x.losses.CompareTo(y.losses);
+            if (c != 0) return c;
+            return string.Compare(x.name, y.name, StringComparison.OrdinalIgnoreCase);
+        });
+        // Ensure every tracked entity gets at least one entry even if they only have losses
+        if (type == RankingType.TagTeam && tagTeamCollection?.teams != null)
+        {
+            foreach (var t in tagTeamCollection.teams)
+            {
+                if (t == null || string.IsNullOrEmpty(t.teamName)) continue;
+                if (!results.ContainsKey(t.teamName))
+                    list.Add(new RankingEntry { name = t.teamName, wins = 0, losses = 0, draws = 0, score = 0 });
+            }
+        }
+        else if (type == RankingType.Stable && stableCollection?.stables != null)
+        {
+            foreach (var s in stableCollection.stables)
+            {
+                if (s == null || string.IsNullOrEmpty(s.stableName)) continue;
+                if (!results.ContainsKey(s.stableName))
+                    list.Add(new RankingEntry { name = s.stableName, wins = 0, losses = 0, draws = 0, score = 0 });
+            }
         }
         list.Sort((x, y) =>
         {
@@ -6217,6 +6366,12 @@ public class PromotionDashboard : MonoBehaviour
         var structure = GetMatchStructure(match);
         if (!string.IsNullOrEmpty(structure)) parts.Add(structure);
         return parts.Count > 0 ? string.Join(" ", parts) : string.Empty;
+    }
+
+    private class MatchTeamInfo
+    {
+        public string Name;
+        public HashSet<string> Members = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     private string BuildMatchVsPart(string structure, List<string> participants, bool allowTeamNames = false)

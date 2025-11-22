@@ -15,8 +15,9 @@ public class RankingFormula
     public int winPoints = 1;   // MVP: simple wins
     public int drawPoints = 0;
     public int lossPoints = 0;
-    public float mainEventBonus = 0f;
-    public float titleMatchBonus = 0f;
+    public float mainEventBonus = 0.5f;
+    public float titleMatchBonus = 0.5f;
+    public float titleWinBonus = 1f;
 }
 
 [Serializable]
