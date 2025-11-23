@@ -119,7 +119,8 @@ public static class TitleHistoryManager
                 titleName = r.titleInvolved,
                 winner = r.winner,
                 date = r.date,
-                matchName = string.IsNullOrEmpty(r.showName) ? r.matchName : $"{r.showName} - {r.matchName}"
+                matchName = string.IsNullOrEmpty(r.showName) ? r.matchName : $"{r.showName} - {r.matchName}",
+                stakes = r.stakes
             })
             .ToList();
     }
@@ -241,7 +242,8 @@ public static class TitleHistoryManager
                 wrestlerF = ResolveWrestler(match.wrestlerFId, match.wrestlerF),
                 winner = ResolveWrestler(match.winnerId, match.winner),
                 isTitleMatch = match.isTitleMatch,
-                titleInvolved = match.isTitleMatch ? ResolveTitle(match.titleId, match.titleName) : null
+                titleInvolved = match.isTitleMatch ? ResolveTitle(match.titleId, match.titleName) : null,
+                stakes = string.IsNullOrWhiteSpace(match.stakes) ? null : match.stakes.Trim()
             };
 
             history.matchResults.Add(result);
@@ -338,7 +340,8 @@ public static class TitleHistoryManager
             wrestlerF = source.wrestlerF,
             winner = source.winner,
             isTitleMatch = source.isTitleMatch,
-            titleInvolved = source.titleInvolved
+            titleInvolved = source.titleInvolved,
+            stakes = source.stakes
         };
     }
 
@@ -382,4 +385,5 @@ public class TitleHistoryEntry
     public string winner;
     public string date;
     public string matchName;
+    public string stakes;
 }

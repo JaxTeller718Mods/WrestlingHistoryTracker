@@ -25,6 +25,7 @@ public class MatchResultData
     public string winner;
     public bool isTitleMatch;
     public string titleInvolved;
+    public string stakes;
 }
 
 [Serializable]

@@ -24,6 +24,7 @@ public class MatchData
     public string winner;
     public string winnerTeamId; // if winner is a tag team, prefer this id
     public string notes;
+    public string stakes;
 
     // New: stable ID references (preferred for logic)
     public string wrestlerAId;

@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.IO;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -109,12 +111,19 @@ public class PromotionDashboard : MonoBehaviour
     private int selectedRivalryIndex = -1;
     private Dictionary<string, string> rivalryEntryMap = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
     // Tournaments UI
-    private ScrollView tournamentListScroll;
-    private ListView tournamentListView;
-    private VisualElement tournamentAddPanel, tournamentManagePanel;
-    private TextField newTournamentNameField, tournamentNameField;
+    private ScrollView tournamentListScroll, activeTournamentListScroll, completedTournamentListScroll;
+    private ListView tournamentListView, activeTournamentsListView, completedTournamentsListView;
+    private VisualElement tournamentAddPanel, tournamentManagePanel, tournamentDashboardPanel;
+    private TextField newTournamentNameField, tournamentNameField, newTournamentStakesField, tournamentStakesField;
     private DropdownField newTournamentTypeDropdown, tournamentTypeDropdown, tournamentEntrantDropdown;
+    private DropdownField newTournamentFormatDropdown, tournamentFormatDropdown;
+    private DropdownField newTournamentBrandDropdown, tournamentBrandDropdown;
+    private DropdownField tournamentYearFilterDropdown, tournamentBrandFilterDropdown, tournamentSortDropdown, tournamentStatusDropdown;
+    private IntegerField newTournamentYearField, tournamentYearField;
+    private Toggle newTournamentSeededToggle, tournamentSeededToggle;
     private ScrollView tournamentEntrantsList, tournamentMatchesList;
+    private Label tournamentWinnerLabel;
+    private Button exportBracketButton;
     private Button addTournamentButton, saveTournamentsButton, viewTournamentsButton, saveTournamentButton, deleteTournamentButton, cancelTournamentButton;
     private Button addEntrantButton, removeEntrantButton, generateBracketButton, advanceRoundButton, clearBracketButton;
     // Awards UI
@@ -123,6 +132,8 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView milestonesList;
     private Button computeAwardsButton, saveAwardsButton;
     private TournamentCollection tournamentCollection;
+    private List<TournamentData> filteredActiveTournaments = new List<TournamentData>();
+    private List<TournamentData> filteredCompletedTournaments = new List<TournamentData>();
     private int selectedTournamentIndex = -1;
     // Tag Teams UI
     private ScrollView tagTeamListScroll;
@@ -167,7 +178,7 @@ public class PromotionDashboard : MonoBehaviour
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
     private DropdownField matchTypeDropdown, matchStipulationDropdown, wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
     private Toggle isTitleMatchToggle;
-    private TextField segmentNameField, segmentTextField;
+    private TextField segmentNameField, segmentTextField, matchStakesField;
     private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
     private int selectedShowIndex = -1;
 
@@ -347,17 +358,44 @@ public class PromotionDashboard : MonoBehaviour
         titleListScroll = root.Q<ScrollView>("titleList");
         titleHistoryList = root.Q<ScrollView>("titleHistoryList");
         // Tournaments queries
+        tournamentDashboardPanel = root.Q<VisualElement>("tournamentDashboardPanel");
         tournamentListScroll = root.Q<ScrollView>("tournamentList");
+        activeTournamentListScroll = root.Q<ScrollView>("activeTournamentList");
+        completedTournamentListScroll = root.Q<ScrollView>("completedTournamentList");
         tournamentAddPanel = root.Q<VisualElement>("tournamentAddPanel");
         tournamentManagePanel = root.Q<VisualElement>("tournamentManagePanel");
         newTournamentNameField = root.Q<TextField>("newTournamentNameField");
         newTournamentTypeDropdown = root.Q<DropdownField>("newTournamentTypeDropdown");
         SetupDropdownOverlay(newTournamentTypeDropdown);
+        newTournamentFormatDropdown = root.Q<DropdownField>("newTournamentFormatDropdown");
+        SetupDropdownOverlay(newTournamentFormatDropdown);
+        newTournamentBrandDropdown = root.Q<DropdownField>("newTournamentBrandDropdown");
+        SetupDropdownOverlay(newTournamentBrandDropdown);
+        newTournamentYearField = root.Q<IntegerField>("newTournamentYearField");
+        newTournamentSeededToggle = root.Q<Toggle>("newTournamentSeededToggle");
+        newTournamentStakesField = root.Q<TextField>("newTournamentStakesField");
         tournamentNameField = root.Q<TextField>("tournamentNameField");
         tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
         SetupDropdownOverlay(tournamentTypeDropdown);
+        tournamentFormatDropdown = root.Q<DropdownField>("tournamentFormatDropdown");
+        SetupDropdownOverlay(tournamentFormatDropdown);
+        tournamentBrandDropdown = root.Q<DropdownField>("tournamentBrandDropdown");
+        SetupDropdownOverlay(tournamentBrandDropdown);
+        tournamentYearField = root.Q<IntegerField>("tournamentYearField");
+        tournamentSeededToggle = root.Q<Toggle>("tournamentSeededToggle");
+        tournamentWinnerLabel = root.Q<Label>("tournamentWinnerLabel");
+        tournamentStakesField = root.Q<TextField>("tournamentStakesField");
         tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
         SetupDropdownOverlay(tournamentEntrantDropdown);
+        tournamentStatusDropdown = root.Q<DropdownField>("tournamentStatusDropdown");
+        SetupDropdownOverlay(tournamentStatusDropdown);
+        tournamentYearFilterDropdown = root.Q<DropdownField>("tournamentYearFilterDropdown");
+        SetupDropdownOverlay(tournamentYearFilterDropdown);
+        tournamentBrandFilterDropdown = root.Q<DropdownField>("tournamentBrandFilterDropdown");
+        SetupDropdownOverlay(tournamentBrandFilterDropdown);
+        tournamentSortDropdown = root.Q<DropdownField>("tournamentSortDropdown");
+        SetupDropdownOverlay(tournamentSortDropdown);
+        exportBracketButton = root.Q<Button>("exportBracketButton");
         tournamentEntrantsList = root.Q<ScrollView>("tournamentEntrantsList");
         tournamentMatchesList = root.Q<ScrollView>("tournamentMatchesList");
         addTournamentButton = root.Q<Button>("addTournamentButton");
@@ -469,6 +507,7 @@ public class PromotionDashboard : MonoBehaviour
         isTitleMatchToggle = root.Q<Toggle>("isTitleMatchToggle");
         titleDropdown = root.Q<DropdownField>("titleDropdown");
         winnerDropdown = root.Q<DropdownField>("winnerDropdown");
+        matchStakesField = root.Q<TextField>("matchStakesField");
         saveMatchButton = root.Q<Button>("saveMatchButton");
         cancelMatchButton = root.Q<Button>("cancelMatchButton");
         segmentNameField = root.Q<TextField>("segmentNameField");
@@ -615,7 +654,7 @@ public class PromotionDashboard : MonoBehaviour
         if (stablesButton != null) stablesButton.clicked += ShowStablesPanel;
         if (tournamentsButton != null) tournamentsButton.clicked += ShowTournamentsPanel;
         if (viewTournamentsButton != null) viewTournamentsButton.clicked += ShowTournamentManagePanel;
-        
+
         // Tournaments handlers
         if (addTournamentButton != null) addTournamentButton.clicked += OnAddTournament;
         if (saveTournamentsButton != null) saveTournamentsButton.clicked += OnSaveTournaments;
@@ -627,6 +666,11 @@ public class PromotionDashboard : MonoBehaviour
         if (generateBracketButton != null) generateBracketButton.clicked += OnGenerateBracket;
         if (advanceRoundButton != null) advanceRoundButton.clicked += OnAdvanceRound;
         if (clearBracketButton != null) clearBracketButton.clicked += OnClearBracket;
+        if (exportBracketButton != null) exportBracketButton.clicked += OnExportTournamentBracket;
+        if (tournamentYearFilterDropdown != null) tournamentYearFilterDropdown.RegisterValueChangedCallback(_ => RefreshTournamentDashboard());
+        if (tournamentBrandFilterDropdown != null) tournamentBrandFilterDropdown.RegisterValueChangedCallback(_ => RefreshTournamentDashboard());
+        if (tournamentSortDropdown != null) tournamentSortDropdown.RegisterValueChangedCallback(_ => RefreshTournamentDashboard());
+        if (tournamentStatusDropdown != null) tournamentStatusDropdown.RegisterValueChangedCallback(_ => OnTournamentStatusChanged());
         if (viewHistoryButton != null) viewHistoryButton.clicked += ShowSelectedTitleHistory;
         if (titleIsTagTeamToggle != null)
         {
@@ -823,6 +867,40 @@ public class PromotionDashboard : MonoBehaviour
             };
             matchTypeDropdown.value = matchTypeDropdown.choices[0];
         }
+    }
+
+    private List<string> GetTournamentFormatChoices() => new List<string>
+    {
+        "Single Elimination",
+        "Double Elimination",
+        "Round Robin",
+        "Block Play"
+    };
+
+    private List<string> GetTournamentStatusChoices() => Enum.GetNames(typeof(TournamentStatus)).Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant())).ToList();
+
+    private string FormatToLabel(TournamentFormat format) => format switch
+    {
+        TournamentFormat.DoubleElimination => "Double Elimination",
+        TournamentFormat.RoundRobin => "Round Robin",
+        TournamentFormat.Block => "Block Play",
+        _ => "Single Elimination"
+    };
+
+    private TournamentFormat ParseTournamentFormat(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return TournamentFormat.SingleElimination;
+        if (raw.IndexOf("double", StringComparison.OrdinalIgnoreCase) >= 0) return TournamentFormat.DoubleElimination;
+        if (raw.IndexOf("round", StringComparison.OrdinalIgnoreCase) >= 0) return TournamentFormat.RoundRobin;
+        if (raw.IndexOf("block", StringComparison.OrdinalIgnoreCase) >= 0) return TournamentFormat.Block;
+        return TournamentFormat.SingleElimination;
+    }
+
+    private TournamentStatus ParseTournamentStatus(string raw)
+    {
+        if (Enum.TryParse<TournamentStatus>(raw, true, out var status))
+            return status;
+        return TournamentStatus.Planned;
     }
 
     private void EnsureMatchStipulationChoices()
@@ -1218,6 +1296,15 @@ public class PromotionDashboard : MonoBehaviour
     private void ShowTitlesPanel() => SetActivePanel(titlesPanel);
     private void ShowTournamentsPanel()
     {
+        SetActivePanel(tournamentsPanel);
+        tournamentCollection ??= (currentPromotion != null ? DataManager.LoadTournaments(currentPromotion.promotionName) : new TournamentCollection());
+        if (tournamentCollection != null && currentPromotion != null)
+            tournamentCollection.promotionName = currentPromotion.promotionName;
+        EnsureTournamentListView();
+        EnsureTournamentDashboard();
+        RefreshTournamentList();
+        RefreshTournamentDashboard();
+        RefreshTournamentFilters();
         // Default to Add view when entering the tab
         ShowTournamentAddPanel();
     }
@@ -1432,6 +1519,25 @@ public class PromotionDashboard : MonoBehaviour
         return (currentPromotion?.shows ?? new List<ShowData>()).FirstOrDefault(s => string.Equals(s?.date, date, StringComparison.OrdinalIgnoreCase));
     }
 
+    private ShowData FindShowById(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        return (currentPromotion?.shows ?? new List<ShowData>()).FirstOrDefault(s => !string.IsNullOrEmpty(s?.id) && StringEquals(s.id, id));
+    }
+
+    private MatchData FindMatchForEvent(RivalryEvent ev)
+    {
+        if (ev == null || string.IsNullOrEmpty(ev.matchId)) return null;
+        var show = FindShowById(ev.showId);
+        return show?.matches?.FirstOrDefault(m => !string.IsNullOrEmpty(m?.id) && StringEquals(m.id, ev.matchId));
+    }
+
+    private string BuildMatchRewardNote(RivalryEvent ev)
+    {
+        var stakes = FindMatchForEvent(ev)?.stakes;
+        return string.IsNullOrWhiteSpace(stakes) ? null : $"Reward: {stakes}";
+    }
+
     private void PopulateRivalryParticipantChoices(string type)
     {
         string t = type ?? "Singles";
@@ -1474,10 +1580,17 @@ public class PromotionDashboard : MonoBehaviour
         foreach (var e in r.events ?? new List<RivalryEvent>())
         {
             var btn = new Button(() => OpenLinkedShowFromEvent(e));
-            string showTag = string.IsNullOrEmpty(e.showId) ? string.Empty : $" • Show: {((currentPromotion?.shows ?? new List<ShowData>()).FirstOrDefault(s => string.Equals(s?.id, e.showId, StringComparison.OrdinalIgnoreCase))?.showName ?? e.showId)}";
-            btn.text = $"{e.date} â€¢ {e.eventType} â€¢ {e.outcome}{showTag}";
+            string showName = FindShowById(e.showId)?.showName ?? e.showId;
+            string showTag = string.IsNullOrEmpty(showName) ? string.Empty : $" ? Show: {showName}";
+            var details = new List<string>();
+            if (!string.IsNullOrWhiteSpace(e.notes)) details.Add(e.notes.Trim());
+            var rewardNote = BuildMatchRewardNote(e);
+            if (!string.IsNullOrEmpty(rewardNote)) details.Add(rewardNote);
+            var textLine = $"{e.date} | {e.eventType} | {e.outcome}{showTag}";
+            if (details.Count > 0)
+                textLine += " | " + string.Join(" | ", details);
+            btn.text = textLine;
             btn.AddToClassList("list-entry");
-            btn.text = $"{e.date} | {e.eventType} | {e.outcome}{showTag}";
             rivalryEventsList.Add(btn);
         }
     }
@@ -2320,13 +2433,14 @@ public class PromotionDashboard : MonoBehaviour
 
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleInvolved))
                     {
-                        outcome += $"  |  Title: {m.titleInvolved}";
-                    }
-
-                    row.Add(new Label(outcome));
-                    row.style.marginBottom = 4;
-                    wrestlerCareerMatchesList.Add(row);
+                    outcome += $"  |  Title: {m.titleInvolved}";
                 }
+
+                row.Add(new Label(outcome));
+                if (!string.IsNullOrEmpty(m.stakes)) row.Add(new Label($"Reward: {m.stakes}"));
+                row.style.marginBottom = 4;
+                wrestlerCareerMatchesList.Add(row);
+            }
             }
 
             if (wrestlerCareerPanel != null)
@@ -2403,6 +2517,23 @@ public class PromotionDashboard : MonoBehaviour
             if (!genChoices.Contains(calendarGenerationBrandDropdown.value))
                 calendarGenerationBrandDropdown.value = "";
         }
+
+        var tournamentBrandChoices = new List<string> { "" };
+        tournamentBrandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+        if (newTournamentBrandDropdown != null)
+        {
+            newTournamentBrandDropdown.choices = tournamentBrandChoices;
+            if (!tournamentBrandChoices.Contains(newTournamentBrandDropdown.value))
+                newTournamentBrandDropdown.value = "";
+        }
+        if (tournamentBrandDropdown != null)
+        {
+            tournamentBrandDropdown.choices = tournamentBrandChoices;
+            if (!tournamentBrandChoices.Contains(tournamentBrandDropdown.value))
+                tournamentBrandDropdown.value = "";
+        }
+
+        RefreshTournamentFilters();
     }
 
     // ----- Awards & Accolades -----
@@ -2920,12 +3051,251 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentListScroll != null) tournamentListScroll.style.display = DisplayStyle.None;
     }
 
+    private void EnsureTournamentDashboard()
+    {
+        EnsureActiveTournamentListView();
+        EnsureCompletedTournamentListView();
+    }
+
+    private void EnsureActiveTournamentListView()
+    {
+        if (activeTournamentsListView != null) return;
+        var parent = activeTournamentListScroll != null ? activeTournamentListScroll.parent : tournamentDashboardPanel;
+        activeTournamentsListView = new ListView
+        {
+            name = "activeTournamentListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 40f
+        };
+        activeTournamentsListView.style.flexGrow = 1;
+        activeTournamentsListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (b.userData is string id)
+                    SelectTournamentById(id);
+            });
+            return b;
+        };
+        activeTournamentsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            if (filteredActiveTournaments != null && i >= 0 && i < filteredActiveTournaments.Count)
+            {
+                var t = filteredActiveTournaments[i];
+                b.text = BuildTournamentSummary(t);
+                b.userData = t?.id;
+            }
+            else
+            {
+                b.text = string.Empty;
+                b.userData = null;
+            }
+        };
+        parent?.Add(activeTournamentsListView);
+        if (activeTournamentListScroll != null) activeTournamentListScroll.style.display = DisplayStyle.None;
+    }
+
+    private void EnsureCompletedTournamentListView()
+    {
+        if (completedTournamentsListView != null) return;
+        var parent = completedTournamentListScroll != null ? completedTournamentListScroll.parent : tournamentDashboardPanel;
+        completedTournamentsListView = new ListView
+        {
+            name = "completedTournamentListView",
+            selectionType = SelectionType.None,
+            fixedItemHeight = 40f
+        };
+        completedTournamentsListView.style.flexGrow = 1;
+        completedTournamentsListView.makeItem = () =>
+        {
+            var b = new Button();
+            b.AddToClassList("list-entry");
+            b.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (b.userData is string id)
+                    SelectTournamentById(id);
+            });
+            return b;
+        };
+        completedTournamentsListView.bindItem = (ve, i) =>
+        {
+            var b = (Button)ve;
+            if (filteredCompletedTournaments != null && i >= 0 && i < filteredCompletedTournaments.Count)
+            {
+                var t = filteredCompletedTournaments[i];
+                b.text = BuildTournamentSummary(t);
+                b.userData = t?.id;
+            }
+            else
+            {
+                b.text = string.Empty;
+                b.userData = null;
+            }
+        };
+        parent?.Add(completedTournamentsListView);
+        if (completedTournamentListScroll != null) completedTournamentListScroll.style.display = DisplayStyle.None;
+    }
+
     private void RefreshTournamentList()
     {
         if (tournamentListView == null) return;
         var src = tournamentCollection?.tournaments ?? new List<TournamentData>();
         tournamentListView.itemsSource = src;
         tournamentListView.Rebuild();
+        RefreshTournamentDashboard();
+    }
+
+    private void RefreshTournamentFilters()
+    {
+        var yearChoices = new List<string> { "All Years" };
+        var years = new HashSet<int>();
+        foreach (var t in tournamentCollection?.tournaments ?? new List<TournamentData>())
+            if (t != null && t.year > 0) years.Add(t.year);
+        foreach (var y in years.OrderByDescending(y => y))
+            yearChoices.Add(y.ToString(CultureInfo.InvariantCulture));
+        if (tournamentYearFilterDropdown != null)
+        {
+            tournamentYearFilterDropdown.choices = yearChoices;
+            if (!yearChoices.Contains(tournamentYearFilterDropdown.value))
+                tournamentYearFilterDropdown.value = yearChoices[0];
+        }
+
+        var brandChoices = new List<string> { "All Brands" };
+        var brands = currentPromotion?.brands ?? new List<string>();
+        brandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(b => b));
+        if (tournamentBrandFilterDropdown != null)
+        {
+            tournamentBrandFilterDropdown.choices = brandChoices;
+            if (!brandChoices.Contains(tournamentBrandFilterDropdown.value))
+                tournamentBrandFilterDropdown.value = brandChoices[0];
+        }
+
+        var sortChoices = new List<string> { "Name (A-Z)", "Year (Newest)", "Year (Oldest)", "Most Recent Update" };
+        if (tournamentSortDropdown != null)
+        {
+            tournamentSortDropdown.choices = sortChoices;
+            if (!sortChoices.Contains(tournamentSortDropdown.value))
+                tournamentSortDropdown.value = sortChoices[0];
+        }
+    }
+
+    private void RefreshTournamentDashboard()
+    {
+        if (tournamentCollection == null) return;
+        EnsureTournamentDashboard();
+        var source = tournamentCollection.tournaments ?? new List<TournamentData>();
+        filteredActiveTournaments = ApplyTournamentFilter(source.Where(t => t != null && t.status != TournamentStatus.Completed));
+        filteredCompletedTournaments = ApplyTournamentFilter(source.Where(t => t != null && t.status == TournamentStatus.Completed));
+        if (activeTournamentsListView != null)
+        {
+            activeTournamentsListView.itemsSource = filteredActiveTournaments;
+            activeTournamentsListView.Rebuild();
+        }
+        if (completedTournamentsListView != null)
+        {
+            completedTournamentsListView.itemsSource = filteredCompletedTournaments;
+            completedTournamentsListView.Rebuild();
+        }
+    }
+
+    private List<TournamentData> ApplyTournamentFilter(IEnumerable<TournamentData> source)
+    {
+        var filtered = source ?? Enumerable.Empty<TournamentData>();
+        var brandFilter = tournamentBrandFilterDropdown != null ? (tournamentBrandFilterDropdown.value ?? string.Empty).Trim() : "All Brands";
+        var yearFilter = tournamentYearFilterDropdown != null ? (tournamentYearFilterDropdown.value ?? string.Empty).Trim() : "All Years";
+        if (!string.IsNullOrEmpty(brandFilter) && !string.Equals(brandFilter, "All Brands", StringComparison.OrdinalIgnoreCase))
+            filtered = filtered.Where(t => StringEquals(t?.brand, brandFilter));
+        if (!string.IsNullOrEmpty(yearFilter) && !string.Equals(yearFilter, "All Years", StringComparison.OrdinalIgnoreCase) && int.TryParse(yearFilter, out var year))
+            filtered = filtered.Where(t => t != null && t.year == year);
+        var sort = tournamentSortDropdown != null ? (tournamentSortDropdown.value ?? string.Empty) : string.Empty;
+        return sort switch
+        {
+            "Year (Newest)" => filtered.OrderByDescending(t => t?.year).ThenBy(t => t?.name).ToList(),
+            "Year (Oldest)" => filtered.OrderBy(t => t?.year).ThenBy(t => t?.name).ToList(),
+            "Most Recent Update" => filtered
+                .OrderByDescending(t => t?.rounds != null && t.rounds.Count > 0 ? t.rounds[^1].roundNumber : 0)
+                .ThenByDescending(t => t?.year)
+                .ThenBy(t => t?.name)
+                .ToList(),
+            _ => filtered.OrderBy(t => t?.name).ToList()
+        };
+    }
+
+    private string BuildTournamentSummary(TournamentData t)
+    {
+        if (t == null) return string.Empty;
+        var format = t.format.ToString().Replace("Elimination", " Elim");
+        var status = t.status.ToString();
+        var year = t.year > 0 ? t.year.ToString(CultureInfo.InvariantCulture) : "Year N/A";
+        var brand = string.IsNullOrEmpty(t.brand) ? "No Brand" : t.brand;
+        var winnerSegment = (t.status == TournamentStatus.Completed && !string.IsNullOrEmpty(t.championName)) ? $" · Winner: {t.championName}" : string.Empty;
+        var rewardSegment = !string.IsNullOrEmpty(t.stakes) ? $" · Reward: {t.stakes}" : string.Empty;
+        return $"{t.name} · {format} · {status} · {brand} · {year}{winnerSegment}{rewardSegment}";
+    }
+
+    private void SelectTournamentById(string tournamentId)
+    {
+        if (string.IsNullOrEmpty(tournamentId) || tournamentCollection?.tournaments == null) return;
+        int index = tournamentCollection.tournaments.FindIndex(t => t != null && string.Equals(t.id, tournamentId, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+            SelectTournament(index);
+    }
+
+    private void UpdateTournamentWinnerLabel(TournamentData t)
+    {
+        if (tournamentWinnerLabel == null) return;
+        if (t == null)
+        {
+            tournamentWinnerLabel.text = "Winner: --";
+            return;
+        }
+        if (t.status == TournamentStatus.Completed && string.IsNullOrEmpty(t.championId))
+        {
+            var derived = DeriveChampionId(t);
+            if (!string.IsNullOrEmpty(derived))
+            {
+                SetTournamentChampion(t, derived);
+                if (tournamentCollection != null)
+                    DataManager.SaveTournaments(tournamentCollection);
+            }
+        }
+        if (string.IsNullOrEmpty(t.championName))
+        {
+            tournamentWinnerLabel.text = "Winner: --";
+        }
+        else
+        {
+            var rewardText = string.IsNullOrEmpty(t.stakes) ? string.Empty : $" (Prize: {t.stakes})";
+            tournamentWinnerLabel.text = $"Winner: {t.championName}{rewardText}";
+        }
+    }
+
+    private string DeriveChampionId(TournamentData t)
+    {
+        if (t == null) return null;
+        if (t.finalsMatch != null && !string.IsNullOrEmpty(t.finalsMatch.winnerId))
+            return t.finalsMatch.winnerId;
+        if (t.rounds != null && t.rounds.Count > 0)
+        {
+            var lastRound = t.rounds[^1];
+            if (lastRound?.matches != null && lastRound.matches.Count > 0)
+            {
+                var finalMatch = lastRound.matches.Count == 1 ? lastRound.matches[0] : null;
+                if (finalMatch != null && !string.IsNullOrEmpty(finalMatch.winnerId))
+                    return finalMatch.winnerId;
+            }
+        }
+        if (t.blocks != null && t.blocks.Count > 0)
+        {
+            var standings = CalculateBlockStandings(t.blocks[0]);
+            return DetermineBlockWinner(standings);
+        }
+        return null;
     }
 
     private void SelectTournament(int index)
@@ -2936,8 +3306,15 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentNameField != null) tournamentNameField.value = t.name;
         EnsureTournamentTypeChoices();
         if (tournamentTypeDropdown != null) tournamentTypeDropdown.value = string.IsNullOrEmpty(t.type) ? "Singles" : t.type;
+        if (tournamentFormatDropdown != null) tournamentFormatDropdown.value = FormatToLabel(t.format);
+        if (tournamentBrandDropdown != null) tournamentBrandDropdown.value = t.brand ?? string.Empty;
+        if (tournamentYearField != null) tournamentYearField.value = t.year > 0 ? t.year : DateTime.Today.Year;
+        if (tournamentSeededToggle != null) tournamentSeededToggle.value = t.seededBracket;
+        if (tournamentStatusDropdown != null) tournamentStatusDropdown.value = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(t.status.ToString().ToLowerInvariant());
+        if (tournamentStakesField != null) tournamentStakesField.value = t.stakes ?? string.Empty;
         PopulateEntrantsUI(t);
         PopulateMatchesUI(t);
+        UpdateTournamentWinnerLabel(t);
         SetActivePanel(tournamentsPanel);
     }
 
@@ -2954,6 +3331,25 @@ public class PromotionDashboard : MonoBehaviour
             if (newTournamentTypeDropdown.choices == null || newTournamentTypeDropdown.choices.Count == 0)
                 newTournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Trios" };
             if (string.IsNullOrEmpty(newTournamentTypeDropdown.value)) newTournamentTypeDropdown.value = newTournamentTypeDropdown.choices[0];
+        }
+
+        var formatChoices = GetTournamentFormatChoices();
+        if (tournamentFormatDropdown != null)
+        {
+            tournamentFormatDropdown.choices = formatChoices;
+            if (string.IsNullOrEmpty(tournamentFormatDropdown.value)) tournamentFormatDropdown.value = formatChoices[0];
+        }
+        if (newTournamentFormatDropdown != null)
+        {
+            newTournamentFormatDropdown.choices = formatChoices;
+            if (string.IsNullOrEmpty(newTournamentFormatDropdown.value)) newTournamentFormatDropdown.value = formatChoices[0];
+        }
+
+        var statusChoices = GetTournamentStatusChoices();
+        if (tournamentStatusDropdown != null)
+        {
+            tournamentStatusDropdown.choices = statusChoices;
+            if (string.IsNullOrEmpty(tournamentStatusDropdown.value)) tournamentStatusDropdown.value = statusChoices[0];
         }
     }
 
@@ -2994,60 +3390,176 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (tournamentMatchesList == null) return;
         tournamentMatchesList.Clear();
-        if (t.rounds == null || t.rounds.Count == 0) return;
-
-        var currentRound = t.rounds[^1];
-        int i = 1;
+        if (t == null) return;
         var nameById = BuildTournamentNameMap(t);
-        foreach (var m in currentRound.matches ?? new List<TournamentMatch>())
+        if (t.format == TournamentFormat.RoundRobin || t.format == TournamentFormat.Block)
         {
-            var card = new VisualElement();
-            card.style.flexDirection = FlexDirection.Column;
-            card.style.marginBottom = 8;
-            var dd = new DropdownField();
-            var p1 = nameById.TryGetValue(m.participant1Id ?? string.Empty, out var n1) ? n1 : "";
-            var p2 = nameById.TryGetValue(m.participant2Id ?? string.Empty, out var n2) ? n2 : "";
-            var choices = new List<string>();
-            if (!string.IsNullOrEmpty(p1)) choices.Add(p1);
-            if (!string.IsNullOrEmpty(p2)) choices.Add(p2);
-            var placeholder = "Select Winner";
-            if (choices.Count == 0) choices.Add(string.Empty); else choices.Insert(0, placeholder);
-            dd.choices = choices;
-            if (m.winnerId == m.participant1Id) dd.value = p1;
-            else if (m.winnerId == m.participant2Id) dd.value = p2;
-            else dd.value = dd.choices[0];
-            dd.RegisterValueChangedCallback(evt =>
-            {
-                if (evt.newValue == p1) m.winnerId = m.participant1Id;
-                else if (evt.newValue == p2) m.winnerId = m.participant2Id;
-                else m.winnerId = null; // placeholder or cleared
-            });
-            // Participants line above the dropdown
-            var matchTitle = new Label(string.IsNullOrEmpty(p1) && string.IsNullOrEmpty(p2) ? $"Match {i++}" : $"{p1} vs {p2}");
-            matchTitle.style.marginBottom = 2;
-            // Row with caption + dropdown
-            var winRow = new VisualElement();
-            winRow.style.flexDirection = FlexDirection.Row;
-            winRow.style.alignItems = Align.Center;
-            var winnerCaption = new Label("Match Winner:");
-            winnerCaption.style.marginRight = 8;
-            winRow.Add(winnerCaption);
-            winRow.Add(dd);
-            card.Add(matchTitle);
-            card.Add(winRow);
-            tournamentMatchesList.Add(card);
+            RenderBlockMatches(t, nameById);
         }
-
-        // If this is a finals round and a winner is selected, show champion message
-        if (currentRound.matches != null && currentRound.matches.Count == 1)
+        else
         {
-            var finalMatch = currentRound.matches[0];
-            if (!string.IsNullOrEmpty(finalMatch?.winnerId) && nameById.TryGetValue(finalMatch.winnerId, out var champName))
+            RenderBracketRounds(t, nameById);
+        }
+    }
+
+    private void RenderBracketRounds(TournamentData t, Dictionary<string, string> nameById)
+    {
+        if (t.rounds == null || t.rounds.Count == 0)
+        {
+            tournamentMatchesList.Add(new Label("Generate a bracket to view matches."));
+            return;
+        }
+        foreach (var round in t.rounds)
+            RenderRoundSection(t, round, nameById, false);
+        if (t.format == TournamentFormat.DoubleElimination)
+        {
+            foreach (var round in t.loserRounds ?? new List<TournamentRound>())
+                RenderRoundSection(t, round, nameById, false);
+        }
+        RenderFinalsSection(t, nameById, false);
+    }
+
+    private void RenderBlockMatches(TournamentData t, Dictionary<string, string> nameById)
+    {
+        if (t.blocks == null || t.blocks.Count == 0)
+        {
+            tournamentMatchesList.Add(new Label("Generate blocks to view matches."));
+            return;
+        }
+        foreach (var block in t.blocks)
+        {
+            var header = new Label(block?.name ?? "Block");
+            header.AddToClassList("subsection-title");
+            tournamentMatchesList.Add(header);
+            foreach (var match in block?.matches ?? new List<TournamentMatch>())
+                RenderMatchCard(t, match, nameById, true);
+            RenderBlockStandings(block, nameById);
+        }
+        RenderFinalsSection(t, nameById, false);
+    }
+
+    private void RenderRoundSection(TournamentData t, TournamentRound round, Dictionary<string, string> nameById, bool allowDraw)
+    {
+        if (round == null || round.matches == null || round.matches.Count == 0) return;
+        var headerText = !string.IsNullOrEmpty(round.label) ? round.label : $"Round {round.roundNumber}";
+        var header = new Label(headerText);
+        header.AddToClassList("subsection-title");
+        tournamentMatchesList.Add(header);
+        foreach (var match in round.matches)
+            RenderMatchCard(t, match, nameById, allowDraw);
+    }
+
+    private void RenderFinalsSection(TournamentData t, Dictionary<string, string> nameById, bool allowDraw)
+    {
+        if (t?.finalsMatch == null) return;
+        if (string.IsNullOrEmpty(t.finalsMatch.participant1Id) && string.IsNullOrEmpty(t.finalsMatch.participant2Id)) return;
+        var header = new Label(string.IsNullOrEmpty(t.finalsMatch.notes) ? "Finals" : t.finalsMatch.notes);
+        header.AddToClassList("subsection-title");
+        tournamentMatchesList.Add(header);
+        if (!string.IsNullOrEmpty(t.stakes))
+        {
+            var rewardLabel = new Label($"Reward: {t.stakes}");
+            rewardLabel.AddToClassList("tournament-reward-label");
+            tournamentMatchesList.Add(rewardLabel);
+        }
+        RenderMatchCard(t, t.finalsMatch, nameById, allowDraw);
+    }
+
+    private void RenderMatchCard(TournamentData tournament, TournamentMatch match, Dictionary<string, string> nameById, bool allowDraw)
+    {
+        if (match == null) return;
+        var p1 = ResolveParticipantName(match.participant1Id, nameById);
+        var p2 = ResolveParticipantName(match.participant2Id, nameById);
+        var card = new VisualElement();
+        card.AddToClassList("tournament-match-card");
+        var title = new Label(string.IsNullOrEmpty(p1) && string.IsNullOrEmpty(p2) ? "Match" : $"{p1} vs {p2}");
+        title.style.marginBottom = 2;
+        card.Add(title);
+        if (string.IsNullOrEmpty(match.participant2Id))
+        {
+            var bye = new Label($"{p1} advances by bye");
+            card.Add(bye);
+            tournamentMatchesList.Add(card);
+            return;
+        }
+        var dropdown = new DropdownField();
+        var placeholder = "Select Result";
+        var choices = new List<string> { placeholder, p1, p2 };
+        if (allowDraw) choices.Add("Draw");
+        dropdown.choices = choices;
+        if (match.isDraw) dropdown.value = "Draw";
+        else if (StringEquals(match.winnerId, match.participant1Id)) dropdown.value = p1;
+        else if (StringEquals(match.winnerId, match.participant2Id)) dropdown.value = p2;
+        else dropdown.value = placeholder;
+        var optionP1 = p1;
+        var optionP2 = p2;
+        dropdown.RegisterValueChangedCallback(evt =>
+        {
+            if (evt.newValue == placeholder)
             {
-                var winnerNote = new Label($"{champName} has won this tournament");
-                winnerNote.style.marginTop = 8;
-                tournamentMatchesList.Add(winnerNote);
+                match.winnerId = null;
+                match.isDraw = false;
             }
+            else if (allowDraw && evt.newValue == "Draw")
+            {
+                match.isDraw = true;
+                match.winnerId = null;
+            }
+            else if (evt.newValue == optionP1)
+            {
+                match.winnerId = match.participant1Id;
+                match.isDraw = false;
+            }
+            else if (evt.newValue == optionP2)
+            {
+                match.winnerId = match.participant2Id;
+                match.isDraw = false;
+            }
+            DataManager.SaveTournaments(tournamentCollection);
+            if (tournament != null && tournamentCollection != null)
+                UpdateTournamentWinnerLabel(tournament);
+        });
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        var caption = new Label("Result:");
+        caption.style.marginRight = 8;
+        row.Add(caption);
+        row.Add(dropdown);
+        card.Add(row);
+        tournamentMatchesList.Add(card);
+    }
+
+    private void RenderBlockStandings(TournamentBlock block, Dictionary<string, string> nameById)
+    {
+        var standings = CalculateBlockStandings(block);
+        if (standings == null || standings.Count == 0) return;
+        var header = new Label("Standings");
+        header.AddToClassList("tournament-standings-header");
+        tournamentMatchesList.Add(header);
+        foreach (var kvp in standings.OrderByDescending(k => k.Value.points).ThenByDescending(k => k.Value.wins).ThenBy(k => ResolveParticipantName(k.Key, nameById)))
+        {
+            var s = kvp.Value;
+            var name = ResolveParticipantName(kvp.Key, nameById);
+            var label = new Label($"{name}: {s.points} pts ({s.wins}-{s.losses}-{s.draws})");
+            label.AddToClassList("tournament-standings-row");
+            tournamentMatchesList.Add(label);
+        }
+    }
+
+    private void SetTournamentChampion(TournamentData t, string championId)
+    {
+        if (t == null) return;
+        if (string.IsNullOrEmpty(championId))
+        {
+            t.championId = null;
+            t.championName = null;
+        }
+        else
+        {
+            t.championId = championId;
+            var map = BuildTournamentNameMap(t);
+            t.championName = map.TryGetValue(championId, out var nm) ? nm : championId;
         }
     }
 
@@ -3066,6 +3578,11 @@ public class PromotionDashboard : MonoBehaviour
             foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
                 if (!string.IsNullOrEmpty(w?.id) && !string.IsNullOrEmpty(w.name)) map[w.id] = w.name;
         }
+        foreach (var e in t.entrants ?? new List<TournamentEntry>())
+        {
+            if (e == null || string.IsNullOrEmpty(e.id) || map.ContainsKey(e.id)) continue;
+            map[e.id] = string.IsNullOrEmpty(e.name) ? e.id : e.name;
+        }
         return map;
     }
 
@@ -3074,14 +3591,37 @@ public class PromotionDashboard : MonoBehaviour
         if (currentPromotion == null) { if (statusLabel != null) statusLabel.text = "No promotion loaded."; return; }
         tournamentCollection ??= DataManager.LoadTournaments(currentPromotion.promotionName);
         tournamentCollection.promotionName = currentPromotion.promotionName;
-        var t = new TournamentData { id = System.Guid.NewGuid().ToString("N"), name = (newTournamentNameField?.value ?? "New Tournament").Trim(), type = (newTournamentTypeDropdown?.value ?? "Singles") };
-        t.entrants = new List<TournamentEntry>();
-        t.rounds = new List<TournamentRound>();
+        EnsureTournamentTypeChoices();
+        var rawName = (newTournamentNameField?.value ?? "New Tournament").Trim();
+        var format = ParseTournamentFormat(newTournamentFormatDropdown?.value ?? string.Empty);
+        var brand = newTournamentBrandDropdown != null ? (newTournamentBrandDropdown.value ?? string.Empty).Trim() : string.Empty;
+        var year = newTournamentYearField != null && newTournamentYearField.value > 0 ? newTournamentYearField.value : DateTime.Today.Year;
+        var seeded = newTournamentSeededToggle != null && newTournamentSeededToggle.value;
+        var stakesText = newTournamentStakesField != null ? (newTournamentStakesField.value ?? string.Empty).Trim() : string.Empty;
+        var t = new TournamentData
+        {
+            id = System.Guid.NewGuid().ToString("N"),
+            name = string.IsNullOrEmpty(rawName) ? "New Tournament" : rawName,
+            type = newTournamentTypeDropdown != null ? (newTournamentTypeDropdown.value ?? "Singles") : "Singles",
+            format = format,
+            brand = brand,
+            year = year,
+            seededBracket = seeded,
+            stakes = string.IsNullOrEmpty(stakesText) ? null : stakesText,
+            status = TournamentStatus.Planned,
+            entrants = new List<TournamentEntry>(),
+            rounds = new List<TournamentRound>(),
+            loserRounds = new List<TournamentRound>(),
+            blocks = new List<TournamentBlock>(),
+            pendingLoserIds = new List<string>()
+        };
         tournamentCollection.tournaments ??= new List<TournamentData>();
         tournamentCollection.tournaments.Add(t);
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
+        RefreshTournamentFilters();
         if (newTournamentNameField != null) newTournamentNameField.value = string.Empty;
+        if (newTournamentYearField != null) newTournamentYearField.value = year;
         if (statusLabel != null) statusLabel.text = "Tournament added.";
     }
 
@@ -3103,8 +3643,20 @@ public class PromotionDashboard : MonoBehaviour
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
         if (tournamentNameField != null) t.name = tournamentNameField.value;
         if (tournamentTypeDropdown != null) t.type = tournamentTypeDropdown.value;
+        if (tournamentFormatDropdown != null) t.format = ParseTournamentFormat(tournamentFormatDropdown.value);
+        if (tournamentBrandDropdown != null) t.brand = (tournamentBrandDropdown.value ?? string.Empty).Trim();
+        if (tournamentYearField != null && tournamentYearField.value > 0) t.year = tournamentYearField.value;
+        if (tournamentSeededToggle != null) t.seededBracket = tournamentSeededToggle.value;
+        if (tournamentStatusDropdown != null) t.status = ParseTournamentStatus(tournamentStatusDropdown.value);
+        if (tournamentStakesField != null)
+        {
+            var stakesVal = (tournamentStakesField.value ?? string.Empty).Trim();
+            t.stakes = string.IsNullOrEmpty(stakesVal) ? null : stakesVal;
+        }
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
+        RefreshTournamentFilters();
+        RefreshTournamentDashboard();
         if (statusLabel != null) statusLabel.text = "Tournament updated.";
         ShowTournamentAddPanel();
     }
@@ -3116,6 +3668,7 @@ public class PromotionDashboard : MonoBehaviour
         selectedTournamentIndex = -1;
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
+        RefreshTournamentFilters();
         if (statusLabel != null) statusLabel.text = "Tournament deleted.";
     }
 
@@ -3138,6 +3691,14 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentManagePanel != null) tournamentManagePanel.AddToClassList("hidden");
         if (tournamentAddPanel != null) tournamentAddPanel.RemoveFromClassList("hidden");
         SetActivePanel(tournamentsPanel);
+        EnsureTournamentTypeChoices();
+        if (newTournamentFormatDropdown != null) newTournamentFormatDropdown.value = GetTournamentFormatChoices().First();
+        if (newTournamentBrandDropdown != null && (newTournamentBrandDropdown.choices == null || newTournamentBrandDropdown.choices.Count == 0))
+            RefreshBrandDropdowns();
+        if (newTournamentBrandDropdown != null) newTournamentBrandDropdown.value = "";
+        if (newTournamentYearField != null) newTournamentYearField.value = DateTime.Today.Year;
+        if (newTournamentSeededToggle != null) newTournamentSeededToggle.value = false;
+        if (newTournamentStakesField != null) newTournamentStakesField.value = string.Empty;
     }
 
     private void OnAddEntrant()
@@ -3173,9 +3734,12 @@ public class PromotionDashboard : MonoBehaviour
             return; // no duplicates
         }
         t.entrants.Add(entry);
+        ResetTournamentProgress(t);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateEntrantsUI(t);
         PopulateEntrantChoices(type);
+        RefreshTournamentDashboard();
+        RefreshTournamentFilters();
         if (statusLabel != null) statusLabel.text = "Entrant added.";
     }
 
@@ -3184,54 +3748,480 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
         if (t.entrants == null || t.entrants.Count < 2) { if (statusLabel != null) statusLabel.text = "Add at least 2 entrants."; return; }
-        var seeds = new List<TournamentEntry>(t.entrants);
-        var round = new TournamentRound { roundNumber = (t.rounds?.Count ?? 0) + 1, matches = new List<TournamentMatch>() };
-        for (int i = 0; i < seeds.Count; i += 2)
+        EnsureTournamentTypeChoices();
+        t.format = ParseTournamentFormat(tournamentFormatDropdown != null ? tournamentFormatDropdown.value : FormatToLabel(t.format));
+        ResetTournamentProgress(t);
+        List<TournamentEntry> seeds = BuildEntrantSeeds(t);
+        if (seeds.Count < 2) { if (statusLabel != null) statusLabel.text = "Unable to seed entrants."; return; }
+        switch (t.format)
         {
-            var m = new TournamentMatch { id = System.Guid.NewGuid().ToString("N") };
-            m.participant1Id = seeds[i].id;
-            m.participant2Id = (i + 1 < seeds.Count) ? seeds[i + 1].id : null; // bye if null
-            if (m.participant2Id == null) m.winnerId = m.participant1Id; // automatic advance on bye
-            round.matches.Add(m);
+            case TournamentFormat.DoubleElimination:
+                GenerateDoubleEliminationBracket(t, seeds);
+                break;
+            case TournamentFormat.RoundRobin:
+                GenerateRoundRobinBlocks(t, seeds, false);
+                break;
+            case TournamentFormat.Block:
+                GenerateRoundRobinBlocks(t, seeds, true);
+                break;
+            default:
+                GenerateSingleEliminationBracket(t, seeds);
+                break;
         }
-        t.rounds ??= new List<TournamentRound>();
-        t.rounds.Add(round);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateMatchesUI(t);
-        if (statusLabel != null) statusLabel.text = $"Round {round.roundNumber} generated.";
+        RefreshTournamentDashboard();
+        RefreshTournamentFilters();
+        if (statusLabel != null) statusLabel.text = $"{FormatToLabel(t.format)} bracket generated.";
+    }
+
+    private List<TournamentEntry> BuildEntrantSeeds(TournamentData t)
+    {
+        var seeds = t?.entrants?
+            .Where(e => e != null && !string.IsNullOrEmpty(e.id))
+            .Select(e => new TournamentEntry { id = e.id, name = e.name })
+            .ToList() ?? new List<TournamentEntry>();
+        if (!t.seededBracket || seeds.Count <= 2) return seeds;
+        var ordered = new List<TournamentEntry>();
+        int left = 0, right = seeds.Count - 1;
+        while (left <= right)
+        {
+            ordered.Add(seeds[left]);
+            if (left != right) ordered.Add(seeds[right]);
+            left++; right--;
+        }
+        return ordered;
+    }
+
+    private void GenerateSingleEliminationBracket(TournamentData t, List<TournamentEntry> seeds)
+    {
+        var ids = seeds.Select(s => s.id).ToList();
+        t.rounds = new List<TournamentRound>
+        {
+            CreateRoundFromEntrants(1, ids, "Round 1", TournamentRoundBracket.Winners)
+        };
+        t.loserRounds = new List<TournamentRound>();
+        t.blocks = new List<TournamentBlock>();
+        t.pendingLoserIds = new List<string>();
+        t.finalsMatch = null;
+        t.status = TournamentStatus.Active;
+    }
+
+    private void GenerateDoubleEliminationBracket(TournamentData t, List<TournamentEntry> seeds)
+    {
+        GenerateSingleEliminationBracket(t, seeds);
+        if (t.rounds != null && t.rounds.Count > 0)
+            t.rounds[0].label = "Winners Round 1";
+        t.loserRounds = new List<TournamentRound>();
+        t.pendingLoserIds = new List<string>();
+        t.finalsMatch = null;
+        t.format = TournamentFormat.DoubleElimination;
+    }
+
+    private void GenerateRoundRobinBlocks(TournamentData t, List<TournamentEntry> seeds, bool splitIntoBlocks)
+    {
+        t.blocks = new List<TournamentBlock>();
+        List<TournamentEntry> CloneEntries(IEnumerable<TournamentEntry> src) => src.Select(e => new TournamentEntry { id = e.id, name = e.name }).ToList();
+        if (splitIntoBlocks && seeds.Count >= 4)
+        {
+            var blockAEntries = new List<TournamentEntry>();
+            var blockBEntries = new List<TournamentEntry>();
+            for (int i = 0; i < seeds.Count; i++)
+            {
+                if (i % 2 == 0) blockAEntries.Add(seeds[i]);
+                else blockBEntries.Add(seeds[i]);
+            }
+            t.blocks.Add(new TournamentBlock { id = Guid.NewGuid().ToString("N"), name = "Block A", entrants = CloneEntries(blockAEntries), matches = BuildRoundRobinMatches(blockAEntries) });
+            t.blocks.Add(new TournamentBlock { id = Guid.NewGuid().ToString("N"), name = "Block B", entrants = CloneEntries(blockBEntries), matches = BuildRoundRobinMatches(blockBEntries) });
+        }
+        else
+        {
+            var entries = CloneEntries(seeds);
+            t.blocks.Add(new TournamentBlock { id = Guid.NewGuid().ToString("N"), name = "Block A", entrants = entries, matches = BuildRoundRobinMatches(entries) });
+        }
+        t.rounds = new List<TournamentRound>();
+        t.loserRounds = new List<TournamentRound>();
+        t.pendingLoserIds = new List<string>();
+        t.finalsMatch = null;
+        t.status = TournamentStatus.Active;
+    }
+
+    private List<TournamentMatch> BuildRoundRobinMatches(List<TournamentEntry> entries)
+    {
+        var matches = new List<TournamentMatch>();
+        for (int i = 0; i < (entries?.Count ?? 0); i++)
+        {
+            for (int j = i + 1; j < entries.Count; j++)
+            {
+                var m = new TournamentMatch
+                {
+                    id = Guid.NewGuid().ToString("N"),
+                    participant1Id = entries[i].id,
+                    participant2Id = entries[j].id
+                };
+                matches.Add(m);
+            }
+        }
+        return matches;
+    }
+
+    private TournamentRound CreateRoundFromEntrants(int roundNumber, List<string> ids, string label, TournamentRoundBracket bracketType)
+    {
+        var round = new TournamentRound
+        {
+            roundNumber = roundNumber,
+            label = label,
+            bracket = bracketType,
+            matches = new List<TournamentMatch>()
+        };
+        for (int i = 0; i < ids.Count; i += 2)
+        {
+            var match = new TournamentMatch { id = Guid.NewGuid().ToString("N"), participant1Id = ids[i] };
+            if (i + 1 < ids.Count)
+                match.participant2Id = ids[i + 1];
+            else
+                match.winnerId = ids[i];
+            round.matches.Add(match);
+        }
+        return round;
     }
 
     private void OnAdvanceRound()
     {
         if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
-        if (t.rounds == null || t.rounds.Count == 0) return;
-        var currentRound = t.rounds[^1];
-        if (currentRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId))) { if (statusLabel != null) statusLabel.text = "Select winners for all matches."; return; }
-        var winners = currentRound.matches.Select(m => new TournamentEntry { id = m.winnerId, name = null }).ToList();
-        if (winners.Count <= 1)
+        if (t == null) return;
+        string message;
+        bool advanced = t.format switch
         {
-            // Tournament winner decided
-            DataManager.SaveTournaments(tournamentCollection);
-            // Refresh UI so the winner note appears
-            PopulateMatchesUI(t);
-            if (statusLabel != null) statusLabel.text = "Tournament complete!";
+            TournamentFormat.DoubleElimination => AdvanceDoubleElimination(t, out message),
+            TournamentFormat.RoundRobin => AdvanceRoundRobin(t, out message, false),
+            TournamentFormat.Block => AdvanceRoundRobin(t, out message, true),
+            _ => AdvanceSingleElimination(t, out message)
+        };
+        if (!advanced)
+        {
+            if (statusLabel != null && !string.IsNullOrEmpty(message)) statusLabel.text = message;
             return;
         }
-        var round = new TournamentRound { roundNumber = currentRound.roundNumber + 1, matches = new List<TournamentMatch>() };
-        for (int i = 0; i < winners.Count; i += 2)
-        {
-            var m = new TournamentMatch { id = System.Guid.NewGuid().ToString("N") };
-            m.participant1Id = winners[i].id;
-            m.participant2Id = (i + 1 < winners.Count) ? winners[i + 1].id : null;
-            if (m.participant2Id == null) m.winnerId = m.participant1Id;
-            round.matches.Add(m);
-        }
-        t.rounds.Add(round);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateMatchesUI(t);
-        if (statusLabel != null) statusLabel.text = $"Advanced to Round {round.roundNumber}.";
+        RefreshTournamentDashboard();
+        if (statusLabel != null && !string.IsNullOrEmpty(message)) statusLabel.text = message;
     }
+
+    private bool AdvanceSingleElimination(TournamentData t, out string message)
+    {
+        message = string.Empty;
+        if (t.rounds == null || t.rounds.Count == 0) { message = "Generate a bracket first."; return false; }
+        var currentRound = t.rounds[^1];
+        if (currentRound.matches == null || currentRound.matches.Count == 0) { message = "No matches in this round."; return false; }
+        if (currentRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId))) { message = "Select winners for all matches."; return false; }
+        var winners = currentRound.matches.Select(m => m.winnerId).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        if (winners.Count <= 1)
+        {
+            t.status = TournamentStatus.Completed;
+            var champId = winners.Count == 1 ? winners[0] : null;
+            SetTournamentChampion(t, champId);
+            UpdateTournamentWinnerLabel(t);
+            var winnerName = t.championName ?? "Tournament complete!";
+            message = $"{winnerName} wins the tournament!";
+            return true;
+        }
+        var nextRound = CreateRoundFromEntrants(currentRound.roundNumber + 1, winners, $"Round {currentRound.roundNumber + 1}", TournamentRoundBracket.Winners);
+        t.rounds.Add(nextRound);
+        message = $"Advanced to Round {nextRound.roundNumber}.";
+        return true;
+    }
+
+    private bool AdvanceDoubleElimination(TournamentData t, out string message)
+    {
+        message = string.Empty;
+        t.pendingLoserIds ??= new List<string>();
+        if (t.rounds == null || t.rounds.Count == 0) { message = "Generate the winners bracket first."; return false; }
+        var currentRound = t.rounds[^1];
+        if (currentRound.matches == null || currentRound.matches.Count == 0) { message = "No matches in winners bracket."; return false; }
+        if (currentRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId))) { message = "Select winners for all winners bracket matches."; return false; }
+
+        var loserRoundResult = TryGenerateNextLoserRound(t, false, out var loserMessage);
+        if (loserRoundResult == TournamentProgressResult.WaitingOnLosers)
+        {
+            message = loserMessage;
+            return false;
+        }
+        if (loserRoundResult == TournamentProgressResult.Generated)
+        {
+            message = loserMessage;
+            return true;
+        }
+
+        foreach (var match in currentRound.matches)
+        {
+            var loser = DetermineLoserId(match);
+            if (!string.IsNullOrEmpty(loser))
+                AddPendingLoser(t, loser);
+        }
+        currentRound.closed = true;
+        loserRoundResult = TryGenerateNextLoserRound(t, true, out loserMessage);
+        if (loserRoundResult == TournamentProgressResult.Generated)
+        {
+            message = loserMessage;
+            return true;
+        }
+        if (loserRoundResult == TournamentProgressResult.WaitingOnLosers)
+        {
+            message = loserMessage;
+            return false;
+        }
+
+        var winners = currentRound.matches.Select(m => m.winnerId).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        if (winners.Count == 1)
+        {
+            var loserChampion = GetLoserBracketChampion(t, out var pendingMessage);
+            if (loserChampion == null)
+            {
+                var retry = TryGenerateNextLoserRound(t, true, out var moreMessage);
+                if (retry == TournamentProgressResult.Generated)
+                {
+                    message = moreMessage;
+                    return true;
+                }
+                message = string.IsNullOrEmpty(pendingMessage) ? "Resolve the losers bracket to determine the finalist." : pendingMessage;
+                return false;
+            }
+            EnsureFinalMatch(t, winners[0], loserChampion, "Grand Final");
+            if (!string.IsNullOrEmpty(t.finalsMatch?.winnerId))
+            {
+                t.status = TournamentStatus.Completed;
+                SetTournamentChampion(t, t.finalsMatch.winnerId);
+                UpdateTournamentWinnerLabel(t);
+                var champ = t.championName ?? "Winner";
+                message = $"{champ} wins the tournament!";
+            }
+            else
+            {
+                message = "Grand Final ready. Select the winner.";
+            }
+            return true;
+        }
+
+        var nextRound = CreateRoundFromEntrants(currentRound.roundNumber + 1, winners, $"Winners Round {currentRound.roundNumber + 1}", TournamentRoundBracket.Winners);
+        t.rounds.Add(nextRound);
+        message = $"Advanced to Winners Round {nextRound.roundNumber}.";
+        return true;
+    }
+
+    private enum TournamentProgressResult { None, Generated, WaitingOnLosers }
+
+    private TournamentProgressResult TryGenerateNextLoserRound(TournamentData t, bool checkPending, out string message)
+    {
+        message = string.Empty;
+        t.pendingLoserIds ??= new List<string>();
+        t.loserRounds ??= new List<TournamentRound>();
+        var lastRound = t.loserRounds.Count > 0 ? t.loserRounds[^1] : null;
+        if (lastRound != null && !lastRound.closed)
+        {
+            if (lastRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId)))
+            {
+                message = "Select winners in the current losers bracket round.";
+                return TournamentProgressResult.WaitingOnLosers;
+            }
+            lastRound.closed = true;
+            foreach (var winner in lastRound.matches.Select(m => m.winnerId).Where(id => !string.IsNullOrEmpty(id)))
+                AddPendingLoser(t, winner);
+        }
+        if (!checkPending) return TournamentProgressResult.None;
+        var entrants = t.pendingLoserIds.Distinct(StringComparer.OrdinalIgnoreCase).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        if (entrants.Count >= 2)
+        {
+            var roundNumber = (t.loserRounds.Count > 0 ? t.loserRounds[^1].roundNumber : 0) + 1;
+            var round = CreateRoundFromEntrants(roundNumber, entrants, $"Losers Round {roundNumber}", TournamentRoundBracket.Losers);
+            if (round.matches.Count > 0)
+            {
+                t.loserRounds.Add(round);
+                t.pendingLoserIds.Clear();
+                message = $"Generated Losers Round {roundNumber}.";
+                return TournamentProgressResult.Generated;
+            }
+        }
+        return TournamentProgressResult.None;
+    }
+
+    private void AddPendingLoser(TournamentData t, string id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        if (t.pendingLoserIds == null) t.pendingLoserIds = new List<string>();
+        if (!t.pendingLoserIds.Any(x => StringEquals(x, id)))
+            t.pendingLoserIds.Add(id);
+    }
+
+    private string GetLoserBracketChampion(TournamentData t, out string message)
+    {
+        message = string.Empty;
+        if (t.loserRounds == null || t.loserRounds.Count == 0) return null;
+        var lastRound = t.loserRounds[^1];
+        if (lastRound.matches == null || lastRound.matches.Count == 0) return null;
+        if (lastRound.matches.Any(m => string.IsNullOrEmpty(m.winnerId)))
+        {
+            message = "Select winners for the final losers bracket round.";
+            return null;
+        }
+        var winners = lastRound.matches.Select(m => m.winnerId).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        if (winners.Count == 1)
+        {
+            lastRound.closed = true;
+            return winners[0];
+        }
+        foreach (var w in winners)
+            AddPendingLoser(t, w);
+        message = "Additional losers bracket round generated.";
+        return null;
+    }
+
+    private bool AdvanceRoundRobin(TournamentData t, out string message, bool createFinal)
+    {
+        message = string.Empty;
+        if (t.blocks == null || t.blocks.Count == 0) { message = "Generate the blocks first."; return false; }
+        foreach (var block in t.blocks)
+        {
+            if (block?.matches == null) continue;
+            if (block.matches.Any(m => !MatchResolved(m)))
+            {
+                message = $"Complete all matches in {block.name ?? "Block"} before advancing.";
+                return false;
+            }
+        }
+        if (createFinal)
+        {
+            var finalists = new List<string>();
+            foreach (var block in t.blocks)
+            {
+                var standings = CalculateBlockStandings(block);
+                var winner = DetermineBlockWinner(standings);
+                if (!string.IsNullOrEmpty(winner)) finalists.Add(winner);
+            }
+            if (finalists.Count < 2) { message = "Require at least two block winners for the finals."; return false; }
+            EnsureFinalMatch(t, finalists[0], finalists[1], "Block Finals");
+            if (!string.IsNullOrEmpty(t.finalsMatch?.winnerId))
+            {
+                t.status = TournamentStatus.Completed;
+                SetTournamentChampion(t, t.finalsMatch.winnerId);
+                UpdateTournamentWinnerLabel(t);
+                var champ = t.championName ?? "Winner";
+                message = $"{champ} wins the tournament!";
+            }
+            else
+            {
+                message = "Finals ready. Select the winner.";
+            }
+            return true;
+        }
+        t.status = TournamentStatus.Completed;
+        string blockChampionId = null;
+        var primaryBlock = t.blocks?.FirstOrDefault();
+        if (primaryBlock != null)
+        {
+            var standings = CalculateBlockStandings(primaryBlock);
+            blockChampionId = DetermineBlockWinner(standings);
+        }
+        SetTournamentChampion(t, blockChampionId);
+        UpdateTournamentWinnerLabel(t);
+        message = !string.IsNullOrEmpty(t.championName) ? $"{t.championName} wins the tournament!" : "Round robin completed.";
+        return true;
+    }
+
+    private void EnsureFinalMatch(TournamentData t, string finalistA, string finalistB, string label)
+    {
+        if (t.finalsMatch == null)
+            t.finalsMatch = new TournamentMatch { id = Guid.NewGuid().ToString("N") };
+        t.finalsMatch.participant1Id = finalistA;
+        t.finalsMatch.participant2Id = finalistB;
+        t.finalsMatch.isDraw = false;
+        t.finalsMatch.notes = label;
+    }
+
+    private bool MatchResolved(TournamentMatch match)
+    {
+        if (match == null) return false;
+        if (match.isDraw) return true;
+        return !string.IsNullOrEmpty(match.winnerId) || string.IsNullOrEmpty(match.participant2Id);
+    }
+
+    private class BlockStanding
+    {
+        public int wins;
+        public int losses;
+        public int draws;
+        public int points;
+    }
+
+    private Dictionary<string, BlockStanding> CalculateBlockStandings(TournamentBlock block)
+    {
+        var table = new Dictionary<string, BlockStanding>(StringComparer.OrdinalIgnoreCase);
+        void Ensure(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+            if (!table.ContainsKey(id))
+                table[id] = new BlockStanding();
+        }
+
+        foreach (var entrant in block?.entrants ?? new List<TournamentEntry>())
+            if (entrant != null && !string.IsNullOrEmpty(entrant.id))
+                Ensure(entrant.id);
+
+        foreach (var match in block?.matches ?? new List<TournamentMatch>())
+        {
+            if (match == null) continue;
+            Ensure(match.participant1Id);
+            Ensure(match.participant2Id);
+            if (string.IsNullOrEmpty(match.participant1Id) || string.IsNullOrEmpty(match.participant2Id)) continue;
+            if (match.isDraw)
+            {
+                table[match.participant1Id].draws++;
+                table[match.participant2Id].draws++;
+                table[match.participant1Id].points++;
+                table[match.participant2Id].points++;
+            }
+            else if (!string.IsNullOrEmpty(match.winnerId))
+            {
+                var winnerId = match.winnerId;
+                var loserId = DetermineLoserId(match);
+                if (!string.IsNullOrEmpty(winnerId))
+                {
+                    table[winnerId].wins++;
+                    table[winnerId].points += 2;
+                }
+                if (!string.IsNullOrEmpty(loserId))
+                    table[loserId].losses++;
+            }
+        }
+        return table;
+    }
+
+    private string DetermineBlockWinner(Dictionary<string, BlockStanding> standings)
+    {
+        if (standings == null || standings.Count == 0) return null;
+        return standings
+            .OrderByDescending(kvp => kvp.Value.points)
+            .ThenByDescending(kvp => kvp.Value.wins)
+            .ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+            .First().Key;
+    }
+
+    private string DetermineLoserId(TournamentMatch match)
+    {
+        if (match == null || string.IsNullOrEmpty(match.winnerId)) return null;
+        if (StringEquals(match.winnerId, match.participant1Id)) return match.participant2Id;
+        if (StringEquals(match.winnerId, match.participant2Id)) return match.participant1Id;
+        return null;
+    }
+
+    private string ResolveParticipantName(string id, Dictionary<string, string> map)
+    {
+        if (string.IsNullOrEmpty(id) || map == null) return string.Empty;
+        return map.TryGetValue(id, out var value) ? value : id;
+    }
+
 
     private void OnRemoveEntrant()
     {
@@ -3243,8 +4233,11 @@ public class PromotionDashboard : MonoBehaviour
         int removed = t.entrants.RemoveAll(e => string.Equals(e?.name, name, StringComparison.OrdinalIgnoreCase));
         if (removed > 0)
         {
+            ResetTournamentProgress(t);
             DataManager.SaveTournaments(tournamentCollection);
             PopulateEntrantsUI(t);
+            RefreshTournamentDashboard();
+            RefreshTournamentFilters();
             if (statusLabel != null) statusLabel.text = "Entrant removed.";
         }
     }
@@ -3253,10 +4246,147 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
-        t.rounds = new List<TournamentRound>();
+        ResetTournamentProgress(t);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateMatchesUI(t);
+        RefreshTournamentDashboard();
+        RefreshTournamentFilters();
         if (statusLabel != null) statusLabel.text = "Bracket cleared.";
+    }
+
+    private void OnTournamentStatusChanged()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        if (tournamentStatusDropdown == null) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        t.status = ParseTournamentStatus(tournamentStatusDropdown.value);
+        DataManager.SaveTournaments(tournamentCollection);
+        RefreshTournamentDashboard();
+        if (statusLabel != null) statusLabel.text = $"Status updated to {t.status}.";
+    }
+
+    private void OnExportTournamentBracket()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count)
+        {
+            if (statusLabel != null) statusLabel.text = "Select a tournament to export first.";
+            return;
+        }
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        var path = ExportTournamentBracketToFile(t);
+        if (statusLabel != null)
+            statusLabel.text = string.IsNullOrEmpty(path) ? "Unable to export bracket." : $"Bracket exported to {path}.";
+    }
+
+    private string ExportTournamentBracketToFile(TournamentData t)
+    {
+        if (t == null) return string.Empty;
+        var sb = new StringBuilder();
+        sb.AppendLine($"{t.name} · {FormatToLabel(t.format)}");
+        sb.AppendLine($"Brand: {(string.IsNullOrEmpty(t.brand) ? "Unassigned" : t.brand)}");
+        sb.AppendLine($"Year: {(t.year > 0 ? t.year.ToString(CultureInfo.InvariantCulture) : "N/A")}");
+        sb.AppendLine($"Status: {t.status}");
+        if (!string.IsNullOrEmpty(t.stakes))
+            sb.AppendLine($"Reward: {t.stakes}");
+        sb.AppendLine();
+        var nameMap = BuildTournamentNameMap(t);
+
+        void AppendMatchInfo(TournamentMatch match, string prefix)
+        {
+            if (match == null) return;
+            var p1 = nameMap.TryGetValue(match.participant1Id ?? string.Empty, out var n1) ? n1 : "(Bye)";
+            var p2 = nameMap.TryGetValue(match.participant2Id ?? string.Empty, out var n2) ? n2 : "(Bye)";
+            string result;
+            if (match.isDraw)
+                result = "Result: Draw";
+            else if (!string.IsNullOrEmpty(match.winnerId) && nameMap.TryGetValue(match.winnerId, out var wn))
+                result = $"Winner: {wn}";
+            else
+                result = "Winner: TBD";
+            sb.AppendLine($"{prefix}{p1} vs {p2}  |  {result}");
+        }
+
+        foreach (var round in t.rounds ?? new List<TournamentRound>())
+        {
+            if (round?.matches == null || round.matches.Count == 0) continue;
+            var label = string.IsNullOrEmpty(round.label) ? $"Winners Round {round.roundNumber}" : round.label;
+            sb.AppendLine(label);
+            foreach (var match in round.matches)
+                AppendMatchInfo(match, "  ");
+            sb.AppendLine();
+        }
+
+        if (t.loserRounds != null && t.loserRounds.Count > 0)
+        {
+            foreach (var round in t.loserRounds)
+            {
+                if (round?.matches == null || round.matches.Count == 0) continue;
+                var label = string.IsNullOrEmpty(round.label) ? $"Losers Round {round.roundNumber}" : round.label;
+                sb.AppendLine(label);
+                foreach (var match in round.matches)
+                    AppendMatchInfo(match, "  ");
+                sb.AppendLine();
+            }
+        }
+
+        if (t.blocks != null && t.blocks.Count > 0)
+        {
+            foreach (var block in t.blocks)
+            {
+                if (block == null) continue;
+                sb.AppendLine($"{block.name ?? "Block"} Matches");
+                foreach (var match in block.matches ?? new List<TournamentMatch>())
+                    AppendMatchInfo(match, "  ");
+                sb.AppendLine();
+            }
+        }
+
+        if (t.finalsMatch != null && (!string.IsNullOrEmpty(t.finalsMatch.participant1Id) || !string.IsNullOrEmpty(t.finalsMatch.participant2Id)))
+        {
+            sb.AppendLine("Finals");
+            AppendMatchInfo(t.finalsMatch, "  ");
+            sb.AppendLine();
+        }
+
+        var folder = Path.Combine(Application.dataPath, "../Exports/Tournaments");
+        Directory.CreateDirectory(folder);
+        var safePromotion = MakeSafeFileName(currentPromotion?.promotionName ?? "Promotion");
+        var safeTournament = MakeSafeFileName(t.name ?? "Tournament");
+        var filePath = Path.GetFullPath(Path.Combine(folder, $"{safePromotion}_{safeTournament}_Bracket.txt"));
+        try
+        {
+            File.WriteAllText(filePath, sb.ToString());
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to export bracket: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    private string MakeSafeFileName(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "export";
+        var invalid = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(raw.Length);
+        foreach (var c in raw)
+            sb.Append(invalid.Contains(c) ? '_' : c);
+        return sb.ToString();
+    }
+
+    private void ResetTournamentProgress(TournamentData t)
+    {
+        if (t == null) return;
+        t.rounds = new List<TournamentRound>();
+        t.loserRounds = new List<TournamentRound>();
+        t.blocks = new List<TournamentBlock>();
+        t.pendingLoserIds = new List<string>();
+        t.finalsMatch = null;
+        t.status = TournamentStatus.Planned;
+        t.championId = null;
+        t.championName = null;
+        UpdateTournamentWinnerLabel(t);
     }
 
     private void EnsureTagTeamListView()
@@ -3697,6 +4827,7 @@ public class PromotionDashboard : MonoBehaviour
                 var el = new VisualElement(); el.style.marginBottom = 6;
                 el.Add(new Label($"{entry.date} - {entry.matchName}"));
                 if (!string.IsNullOrEmpty(entry.winner)) el.Add(new Label($"Winner: {entry.winner}"));
+                if (!string.IsNullOrEmpty(entry.stakes)) el.Add(new Label($"Reward: {entry.stakes}"));
                 titleHistoryList.Add(el);
             }
         }
@@ -3721,6 +4852,7 @@ public class PromotionDashboard : MonoBehaviour
                 var el = new VisualElement(); el.style.marginBottom = 6;
                 el.Add(new Label($"{entry.date} - {entry.matchName}"));
                 if (!string.IsNullOrEmpty(entry.winner)) el.Add(new Label($"Winner: {entry.winner}"));
+                if (!string.IsNullOrEmpty(entry.stakes)) el.Add(new Label($"Reward: {entry.stakes}"));
                 titleHistoryList.Add(el);
             }
         }
@@ -4195,6 +5327,7 @@ public class PromotionDashboard : MonoBehaviour
         if (wrestlerDDropdown != null) wrestlerDDropdown.value = string.Empty;
         if (wrestlerEDropdown != null) wrestlerEDropdown.value = string.Empty;
         if (wrestlerFDropdown != null) wrestlerFDropdown.value = string.Empty;
+        if (matchStakesField != null) matchStakesField.value = string.Empty;
 
         UpdateWinnerChoices();
         UpdateMatchParticipantInputs();
@@ -4275,6 +5408,7 @@ public class PromotionDashboard : MonoBehaviour
         var vsSegment = BuildMatchVsPart(structure, new List<string> { A, B, C, D, E, F }.Where(p => !string.IsNullOrEmpty(p)).ToList(), true);
         string matchName = string.IsNullOrEmpty(vsSegment) ? descriptor : $"{descriptor}: {vsSegment}";
         string winner = winnerDropdown != null ? (winnerDropdown.value ?? string.Empty).Trim() : string.Empty;
+        string stakesText = matchStakesField != null ? (matchStakesField.value ?? string.Empty).Trim() : string.Empty;
         // Build id maps
         EnsureRosterAndTitlesLoaded();
         var idByName = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
@@ -4328,6 +5462,7 @@ public class PromotionDashboard : MonoBehaviour
             isTitleMatch = isTitleMatchToggle != null && isTitleMatchToggle.value,
             titleName = (isTitleMatchToggle != null && isTitleMatchToggle.value && titleDropdown != null) ? titleDropdown.value : null,
             winner = winner,
+            stakes = string.IsNullOrEmpty(stakesText) ? null : stakesText,
             wrestlerAId = GetId(A),
             wrestlerBId = GetId(B),
             wrestlerCId = GetId(C),
@@ -5061,6 +6196,7 @@ public class PromotionDashboard : MonoBehaviour
                     if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
+                    if (!string.IsNullOrEmpty(m.stakes)) entry.Add(new Label($"Reward: {m.stakes}"));
 
                     var linksRow = BuildHistoryLinksRow(show, m);
                     if (linksRow != null)
@@ -5100,6 +6236,7 @@ public class PromotionDashboard : MonoBehaviour
                     entry.Add(new Label(matchHeader)); if (!string.IsNullOrEmpty(vsLine)) entry.Add(new Label(vsLine));
                     if (!string.IsNullOrEmpty(m.winner)) entry.Add(new Label($"Winner: {m.winner}"));
                     if (m.isTitleMatch && !string.IsNullOrEmpty(m.titleName)) entry.Add(new Label($"Title: {m.titleName}"));
+                    if (!string.IsNullOrEmpty(m.stakes)) entry.Add(new Label($"Reward: {m.stakes}"));
                     var linksRow = BuildHistoryLinksRow(show, m);
                     if (linksRow != null)
                         entry.Add(linksRow);

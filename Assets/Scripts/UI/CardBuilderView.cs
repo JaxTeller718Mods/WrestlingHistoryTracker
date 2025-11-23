@@ -18,7 +18,7 @@ public class CardBuilderView
     private Button addMatchButton, addSegmentButton, saveButton, cancelButton, deleteEntryButton;
 
     private VisualElement noSelectionHint, matchEditor, segmentEditor;
-    private TextField matchNameField, matchNotesField;
+    private TextField matchNameField, matchNotesField, matchStakesField;
     private DropdownField matchTypeDropdown, matchStipulationDropdown; private Toggle isTitleMatchToggle;
     private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
     private TextField segmentNameField, segmentTextField;
@@ -82,6 +82,7 @@ public class CardBuilderView
         titleDropdown = panel.Q<DropdownField>("cbTitleDropdown");
         winnerDropdown = panel.Q<DropdownField>("cbWinnerDropdown");
         matchNotesField = panel.Q<TextField>("cbMatchNotesField");
+        matchStakesField = panel.Q<TextField>("cbMatchStakesField");
         segmentNameField = panel.Q<TextField>("cbSegmentNameField");
         segmentTypeDropdown = panel.Q<DropdownField>("cbSegmentTypeDropdown");
         segmentParticipantADropdown = panel.Q<DropdownField>("cbSegmentParticipantADropdown");
@@ -613,6 +614,7 @@ public class CardBuilderView
             if (titleDropdown != null) titleDropdown.value = FindChoice(titleChoices, m.titleName);
             UpdateWinnerChoices(m.winner);
             matchNotesField.value = m.notes;
+            if (matchStakesField != null) matchStakesField.value = m.stakes ?? string.Empty;
         }
         else
         {
@@ -794,6 +796,11 @@ public class CardBuilderView
                 m.titleName = titleDropdown?.value;
                 m.winner = winnerDropdown?.value;
                 m.notes = matchNotesField.value;
+                if (matchStakesField != null)
+                {
+                    var stakeText = (matchStakesField.value ?? string.Empty).Trim();
+                    m.stakes = string.IsNullOrEmpty(stakeText) ? null : stakeText;
+                }
             }
             else
             {

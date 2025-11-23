@@ -118,6 +118,7 @@
             <ui:Toggle name="cbIsTitleMatchToggle" label="Title Match" />
             <ui:DropdownField name="cbTitleDropdown" label="Pick Title" />
             <ui:DropdownField name="cbWinnerDropdown" label="Pick Winner" />
+            <ui:TextField name="cbMatchStakesField" label="Stakes / Reward (optional)" multiline="true" />
             <ui:TextField name="cbMatchNotesField" label="Notes" multiline="true" />
           </ui:VisualElement>
           <ui:VisualElement name="cbSegmentEditor" class="hidden">
@@ -429,10 +430,35 @@
     <ui:ScrollView name="tournamentsPanel" class="hidden">
       <ui:Label text="Tournaments" class="section-title" />
 
+      <ui:VisualElement name="tournamentDashboardPanel" class="title-detail-card tournament-dashboard-card">
+        <ui:Label text="Tournament Dashboard" class="subsection-title" />
+        <ui:VisualElement class="row wrap-row">
+          <ui:DropdownField name="tournamentYearFilterDropdown" label="Year" class="overlay-dropdown" />
+          <ui:DropdownField name="tournamentBrandFilterDropdown" label="Brand" class="overlay-dropdown" />
+          <ui:DropdownField name="tournamentSortDropdown" label="Sort By" class="overlay-dropdown" />
+          <ui:Button name="exportBracketButton" text="Export Selected Bracket" />
+        </ui:VisualElement>
+        <ui:VisualElement class="tournament-dashboard-columns">
+          <ui:VisualElement class="tournament-dashboard-column">
+            <ui:Label text="Active Tournaments" class="subsection-title" />
+            <ui:ScrollView name="activeTournamentList" class="list" />
+          </ui:VisualElement>
+          <ui:VisualElement class="tournament-dashboard-column">
+            <ui:Label text="Completed Tournaments" class="subsection-title" />
+            <ui:ScrollView name="completedTournamentList" class="list" />
+          </ui:VisualElement>
+        </ui:VisualElement>
+      </ui:VisualElement>
+
       <!-- Create/Add panel (default visible) -->
       <ui:VisualElement name="tournamentAddPanel" class="title-add-card">
         <ui:TextField name="newTournamentNameField" label="Tournament Name" />
         <ui:DropdownField name="newTournamentTypeDropdown" label="Type" />
+        <ui:DropdownField name="newTournamentFormatDropdown" label="Format" />
+        <ui:DropdownField name="newTournamentBrandDropdown" label="Brand (optional)" />
+        <ui:IntegerField name="newTournamentYearField" label="Year" />
+        <ui:Toggle name="newTournamentSeededToggle" label="Seed Entrants" />
+        <ui:TextField name="newTournamentStakesField" label="Stakes / Reward (optional)" multiline="true" />
         <ui:VisualElement class="row">
           <ui:Button name="addTournamentButton" text="Add Tournament" />
           <ui:Button name="saveTournamentsButton" text="Save Tournaments" />
@@ -445,7 +471,7 @@
         <!-- Entrants column (left) -->
         <ui:VisualElement class="tournament-entrants-column">
           <ui:Label text="Entrants" class="subsection-title" />
-          <ui:ScrollView name="tournamentEntrantsList" class="list" />
+          <ui:ScrollView name="tournamentEntrantsList" class="list tournament-tall-list" />
         </ui:VisualElement>
 
         <!-- Manage column (middle) -->
@@ -454,6 +480,13 @@
             <ui:Label text="Manage Tournament" class="subsection-title" />
             <ui:TextField name="tournamentNameField" label="Tournament Name" />
             <ui:DropdownField name="tournamentTypeDropdown" label="Type" />
+            <ui:DropdownField name="tournamentFormatDropdown" label="Format" />
+            <ui:DropdownField name="tournamentBrandDropdown" label="Brand" />
+            <ui:IntegerField name="tournamentYearField" label="Year" />
+            <ui:Toggle name="tournamentSeededToggle" label="Seed Entrants" />
+            <ui:DropdownField name="tournamentStatusDropdown" label="Status" />
+            <ui:Label name="tournamentWinnerLabel" text="Winner: --" class="tournament-winner-label" />
+            <ui:TextField name="tournamentStakesField" label="Stakes / Reward (optional)" multiline="true" />
 
             <ui:VisualElement class="row">
               <ui:DropdownField name="tournamentEntrantDropdown" label="Add/Select Entrant" class="overlay-dropdown" />
@@ -478,7 +511,7 @@
         <!-- Current round matches (new separate column) -->
         <ui:VisualElement class="tournament-matches-column">
           <ui:Label text="Current Round" class="subsection-title" />
-          <ui:ScrollView name="tournamentMatchesList" class="list" />
+          <ui:ScrollView name="tournamentMatchesList" class="list tournament-tall-list" />
         </ui:VisualElement>
 
         <!-- List column (right) -->
@@ -564,6 +597,7 @@
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
               <ui:DropdownField name="titleDropdown" label="Title (optional)" />
               <ui:DropdownField name="winnerDropdown" label="Winner" />
+              <ui:TextField name="matchStakesField" label="Stakes / Reward (optional)" />
               <ui:VisualElement class="row">
                 <ui:Button name="saveMatchButton" text="Save Match" />
                 <ui:Button name="cancelMatchButton" text="Cancel" />

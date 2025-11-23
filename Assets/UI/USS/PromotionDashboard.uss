@@ -432,6 +432,67 @@ FloatField > .unity-float-field__input {
 }
 .tournament-layout > * { margin-right: 16px; margin-bottom: 16px; }
 
+.wrap-row {
+    flex-wrap: wrap;
+}
+.wrap-row > * {
+    margin-right: 12px;
+    margin-bottom: 12px;
+}
+
+.tournament-dashboard-card {
+    margin-bottom: 16px;
+}
+
+.tournament-dashboard-columns {
+    display: flex;
+    flex-direction: row;
+}
+.tournament-dashboard-columns > * {
+    margin-right: 16px;
+}
+
+.tournament-dashboard-column {
+    flex: 1 1 0;
+}
+
+.tournament-match-card {
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: #3a3a3a;
+    border-right-color: #3a3a3a;
+    border-top-color: #3a3a3a;
+    border-bottom-color: #3a3a3a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: #1f1f1f;
+}
+
+.tournament-standings-header {
+    margin-top: 8px;
+    -unity-font-style: normal;
+    -unity-font-weight: bold;
+}
+
+.tournament-standings-row {
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+.tournament-winner-label {
+    font-size: 12px;
+    -unity-font-style: italic;
+    color: #d4d4d4;
+}
+.tournament-reward-label {
+    font-size: 11px;
+    color: #dcbf71;
+    margin-bottom: 4px;
+}
+
 #tournamentList {
     width: 360px;
     max-width: 360px;
@@ -479,6 +540,8 @@ FloatField > .unity-float-field__input {
     width: 280px;
     max-width: 320px;
     min-width: 240px;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Stables: narrow controls column */
@@ -499,6 +562,15 @@ FloatField > .unity-float-field__input {
     width: 380px;
     max-width: 420px;
     min-width: 340px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tournament-tall-list {
+    height: auto;
+    min-height: 460px;
+    max-height: 520px;
+    flex-grow: 1;
 }
 
 /* ===== RIVALRIES LAYOUT ===== */
