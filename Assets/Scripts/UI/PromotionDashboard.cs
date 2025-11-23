@@ -116,6 +116,8 @@ public class PromotionDashboard : MonoBehaviour
     private VisualElement tournamentAddPanel, tournamentManagePanel, tournamentDashboardPanel;
     private TextField newTournamentNameField, tournamentNameField, newTournamentStakesField, tournamentStakesField;
     private DropdownField newTournamentTypeDropdown, tournamentTypeDropdown, tournamentEntrantDropdown;
+    private DropdownField newTournamentEntrantDivisionDropdown, tournamentEntrantDivisionDropdown, newTournamentEntrantBrandDropdown, tournamentEntrantBrandDropdown;
+    private DropdownField newTournamentDivisionFilterDropdown, newTournamentBrandFilterDropdown, tournamentDivisionFilterDropdown;
     private DropdownField newTournamentFormatDropdown, tournamentFormatDropdown;
     private DropdownField newTournamentBrandDropdown, tournamentBrandDropdown;
     private DropdownField tournamentYearFilterDropdown, tournamentBrandFilterDropdown, tournamentSortDropdown, tournamentStatusDropdown;
@@ -374,6 +376,12 @@ public class PromotionDashboard : MonoBehaviour
         newTournamentYearField = root.Q<IntegerField>("newTournamentYearField");
         newTournamentSeededToggle = root.Q<Toggle>("newTournamentSeededToggle");
         newTournamentStakesField = root.Q<TextField>("newTournamentStakesField");
+        newTournamentEntrantDivisionDropdown = root.Q<DropdownField>("newTournamentEntrantDivisionDropdown");
+        SetupDropdownOverlay(newTournamentEntrantDivisionDropdown);
+        newTournamentEntrantBrandDropdown = root.Q<DropdownField>("newTournamentEntrantBrandDropdown");
+        SetupDropdownOverlay(newTournamentEntrantBrandDropdown);
+        newTournamentDivisionFilterDropdown = root.Q<DropdownField>("newTournamentDivisionFilterDropdown");
+        newTournamentBrandFilterDropdown = root.Q<DropdownField>("newTournamentBrandFilterDropdown");
         tournamentNameField = root.Q<TextField>("tournamentNameField");
         tournamentTypeDropdown = root.Q<DropdownField>("tournamentTypeDropdown");
         SetupDropdownOverlay(tournamentTypeDropdown);
@@ -385,6 +393,12 @@ public class PromotionDashboard : MonoBehaviour
         tournamentSeededToggle = root.Q<Toggle>("tournamentSeededToggle");
         tournamentWinnerLabel = root.Q<Label>("tournamentWinnerLabel");
         tournamentStakesField = root.Q<TextField>("tournamentStakesField");
+        tournamentEntrantDivisionDropdown = root.Q<DropdownField>("tournamentEntrantDivisionDropdown");
+        SetupDropdownOverlay(tournamentEntrantDivisionDropdown);
+        tournamentEntrantBrandDropdown = root.Q<DropdownField>("tournamentEntrantBrandDropdown");
+        SetupDropdownOverlay(tournamentEntrantBrandDropdown);
+        tournamentDivisionFilterDropdown = root.Q<DropdownField>("tournamentDivisionFilterDropdown");
+        tournamentBrandFilterDropdown = root.Q<DropdownField>("tournamentBrandFilterDropdown");
         tournamentEntrantDropdown = root.Q<DropdownField>("tournamentEntrantDropdown");
         SetupDropdownOverlay(tournamentEntrantDropdown);
         tournamentStatusDropdown = root.Q<DropdownField>("tournamentStatusDropdown");
@@ -797,7 +811,23 @@ public class PromotionDashboard : MonoBehaviour
         EnsureMatchStipulationChoices();
         EnsureTournamentTypeChoices();
         if (tournamentTypeDropdown != null)
-            tournamentTypeDropdown.RegisterValueChangedCallback(_ => PopulateEntrantChoices(tournamentTypeDropdown.value));
+            tournamentTypeDropdown.RegisterValueChangedCallback(evt =>
+            {
+                if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count)
+                    return;
+                var t = tournamentCollection.tournaments[selectedTournamentIndex];
+                t.type = evt.newValue;
+                t.entrantType = evt.newValue;
+                ResetTournamentProgress(t);
+                DataManager.SaveTournaments(tournamentCollection);
+                PopulateEntrantsUI(t);
+                PopulateMatchesUI(t);
+                RefreshTournamentDashboard();
+            });
+        if (tournamentEntrantDivisionDropdown != null)
+            tournamentEntrantDivisionDropdown.RegisterValueChangedCallback(_ => OnTournamentFiltersChanged());
+        if (tournamentEntrantBrandDropdown != null)
+            tournamentEntrantBrandDropdown.RegisterValueChangedCallback(_ => OnTournamentFiltersChanged());
 
         // Stables handlers
         if (addStableButton != null) addStableButton.clicked += OnAddStable;
@@ -2518,8 +2548,10 @@ public class PromotionDashboard : MonoBehaviour
                 calendarGenerationBrandDropdown.value = "";
         }
 
-        var tournamentBrandChoices = new List<string> { "" };
-        tournamentBrandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+        var tournamentBrandChoices = new List<string> { "", "All Brands" };
+        tournamentBrandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b) && !StringEquals(b, "All Brands"))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(b => b));
         if (newTournamentBrandDropdown != null)
         {
             newTournamentBrandDropdown.choices = tournamentBrandChoices;
@@ -2531,6 +2563,21 @@ public class PromotionDashboard : MonoBehaviour
             tournamentBrandDropdown.choices = tournamentBrandChoices;
             if (!tournamentBrandChoices.Contains(tournamentBrandDropdown.value))
                 tournamentBrandDropdown.value = "";
+        }
+
+        var entrantBrandChoices = new List<string> { "All Brands" };
+        entrantBrandChoices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(b => b));
+        if (newTournamentEntrantBrandDropdown != null)
+        {
+            newTournamentEntrantBrandDropdown.choices = entrantBrandChoices;
+            if (!entrantBrandChoices.Contains(newTournamentEntrantBrandDropdown.value))
+                newTournamentEntrantBrandDropdown.value = entrantBrandChoices[0];
+        }
+        if (tournamentEntrantBrandDropdown != null)
+        {
+            tournamentEntrantBrandDropdown.choices = entrantBrandChoices;
+            if (!entrantBrandChoices.Contains(tournamentEntrantBrandDropdown.value))
+                tournamentEntrantBrandDropdown.value = entrantBrandChoices[0];
         }
 
         RefreshTournamentFilters();
@@ -3312,6 +3359,8 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentSeededToggle != null) tournamentSeededToggle.value = t.seededBracket;
         if (tournamentStatusDropdown != null) tournamentStatusDropdown.value = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(t.status.ToString().ToLowerInvariant());
         if (tournamentStakesField != null) tournamentStakesField.value = t.stakes ?? string.Empty;
+        if (tournamentEntrantDivisionDropdown != null) tournamentEntrantDivisionDropdown.value = NormalizeDivisionFilterValue(t.entrantDivision);
+        if (tournamentEntrantBrandDropdown != null) tournamentEntrantBrandDropdown.value = NormalizeBrandFilterValue(t.entrantBrand ?? t.brand);
         PopulateEntrantsUI(t);
         PopulateMatchesUI(t);
         UpdateTournamentWinnerLabel(t);
@@ -3320,17 +3369,16 @@ public class PromotionDashboard : MonoBehaviour
 
     private void EnsureTournamentTypeChoices()
     {
+        var participantChoices = new List<string> { "Singles", "Tag Team", "Trios", "Stable" };
         if (tournamentTypeDropdown != null)
         {
-            if (tournamentTypeDropdown.choices == null || tournamentTypeDropdown.choices.Count == 0)
-                tournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Trios" };
-            if (string.IsNullOrEmpty(tournamentTypeDropdown.value)) tournamentTypeDropdown.value = tournamentTypeDropdown.choices[0];
+            tournamentTypeDropdown.choices = participantChoices;
+            if (string.IsNullOrEmpty(tournamentTypeDropdown.value)) tournamentTypeDropdown.value = participantChoices[0];
         }
         if (newTournamentTypeDropdown != null)
         {
-            if (newTournamentTypeDropdown.choices == null || newTournamentTypeDropdown.choices.Count == 0)
-                newTournamentTypeDropdown.choices = new List<string> { "Singles", "Tag Team", "Trios" };
-            if (string.IsNullOrEmpty(newTournamentTypeDropdown.value)) newTournamentTypeDropdown.value = newTournamentTypeDropdown.choices[0];
+            newTournamentTypeDropdown.choices = participantChoices;
+            if (string.IsNullOrEmpty(newTournamentTypeDropdown.value)) newTournamentTypeDropdown.value = participantChoices[0];
         }
 
         var formatChoices = GetTournamentFormatChoices();
@@ -3351,28 +3399,188 @@ public class PromotionDashboard : MonoBehaviour
             tournamentStatusDropdown.choices = statusChoices;
             if (string.IsNullOrEmpty(tournamentStatusDropdown.value)) tournamentStatusDropdown.value = statusChoices[0];
         }
+
+        var divisionChoices = GetTournamentDivisionChoices();
+        if (newTournamentEntrantDivisionDropdown != null)
+        {
+            newTournamentEntrantDivisionDropdown.choices = divisionChoices;
+            if (!divisionChoices.Contains(newTournamentEntrantDivisionDropdown.value))
+                newTournamentEntrantDivisionDropdown.value = divisionChoices[0];
+        }
+        if (tournamentEntrantDivisionDropdown != null)
+        {
+            tournamentEntrantDivisionDropdown.choices = divisionChoices;
+            if (!divisionChoices.Contains(tournamentEntrantDivisionDropdown.value))
+                tournamentEntrantDivisionDropdown.value = divisionChoices[0];
+        }
     }
 
-    private void PopulateEntrantChoices(string type)
+    private List<string> GetTournamentDivisionChoices()
+    {
+        var choices = new List<string> { "All Divisions" };
+        var divisions = rankingStore?.config?.singlesDivisions ?? new List<string>();
+        if (!divisions.Any(div => StringEquals(div, "Overall")))
+            divisions.Insert(0, "Overall");
+        foreach (var div in divisions)
+        {
+            if (string.IsNullOrWhiteSpace(div)) continue;
+            if (!choices.Contains(div, StringComparer.OrdinalIgnoreCase))
+                choices.Add(div);
+        }
+        return choices;
+    }
+
+    private void PopulateEntrantChoices(TournamentData tournament)
     {
         if (tournamentEntrantDropdown == null) return;
-        var choices = new List<string>();
-        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        if (tournament == null)
         {
-            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
-            foreach (var g in tagTeamCollection?.teams ?? new List<TagTeamData>())
-                if (!string.IsNullOrEmpty(g?.teamName)) choices.Add(g.teamName);
+            var fallbackChoices = BuildEntrantOptions(tournamentTypeDropdown?.value ?? "Singles", "All Divisions", "All Brands");
+            if (fallbackChoices.Count == 0) fallbackChoices.Add(string.Empty);
+            tournamentEntrantDropdown.choices = fallbackChoices;
+            tournamentEntrantDropdown.value = fallbackChoices[0];
+            return;
         }
-        else
-        {
-            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion.promotionName);
-            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
-                if (!string.IsNullOrEmpty(w?.name)) choices.Add(w.name);
-        }
+        var type = GetParticipantType(tournament);
+        var divisionFilter = NormalizeDivisionFilterValue(tournament?.entrantDivision);
+        var brandFilter = NormalizeBrandFilterValue(GetEffectiveBrandFilter(tournament));
+        var choices = BuildEntrantOptions(type, divisionFilter, brandFilter);
         if (choices.Count == 0) choices.Add(string.Empty);
         tournamentEntrantDropdown.choices = choices;
         tournamentEntrantDropdown.value = choices[0];
     }
+
+    private List<string> BuildEntrantOptions(string type, string divisionFilter, string brandFilter)
+    {
+        var results = new List<string>();
+        var brandRoster = BuildBrandRoster(brandFilter);
+        bool brandActive = brandRoster != null;
+
+        bool isStableType = type != null && type.IndexOf("stable", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTeamType = type != null && (type.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0 || type.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        if (isStableType)
+        {
+            stableCollection ??= DataManager.LoadStables(currentPromotion?.promotionName);
+            var nameById = BuildWrestlerNameById();
+            foreach (var s in stableCollection?.stables ?? new List<StableData>())
+            {
+                if (s == null || string.IsNullOrEmpty(s.stableName)) continue;
+                if (brandActive)
+                {
+                    bool memberMatches = s.memberIds != null && s.memberIds.Any(id =>
+                    {
+                        if (string.IsNullOrEmpty(id)) return false;
+                        return nameById.TryGetValue(id, out var nm) && brandRoster.Contains(nm);
+                    });
+                    if (!memberMatches) continue;
+                }
+                results.Add(s.stableName);
+            }
+        }
+        else if (isTeamType)
+        {
+            tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion?.promotionName);
+            foreach (var team in tagTeamCollection?.teams ?? new List<TagTeamData>())
+            {
+                if (team == null || string.IsNullOrEmpty(team.teamName)) continue;
+                if (!MatchesDivision(team.division, divisionFilter)) continue;
+                if (brandActive)
+                {
+                    bool left = !string.IsNullOrEmpty(team.memberA) && brandRoster.Contains(team.memberA);
+                    bool right = !string.IsNullOrEmpty(team.memberB) && brandRoster.Contains(team.memberB);
+                    if (!left || !right) continue;
+                }
+                results.Add(team.teamName);
+            }
+        }
+        else
+        {
+            wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+            foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+            {
+                if (w == null || string.IsNullOrEmpty(w.name)) continue;
+                if (!MatchesDivision(w.division, divisionFilter)) continue;
+                if (brandActive && !brandRoster.Contains(w.name)) continue;
+                results.Add(w.name);
+            }
+        }
+
+        results.Sort(StringComparer.OrdinalIgnoreCase);
+        return results;
+    }
+
+    private string GetParticipantType(TournamentData t)
+    {
+        if (!string.IsNullOrEmpty(t?.entrantType)) return t.entrantType;
+        if (!string.IsNullOrEmpty(t?.type)) return t.type;
+        return "Singles";
+    }
+
+    private string NormalizeDivisionFilterValue(string value)
+        => string.IsNullOrWhiteSpace(value) ? "All Divisions" : value.Trim();
+
+    private string StoreDivisionFilterValue(string value)
+        => StringEquals(NormalizeDivisionFilterValue(value), "All Divisions") ? null : NormalizeDivisionFilterValue(value);
+
+    private string NormalizeBrandFilterValue(string value)
+        => string.IsNullOrWhiteSpace(value) ? "All Brands" : value.Trim();
+
+    private string StoreBrandFilterValue(string value)
+        => StringEquals(NormalizeBrandFilterValue(value), "All Brands") ? null : NormalizeBrandFilterValue(value);
+
+    private string GetEffectiveBrandFilter(TournamentData t)
+    {
+        if (!string.IsNullOrEmpty(t?.entrantBrand)) return t.entrantBrand;
+        return t?.brand;
+    }
+
+    private bool MatchesDivision(string entryDivision, string filter)
+    {
+        var normalizedFilter = NormalizeDivisionFilterValue(filter);
+        if (StringEquals(normalizedFilter, "All Divisions")) return true;
+        var division = string.IsNullOrWhiteSpace(entryDivision) ? "No Division" : entryDivision.Trim();
+        return StringEquals(division, normalizedFilter);
+    }
+
+    private Dictionary<string, string> BuildWrestlerNameById()
+    {
+        wrestlerCollection ??= DataManager.LoadWrestlers(currentPromotion?.promotionName);
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wrestlerCollection?.wrestlers ?? new List<WrestlerData>())
+        {
+            if (w == null || string.IsNullOrEmpty(w.id) || string.IsNullOrEmpty(w.name)) continue;
+            map[w.id] = w.name;
+        }
+        return map;
+    }
+
+    private HashSet<string> BuildBrandRoster(string brand)
+    {
+        if (string.IsNullOrWhiteSpace(brand) || StringEquals(brand, "All Brands"))
+            return null;
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var show in currentPromotion?.shows ?? new List<ShowData>())
+        {
+            if (show == null || string.IsNullOrEmpty(show.brand) || !StringEquals(show.brand, brand)) continue;
+            foreach (var match in show.matches ?? new List<MatchData>())
+            {
+                if (match == null) continue;
+                void AddName(string name)
+                {
+                    if (!string.IsNullOrWhiteSpace(name)) set.Add(name.Trim());
+                }
+                AddName(match.wrestlerA);
+                AddName(match.wrestlerB);
+                AddName(match.wrestlerC);
+                AddName(match.wrestlerD);
+                AddName(match.wrestlerE);
+                AddName(match.wrestlerF);
+            }
+        }
+        return set;
+    }
+
 
     private void PopulateEntrantsUI(TournamentData t)
     {
@@ -3383,7 +3591,7 @@ public class PromotionDashboard : MonoBehaviour
             var label = new Label(e?.name ?? "");
             tournamentEntrantsList.Add(label);
         }
-        PopulateEntrantChoices(t.type);
+        PopulateEntrantChoices(t);
     }
 
     private void PopulateMatchesUI(TournamentData t)
@@ -3566,7 +3774,16 @@ public class PromotionDashboard : MonoBehaviour
     private Dictionary<string, string> BuildTournamentNameMap(TournamentData t)
     {
         var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-        if (string.Equals(t.type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        var participantType = GetParticipantType(t);
+        bool isStableType = participantType.IndexOf("stable", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isTeamType = participantType.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0 || participantType.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (isStableType)
+        {
+            stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
+            foreach (var s in stableCollection?.stables ?? new List<StableData>())
+                if (!string.IsNullOrEmpty(s?.id) && !string.IsNullOrEmpty(s.stableName)) map[s.id] = s.stableName;
+        }
+        else if (isTeamType)
         {
             tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
             foreach (var g in tagTeamCollection?.teams ?? new List<TagTeamData>())
@@ -3598,11 +3815,16 @@ public class PromotionDashboard : MonoBehaviour
         var year = newTournamentYearField != null && newTournamentYearField.value > 0 ? newTournamentYearField.value : DateTime.Today.Year;
         var seeded = newTournamentSeededToggle != null && newTournamentSeededToggle.value;
         var stakesText = newTournamentStakesField != null ? (newTournamentStakesField.value ?? string.Empty).Trim() : string.Empty;
+        var entrantDivision = StoreDivisionFilterValue(newTournamentEntrantDivisionDropdown?.value);
+        var entrantBrand = StoreBrandFilterValue(newTournamentEntrantBrandDropdown?.value);
         var t = new TournamentData
         {
             id = System.Guid.NewGuid().ToString("N"),
             name = string.IsNullOrEmpty(rawName) ? "New Tournament" : rawName,
             type = newTournamentTypeDropdown != null ? (newTournamentTypeDropdown.value ?? "Singles") : "Singles",
+            entrantType = newTournamentTypeDropdown != null ? (newTournamentTypeDropdown.value ?? "Singles") : "Singles",
+            entrantDivision = entrantDivision,
+            entrantBrand = entrantBrand,
             format = format,
             brand = brand,
             year = year,
@@ -3643,6 +3865,7 @@ public class PromotionDashboard : MonoBehaviour
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
         if (tournamentNameField != null) t.name = tournamentNameField.value;
         if (tournamentTypeDropdown != null) t.type = tournamentTypeDropdown.value;
+        t.entrantType = tournamentTypeDropdown?.value ?? t.type;
         if (tournamentFormatDropdown != null) t.format = ParseTournamentFormat(tournamentFormatDropdown.value);
         if (tournamentBrandDropdown != null) t.brand = (tournamentBrandDropdown.value ?? string.Empty).Trim();
         if (tournamentYearField != null && tournamentYearField.value > 0) t.year = tournamentYearField.value;
@@ -3653,10 +3876,13 @@ public class PromotionDashboard : MonoBehaviour
             var stakesVal = (tournamentStakesField.value ?? string.Empty).Trim();
             t.stakes = string.IsNullOrEmpty(stakesVal) ? null : stakesVal;
         }
+        t.entrantDivision = StoreDivisionFilterValue(tournamentEntrantDivisionDropdown?.value);
+        t.entrantBrand = StoreBrandFilterValue(tournamentEntrantBrandDropdown?.value);
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentList();
         RefreshTournamentFilters();
         RefreshTournamentDashboard();
+        PopulateEntrantChoices(t);
         if (statusLabel != null) statusLabel.text = "Tournament updated.";
         ShowTournamentAddPanel();
     }
@@ -3699,6 +3925,10 @@ public class PromotionDashboard : MonoBehaviour
         if (newTournamentYearField != null) newTournamentYearField.value = DateTime.Today.Year;
         if (newTournamentSeededToggle != null) newTournamentSeededToggle.value = false;
         if (newTournamentStakesField != null) newTournamentStakesField.value = string.Empty;
+        if (newTournamentEntrantDivisionDropdown != null && newTournamentEntrantDivisionDropdown.choices != null && newTournamentEntrantDivisionDropdown.choices.Count > 0)
+            newTournamentEntrantDivisionDropdown.value = newTournamentEntrantDivisionDropdown.choices[0];
+        if (newTournamentEntrantBrandDropdown != null && newTournamentEntrantBrandDropdown.choices != null && newTournamentEntrantBrandDropdown.choices.Count > 0)
+            newTournamentEntrantBrandDropdown.value = newTournamentEntrantBrandDropdown.choices[0];
     }
 
     private void OnAddEntrant()
@@ -3706,15 +3936,21 @@ public class PromotionDashboard : MonoBehaviour
         if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
         var t = tournamentCollection.tournaments[selectedTournamentIndex];
         EnsureTournamentTypeChoices();
-        string type = tournamentTypeDropdown != null ? tournamentTypeDropdown.value : (t.type ?? "Singles");
+        string type = GetParticipantType(t);
         var name = tournamentEntrantDropdown != null ? (tournamentEntrantDropdown.value ?? string.Empty).Trim() : string.Empty;
         if (string.IsNullOrEmpty(name)) return;
         var entry = new TournamentEntry();
-        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(type, "Tag Team", StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Trios", StringComparison.OrdinalIgnoreCase))
         {
             tagTeamCollection ??= DataManager.LoadTagTeams(currentPromotion.promotionName);
             var team = (tagTeamCollection?.teams ?? new List<TagTeamData>()).FirstOrDefault(x => string.Equals(x?.teamName, name, StringComparison.OrdinalIgnoreCase));
             entry.id = team?.id; entry.name = team?.teamName;
+        }
+        else if (string.Equals(type, "Stable", StringComparison.OrdinalIgnoreCase))
+        {
+            stableCollection ??= DataManager.LoadStables(currentPromotion.promotionName);
+            var stable = (stableCollection?.stables ?? new List<StableData>()).FirstOrDefault(x => string.Equals(x?.stableName, name, StringComparison.OrdinalIgnoreCase));
+            entry.id = stable?.id; entry.name = stable?.stableName;
         }
         else
         {
@@ -3737,7 +3973,6 @@ public class PromotionDashboard : MonoBehaviour
         ResetTournamentProgress(t);
         DataManager.SaveTournaments(tournamentCollection);
         PopulateEntrantsUI(t);
-        PopulateEntrantChoices(type);
         RefreshTournamentDashboard();
         RefreshTournamentFilters();
         if (statusLabel != null) statusLabel.text = "Entrant added.";
@@ -4263,6 +4498,16 @@ public class PromotionDashboard : MonoBehaviour
         DataManager.SaveTournaments(tournamentCollection);
         RefreshTournamentDashboard();
         if (statusLabel != null) statusLabel.text = $"Status updated to {t.status}.";
+    }
+
+    private void OnTournamentFiltersChanged()
+    {
+        if (tournamentCollection?.tournaments == null || selectedTournamentIndex < 0 || selectedTournamentIndex >= tournamentCollection.tournaments.Count) return;
+        var t = tournamentCollection.tournaments[selectedTournamentIndex];
+        t.entrantDivision = StoreDivisionFilterValue(tournamentEntrantDivisionDropdown?.value);
+        t.entrantBrand = StoreBrandFilterValue(tournamentEntrantBrandDropdown?.value);
+        DataManager.SaveTournaments(tournamentCollection);
+        PopulateEntrantChoices(t);
     }
 
     private void OnExportTournamentBracket()

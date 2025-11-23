@@ -19,7 +19,7 @@ public class CardBuilderView
 
     private VisualElement noSelectionHint, matchEditor, segmentEditor;
     private TextField matchNameField, matchNotesField, matchStakesField;
-    private DropdownField matchTypeDropdown, matchStipulationDropdown; private Toggle isTitleMatchToggle;
+    private DropdownField matchTypeDropdown, matchStipulationDropdown, matchBrandFilterDropdown; private Toggle isTitleMatchToggle;
     private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
     private TextField segmentNameField, segmentTextField;
     private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
@@ -35,6 +35,8 @@ public class CardBuilderView
     private int selectedIndex = -1;
 
     private List<string> wrestlerChoices = new();
+    private List<string> allWrestlerChoices = new();
+    private string currentMatchBrandFilter = "All Brands";
     private readonly Dictionary<string, string> wrestlerIdByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> wrestlerNameById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private List<string> titleChoices = new();
@@ -72,6 +74,7 @@ public class CardBuilderView
         matchNameField = panel.Q<TextField>("cbMatchNameField");
         matchTypeDropdown = panel.Q<DropdownField>("cbMatchTypeDropdown");
         matchStipulationDropdown = panel.Q<DropdownField>("cbMatchStipulationDropdown");
+        matchBrandFilterDropdown = panel.Q<DropdownField>("cbMatchBrandFilterDropdown");
         wrestlerADropdown = panel.Q<DropdownField>("cbWrestlerADropdown");
         wrestlerBDropdown = panel.Q<DropdownField>("cbWrestlerBDropdown");
         wrestlerCDropdown = panel.Q<DropdownField>("cbWrestlerCDropdown");
@@ -202,6 +205,15 @@ public class CardBuilderView
             UpdateWinnerChoices();
             UpdateParticipantDropdownState();
         });
+        if (matchBrandFilterDropdown != null)
+        {
+            ConfigureMatchBrandFilter();
+            matchBrandFilterDropdown.RegisterValueChangedCallback(evt =>
+            {
+                currentMatchBrandFilter = NormalizeBrandFilter(evt.newValue);
+                ApplyWrestlerBrandFilter();
+            });
+        }
 
         LoadRosterAndTitles();
 
@@ -209,6 +221,7 @@ public class CardBuilderView
         SetupDropdownOverlay(templateDropdown);
         SetupDropdownOverlay(matchTypeDropdown);
         SetupDropdownOverlay(matchStipulationDropdown);
+        SetupDropdownOverlay(matchBrandFilterDropdown);
         SetupDropdownOverlay(wrestlerADropdown);
         SetupDropdownOverlay(wrestlerBDropdown);
         SetupDropdownOverlay(wrestlerCDropdown);
@@ -443,13 +456,13 @@ public class CardBuilderView
         {
             var pn = Promotion?.promotionName;
             // Wrestlers
-            wrestlerChoices = new List<string>();
+            allWrestlerChoices = new List<string>();
             wrestlerIdByName.Clear();
             wrestlerNameById.Clear();
             var wc = DataManager.LoadWrestlers(pn);
             if (wc?.wrestlers != null)
             {
-                wrestlerChoices = wc.wrestlers
+                allWrestlerChoices = wc.wrestlers
                     .Where(w => w != null && !string.IsNullOrWhiteSpace(w.name))
                     .Select(w => w.name)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -463,6 +476,7 @@ public class CardBuilderView
                         wrestlerNameById[w.id] = w.name;
                 }
             }
+            ApplyWrestlerBrandFilter();
             // Titles
             titleChoices = new List<string>();
             var tc = DataManager.LoadTitles(pn);
@@ -476,17 +490,7 @@ public class CardBuilderView
                     .ToList();
             }
 
-            // Apply to dropdowns
-            SetDropdownChoices(wrestlerADropdown, wrestlerChoices);
-            SetDropdownChoices(wrestlerBDropdown, wrestlerChoices);
-            SetDropdownChoices(wrestlerCDropdown, wrestlerChoices, allowEmpty: true);
-            SetDropdownChoices(wrestlerDDropdown, wrestlerChoices, allowEmpty: true);
             SetDropdownChoices(titleDropdown, titleChoices, allowEmpty: true);
-           SetDropdownChoices(wrestlerEDropdown, wrestlerChoices, allowEmpty: true);
-           SetDropdownChoices(wrestlerFDropdown, wrestlerChoices, allowEmpty: true);
-            SetSegmentParticipantChoices();
-            UpdateWinnerChoices();
-            UpdateParticipantDropdownState();
         }
         catch (Exception ex)
         {
@@ -502,16 +506,111 @@ public class CardBuilderView
         SetDropdownChoices(segmentParticipantDDropdown, wrestlerChoices, allowEmpty: true);
     }
 
-    private void SetDropdownChoices(DropdownField dd, List<string> source, bool allowEmpty = false)
+    private void SetDropdownChoices(DropdownField dd, List<string> source, bool allowEmpty = false, string preferred = null)
     {
         if (dd == null) return;
+        var previous = preferred ?? dd.value;
         var list = new List<string>();
-        if (allowEmpty) list.Add("");
+        if (allowEmpty) list.Add(string.Empty);
         if (source != null && source.Count > 0) list.AddRange(source);
+        if (list.Count == 0)
+        {
+            list.Add(string.Empty);
+            dd.choices = list;
+            dd.value = string.Empty;
+            return;
+        }
         dd.choices = list;
-        if (allowEmpty) dd.value = list.FirstOrDefault() ?? "";
-        else dd.value = list.FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(previous) && list.Contains(previous))
+        {
+            dd.value = previous;
+            return;
+        }
+        dd.value = list[0];
     }
+
+    private void ConfigureMatchBrandFilter()
+    {
+        if (matchBrandFilterDropdown == null) return;
+        var brands = Promotion?.brands ?? new List<string>();
+        var choices = new List<string> { "All Brands" };
+        choices.AddRange(brands.Where(b => !string.IsNullOrWhiteSpace(b))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(b => b));
+        matchBrandFilterDropdown.choices = choices;
+        if (!choices.Contains(currentMatchBrandFilter))
+            currentMatchBrandFilter = choices[0];
+        matchBrandFilterDropdown.value = currentMatchBrandFilter;
+    }
+
+    private void ApplyWrestlerBrandFilter()
+    {
+        if (allWrestlerChoices == null) allWrestlerChoices = new List<string>();
+        var filter = NormalizeBrandFilter(matchBrandFilterDropdown?.value ?? currentMatchBrandFilter);
+        currentMatchBrandFilter = filter;
+        wrestlerChoices = FilterWrestlersByBrand(filter);
+        RefreshParticipantDropdownChoices();
+    }
+
+    private void RefreshParticipantDropdownChoices()
+    {
+        SetDropdownChoices(wrestlerADropdown, wrestlerChoices);
+        SetDropdownChoices(wrestlerBDropdown, wrestlerChoices);
+        SetDropdownChoices(wrestlerCDropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(wrestlerDDropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(wrestlerEDropdown, wrestlerChoices, allowEmpty: true);
+        SetDropdownChoices(wrestlerFDropdown, wrestlerChoices, allowEmpty: true);
+        SetSegmentParticipantChoices();
+        UpdateWinnerChoices();
+        UpdateParticipantDropdownState();
+    }
+
+    private List<string> FilterWrestlersByBrand(string brand)
+    {
+        if (string.IsNullOrEmpty(brand) || StringEquals(brand, "All Brands"))
+            return new List<string>(allWrestlerChoices);
+        var roster = BuildBrandRoster(brand);
+        var filtered = allWrestlerChoices
+            .Where(name => roster.Contains(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+        if (filtered.Count == 0)
+            filtered = new List<string>(allWrestlerChoices);
+        return filtered;
+    }
+
+    private HashSet<string> BuildBrandRoster(string brand)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (Promotion?.shows == null || string.IsNullOrWhiteSpace(brand)) return set;
+        foreach (var show in Promotion.shows)
+        {
+            if (show == null || string.IsNullOrEmpty(show.brand) || !StringEquals(show.brand, brand)) continue;
+            foreach (var match in show.matches ?? new List<MatchData>())
+            {
+                if (match == null) continue;
+                void AddName(string name)
+                {
+                    if (!string.IsNullOrWhiteSpace(name))
+                        set.Add(name.Trim());
+                }
+                AddName(match.wrestlerA);
+                AddName(match.wrestlerB);
+                AddName(match.wrestlerC);
+                AddName(match.wrestlerD);
+                AddName(match.wrestlerE);
+                AddName(match.wrestlerF);
+            }
+        }
+        return set;
+    }
+
+    private static string NormalizeBrandFilter(string value)
+        => string.IsNullOrWhiteSpace(value) ? "All Brands" : value.Trim();
+
+    private bool StringEquals(string a, string b)
+        => string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void UpdateWinnerChoices(string preferred = null)
     {

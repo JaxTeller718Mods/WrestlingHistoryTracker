@@ -32,6 +32,9 @@ public class TournamentData
     public string id;            // stable identifier
     public string name;          // tournament name
     public string type;          // "Singles", "Tag Team", "Trios"
+    public string entrantType;   // Singles, Tag Team, Stable
+    public string entrantDivision;
+    public string entrantBrand;
     public TournamentFormat format = TournamentFormat.SingleElimination;
     public TournamentStatus status = TournamentStatus.Planned;
     public string brand;

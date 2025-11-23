@@ -106,6 +106,7 @@
             <ui:Label text="Select an entry to edit" />
           </ui:VisualElement>
           <ui:VisualElement name="cbMatchEditor" class="hidden">
+            <ui:DropdownField name="cbMatchBrandFilterDropdown" label="Participant Brand" />
             <ui:TextField name="cbMatchNameField" label="Match Name" />
             <ui:DropdownField name="cbMatchTypeDropdown" label="Match Structure" />
             <ui:DropdownField name="cbMatchStipulationDropdown" label="Match Stipulation (optional)" />
@@ -459,6 +460,8 @@
         <ui:IntegerField name="newTournamentYearField" label="Year" />
         <ui:Toggle name="newTournamentSeededToggle" label="Seed Entrants" />
         <ui:TextField name="newTournamentStakesField" label="Stakes / Reward (optional)" multiline="true" />
+        <ui:DropdownField name="newTournamentEntrantDivisionDropdown" label="Entrant Division" />
+        <ui:DropdownField name="newTournamentEntrantBrandDropdown" label="Entrant Brand" />
         <ui:VisualElement class="row">
           <ui:Button name="addTournamentButton" text="Add Tournament" />
           <ui:Button name="saveTournamentsButton" text="Save Tournaments" />
@@ -487,6 +490,8 @@
             <ui:DropdownField name="tournamentStatusDropdown" label="Status" />
             <ui:Label name="tournamentWinnerLabel" text="Winner: --" class="tournament-winner-label" />
             <ui:TextField name="tournamentStakesField" label="Stakes / Reward (optional)" multiline="true" />
+            <ui:DropdownField name="tournamentEntrantDivisionDropdown" label="Entrant Division" />
+            <ui:DropdownField name="tournamentEntrantBrandDropdown" label="Entrant Brand" />
 
             <ui:VisualElement class="row">
               <ui:DropdownField name="tournamentEntrantDropdown" label="Add/Select Entrant" class="overlay-dropdown" />
