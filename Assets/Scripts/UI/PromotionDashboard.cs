@@ -1607,21 +1607,40 @@ public class PromotionDashboard : MonoBehaviour
     {
         if (rivalryEventsList == null) return;
         rivalryEventsList.Clear();
-        foreach (var e in r.events ?? new List<RivalryEvent>())
+        var events = r?.events ?? new List<RivalryEvent>();
+        if (events.Count == 0)
         {
-            var btn = new Button(() => OpenLinkedShowFromEvent(e));
-            string showName = FindShowById(e.showId)?.showName ?? e.showId;
-            string showTag = string.IsNullOrEmpty(showName) ? string.Empty : $" ? Show: {showName}";
+            rivalryEventsList.Add(new Label("No rivalry events yet."));
+            return;
+        }
+        foreach (var e in events)
+        {
+            var currentEvent = e;
+            var row = new VisualElement();
+            row.AddToClassList("rivalry-event-row");
+
+            var btn = new Button(() => OpenLinkedShowFromEvent(currentEvent));
+            string showName = FindShowById(currentEvent.showId)?.showName ?? currentEvent.showId;
+            string showTag = string.IsNullOrEmpty(showName) ? string.Empty : $" · Show: {showName}";
             var details = new List<string>();
-            if (!string.IsNullOrWhiteSpace(e.notes)) details.Add(e.notes.Trim());
-            var rewardNote = BuildMatchRewardNote(e);
+            if (!string.IsNullOrWhiteSpace(currentEvent.notes)) details.Add(currentEvent.notes.Trim());
+            var rewardNote = BuildMatchRewardNote(currentEvent);
             if (!string.IsNullOrEmpty(rewardNote)) details.Add(rewardNote);
-            var textLine = $"{e.date} | {e.eventType} | {e.outcome}{showTag}";
+            var textLine = $"{currentEvent.date} | {currentEvent.eventType} | {currentEvent.outcome}{showTag}";
             if (details.Count > 0)
                 textLine += " | " + string.Join(" | ", details);
             btn.text = textLine;
             btn.AddToClassList("list-entry");
-            rivalryEventsList.Add(btn);
+            row.Add(btn);
+
+            var deleteButton = new Button(() => DeleteRivalryEvent(r, currentEvent))
+            {
+                text = "Delete"
+            };
+            deleteButton.AddToClassList("rivalry-event-delete");
+            row.Add(deleteButton);
+
+            rivalryEventsList.Add(row);
         }
     }
 
@@ -2051,6 +2070,25 @@ public class PromotionDashboard : MonoBehaviour
         PopulateRivalryEventsUI(r);
         UpdateRivalrySummaryUI(r);
         statusLabel.text = "Event added.";
+    }
+
+    private void DeleteRivalryEvent(RivalryData rivalry, RivalryEvent ev)
+    {
+        if (rivalry == null || ev == null) return;
+        rivalry.events ??= new List<RivalryEvent>();
+        int removed = 0;
+        if (!string.IsNullOrEmpty(ev.id))
+            removed = rivalry.events.RemoveAll(x => x != null && string.Equals(x.id, ev.id, StringComparison.OrdinalIgnoreCase));
+        if (removed == 0 && rivalry.events.Remove(ev))
+            removed = 1;
+        if (removed == 0) return;
+
+        RecomputeRivalryMetrics(rivalry);
+        DataManager.SaveRivalries(rivalryCollection);
+        PopulateRivalryEventsUI(rivalry);
+        UpdateRivalrySummaryUI(rivalry);
+        statusLabel.text = "Rivalry event deleted.";
+        ShowToast("Rivalry event deleted.", false);
     }
 
     private void OnOpenLinkedShow()

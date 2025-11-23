@@ -474,7 +474,7 @@ FloatField > .unity-float-field__input {
 .tournament-standings-header {
     margin-top: 8px;
     -unity-font-style: normal;
-    -unity-font-weight: bold;
+    -unity-font-style: bold;
 }
 
 .tournament-standings-row {
@@ -616,6 +616,20 @@ FloatField > .unity-float-field__input {
 #rivalryEventsList {
     height: 420px;
     min-height: 360px;
+}
+.rivalry-event-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.rivalry-event-row .list-entry {
+    flex-grow: 1;
+    margin-bottom: 0;
+    margin-right: 8px;
+}
+.rivalry-event-delete {
+    min-width: 70px;
 }
 /* Per-panel tighter layout for tournaments */
 #tournamentsPanel .tournament-entrants-column {
