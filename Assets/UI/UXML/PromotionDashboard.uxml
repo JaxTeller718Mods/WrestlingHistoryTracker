@@ -116,6 +116,8 @@
             <ui:DropdownField name="cbWrestlerDDropdown" label="Wrestler D (opt)" />
             <ui:DropdownField name="cbWrestlerEDropdown" label="Wrestler E (opt)" />
             <ui:DropdownField name="cbWrestlerFDropdown" label="Wrestler F (opt)" />
+            <ui:DropdownField name="cbWrestlerGDropdown" label="Wrestler G (opt)" />
+            <ui:DropdownField name="cbWrestlerHDropdown" label="Wrestler H (opt)" />
             <ui:Toggle name="cbIsTitleMatchToggle" label="Title Match" />
             <ui:DropdownField name="cbTitleDropdown" label="Pick Title" />
             <ui:DropdownField name="cbWinnerDropdown" label="Pick Winner" />
@@ -599,6 +601,8 @@
               <ui:DropdownField name="wrestlerDDropdown" label="Wrestler D (optional)" />
               <ui:DropdownField name="wrestlerEDropdown" label="Wrestler E (optional)" />
               <ui:DropdownField name="wrestlerFDropdown" label="Wrestler F (optional)" />
+              <ui:DropdownField name="wrestlerGDropdown" label="Wrestler G (optional)" />
+              <ui:DropdownField name="wrestlerHDropdown" label="Wrestler H (optional)" />
               <ui:Toggle name="isTitleMatchToggle" label="Title Match?" />
               <ui:DropdownField name="titleDropdown" label="Title (optional)" />
               <ui:DropdownField name="winnerDropdown" label="Winner" />

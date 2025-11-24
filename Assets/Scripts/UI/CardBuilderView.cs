@@ -20,7 +20,7 @@ public class CardBuilderView
     private VisualElement noSelectionHint, matchEditor, segmentEditor;
     private TextField matchNameField, matchNotesField, matchStakesField;
     private DropdownField matchTypeDropdown, matchStipulationDropdown, matchBrandFilterDropdown; private Toggle isTitleMatchToggle;
-    private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, titleDropdown, winnerDropdown;
+    private DropdownField wrestlerADropdown, wrestlerBDropdown, wrestlerCDropdown, wrestlerDDropdown, wrestlerEDropdown, wrestlerFDropdown, wrestlerGDropdown, wrestlerHDropdown, titleDropdown, winnerDropdown;
     private TextField segmentNameField, segmentTextField;
     private DropdownField segmentTypeDropdown, segmentParticipantADropdown, segmentParticipantBDropdown, segmentParticipantCDropdown, segmentParticipantDDropdown;
 
@@ -81,6 +81,8 @@ public class CardBuilderView
         wrestlerDDropdown = panel.Q<DropdownField>("cbWrestlerDDropdown");
         wrestlerEDropdown = panel.Q<DropdownField>("cbWrestlerEDropdown");
         wrestlerFDropdown = panel.Q<DropdownField>("cbWrestlerFDropdown");
+        wrestlerGDropdown = panel.Q<DropdownField>("cbWrestlerGDropdown");
+        wrestlerHDropdown = panel.Q<DropdownField>("cbWrestlerHDropdown");
         isTitleMatchToggle = panel.Q<Toggle>("cbIsTitleMatchToggle");
         titleDropdown = panel.Q<DropdownField>("cbTitleDropdown");
         winnerDropdown = panel.Q<DropdownField>("cbWinnerDropdown");
@@ -104,6 +106,8 @@ public class CardBuilderView
             "Fatal Four Way",
             "Five Way",
             "Six Way",
+            "Eight Way",
+            "4 vs 4 Tag Match",
             "Battle Royal",
             "Royal Rumble"
         };
@@ -200,6 +204,8 @@ public class CardBuilderView
         wrestlerDDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
         wrestlerEDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
         wrestlerFDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
+        wrestlerGDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
+        wrestlerHDropdown?.RegisterValueChangedCallback(e => { UpdateWinnerChoices(); });
         matchTypeDropdown?.RegisterValueChangedCallback(_ =>
         {
             UpdateWinnerChoices();
@@ -228,6 +234,8 @@ public class CardBuilderView
         SetupDropdownOverlay(wrestlerDDropdown);
         SetupDropdownOverlay(wrestlerEDropdown);
         SetupDropdownOverlay(wrestlerFDropdown);
+        SetupDropdownOverlay(wrestlerGDropdown);
+        SetupDropdownOverlay(wrestlerHDropdown);
         SetupDropdownOverlay(titleDropdown);
         SetupDropdownOverlay(winnerDropdown);
 
@@ -558,8 +566,10 @@ public class CardBuilderView
         SetDropdownChoices(wrestlerBDropdown, wrestlerChoices);
         SetDropdownChoices(wrestlerCDropdown, wrestlerChoices, allowEmpty: true);
         SetDropdownChoices(wrestlerDDropdown, wrestlerChoices, allowEmpty: true);
-        SetDropdownChoices(wrestlerEDropdown, wrestlerChoices, allowEmpty: true);
-        SetDropdownChoices(wrestlerFDropdown, wrestlerChoices, allowEmpty: true);
+            SetDropdownChoices(wrestlerEDropdown, wrestlerChoices, allowEmpty: true);
+            SetDropdownChoices(wrestlerFDropdown, wrestlerChoices, allowEmpty: true);
+            SetDropdownChoices(wrestlerGDropdown, wrestlerChoices, allowEmpty: true);
+            SetDropdownChoices(wrestlerHDropdown, wrestlerChoices, allowEmpty: true);
         SetSegmentParticipantChoices();
         UpdateWinnerChoices();
         UpdateParticipantDropdownState();
@@ -601,6 +611,8 @@ public class CardBuilderView
                 AddName(match.wrestlerD);
                 AddName(match.wrestlerE);
                 AddName(match.wrestlerF);
+                AddName(match.wrestlerG);
+                AddName(match.wrestlerH);
             }
         }
         return set;
@@ -623,20 +635,33 @@ public class CardBuilderView
         var d = wrestlerDDropdown?.value;
         var e = wrestlerEDropdown?.value;
         var f = wrestlerFDropdown?.value;
+        var g = wrestlerGDropdown?.value;
+        var h = wrestlerHDropdown?.value;
         add(a);
         add(b);
         add(c);
         add(d);
         add(e);
         add(f);
+        add(g);
+        add(h);
         var structure = GetSelectedStructure();
         bool isTag = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
         bool isTrios = !string.IsNullOrEmpty(structure) && structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isFourVFourTag = isTag && structure.IndexOf("4 vs 4", StringComparison.OrdinalIgnoreCase) >= 0;
         bool isRumble = IsRoyalRumbleStructure(structure);
         if (isTag && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) && !string.IsNullOrWhiteSpace(d))
         {
-            add($"{a} & {b}");
-            add($"{c} & {d}");
+            if (isFourVFourTag && !string.IsNullOrWhiteSpace(e) && !string.IsNullOrWhiteSpace(f) && !string.IsNullOrWhiteSpace(g) && !string.IsNullOrWhiteSpace(h))
+            {
+                add(string.Join(" & ", new[] { a, b, c, d }));
+                add(string.Join(" & ", new[] { e, f, g, h }));
+            }
+            else
+            {
+                add($"{a} & {b}");
+                add($"{c} & {d}");
+            }
         }
         if (isTrios && !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && !string.IsNullOrWhiteSpace(c) &&
             !string.IsNullOrWhiteSpace(d) && !string.IsNullOrWhiteSpace(e) && !string.IsNullOrWhiteSpace(f))
@@ -709,6 +734,12 @@ public class CardBuilderView
             wrestlerFDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerF)
                 ? ""
                 : FindChoice(wrestlerChoices, m.wrestlerF);
+            wrestlerGDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerG)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerG);
+            wrestlerHDropdown.value = string.IsNullOrWhiteSpace(m.wrestlerH)
+                ? ""
+                : FindChoice(wrestlerChoices, m.wrestlerH);
             isTitleMatchToggle.value = m.isTitleMatch;
             if (titleDropdown != null) titleDropdown.value = FindChoice(titleChoices, m.titleName);
             UpdateWinnerChoices(m.winner);
@@ -851,6 +882,8 @@ public class CardBuilderView
                     string d = wrestlerDDropdown != null ? (wrestlerDDropdown.value ?? string.Empty).Trim() : string.Empty;
                     string e = wrestlerEDropdown != null ? (wrestlerEDropdown.value ?? string.Empty).Trim() : string.Empty;
                     string f = wrestlerFDropdown != null ? (wrestlerFDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string g = wrestlerGDropdown != null ? (wrestlerGDropdown.value ?? string.Empty).Trim() : string.Empty;
+                    string h = wrestlerHDropdown != null ? (wrestlerHDropdown.value ?? string.Empty).Trim() : string.Empty;
 
                     var participants = new List<string>();
                     if (!string.IsNullOrEmpty(a)) participants.Add(a);
@@ -859,6 +892,8 @@ public class CardBuilderView
                     if (!string.IsNullOrEmpty(d)) participants.Add(d);
                     if (!string.IsNullOrEmpty(e)) participants.Add(e);
                     if (!string.IsNullOrEmpty(f)) participants.Add(f);
+                    if (!string.IsNullOrEmpty(g)) participants.Add(g);
+                    if (!string.IsNullOrEmpty(h)) participants.Add(h);
 
                     string vsPart = BuildVsPart(type, participants);
 
@@ -891,6 +926,8 @@ public class CardBuilderView
                 m.wrestlerD = wrestlerDDropdown?.value;
                 m.wrestlerE = wrestlerEDropdown?.value;
                 m.wrestlerF = wrestlerFDropdown?.value;
+                m.wrestlerG = wrestlerGDropdown?.value;
+                m.wrestlerH = wrestlerHDropdown?.value;
                 m.isTitleMatch = isTitleMatchToggle.value;
                 m.titleName = titleDropdown?.value;
                 m.winner = winnerDropdown?.value;
@@ -948,10 +985,17 @@ public class CardBuilderView
     {
         bool isTag = !string.IsNullOrEmpty(structure) && structure.IndexOf("tag", StringComparison.OrdinalIgnoreCase) >= 0;
         bool isTrios = !string.IsNullOrEmpty(structure) && structure.IndexOf("trios", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isFourVFourTag = isTag && structure.IndexOf("4 vs 4", StringComparison.OrdinalIgnoreCase) >= 0;
         if (isTrios && participants.Count >= 6)
         {
             var left = string.Join(" & ", participants.Take(3));
             var right = string.Join(" & ", participants.Skip(3).Take(3));
+            return $"{left} vs {right}";
+        }
+        if (isFourVFourTag && participants.Count >= 8)
+        {
+            var left = string.Join(" & ", participants.Take(4));
+            var right = string.Join(" & ", participants.Skip(4).Take(4));
             return $"{left} vs {right}";
         }
         if (isTag && participants.Count >= 4)
@@ -985,6 +1029,8 @@ public class CardBuilderView
         set(wrestlerDDropdown);
         set(wrestlerEDropdown);
         set(wrestlerFDropdown);
+        set(wrestlerGDropdown);
+        set(wrestlerHDropdown);
         UpdateWinnerChoices();
     }
 

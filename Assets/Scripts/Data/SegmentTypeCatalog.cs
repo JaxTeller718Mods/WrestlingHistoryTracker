@@ -18,6 +18,14 @@ public static class SegmentTypeCatalog
         "Announcement",
         "Confrontation",
         "Celebration",
-        "Brawl"
+        "Brawl",
+        "MITB Cash In",
+        "Tag Team Formation",
+        "Stable Formation",
+        "Heel Turn",
+        "Face Turn",
+        "Team Breakup",
+        "Teammate Walk Out",
+        "Betrayal"
     };
 }

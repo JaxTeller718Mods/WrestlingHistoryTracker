@@ -19,6 +19,8 @@ public class MatchData
     public string wrestlerD;
     public string wrestlerE;
     public string wrestlerF;
+    public string wrestlerG;
+    public string wrestlerH;
     public bool isTitleMatch;
     public string titleName;
     public string winner;
@@ -33,6 +35,8 @@ public class MatchData
     public string wrestlerDId;
     public string wrestlerEId;
     public string wrestlerFId;
+    public string wrestlerGId;
+    public string wrestlerHId;
     public string winnerId;
     public string titleId;
 }

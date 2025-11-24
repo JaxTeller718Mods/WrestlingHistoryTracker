@@ -22,6 +22,8 @@ public class MatchResultData
     public string wrestlerD;
     public string wrestlerE;
     public string wrestlerF;
+    public string wrestlerG;
+    public string wrestlerH;
     public string winner;
     public bool isTitleMatch;
     public string titleInvolved;
