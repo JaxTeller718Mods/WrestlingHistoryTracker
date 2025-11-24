@@ -400,8 +400,7 @@ public class CalendarView
                 brand = generatedBrand ?? string.Empty,
                 venue = string.Empty,
                 city = string.Empty,
-                attendance = 0,
-                rating = 0f
+                attendance = 0
             };
             promotion.shows.Add(show);
         }

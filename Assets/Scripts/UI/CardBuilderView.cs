@@ -10,7 +10,9 @@ public class CardBuilderView
     private VisualElement brandStripe;
     private TextField showNameField, showDateField;
     private DropdownField showVenueField, showCityField;
-    private IntegerField showAttendanceField; private FloatField showRatingField;
+    private IntegerField showAttendanceField;
+    private FloatField showTvRatingField;
+    private IntegerField showPpvBuysField;
     private DropdownField showTypeDropdown, showBrandDropdown;
     private DropdownField templateDropdown; private Button applyTemplateButton;
     private ScrollView entryListScroll; // container
@@ -58,7 +60,8 @@ public class CardBuilderView
         showTypeDropdown = panel.Q<DropdownField>("cbShowTypeDropdown");
         showBrandDropdown = panel.Q<DropdownField>("cbShowBrandDropdown");
         showAttendanceField = panel.Q<IntegerField>("cbShowAttendanceField");
-        showRatingField = panel.Q<FloatField>("cbShowRatingField");
+        showTvRatingField = panel.Q<FloatField>("cbShowTvRatingField");
+        showPpvBuysField = panel.Q<IntegerField>("cbShowPpvBuysField");
         templateDropdown = panel.Q<DropdownField>("cbTemplateDropdown");
         applyTemplateButton = panel.Q<Button>("cbApplyTemplateButton");
         entryListScroll = panel.Q<ScrollView>("cbEntryListScroll");
@@ -287,7 +290,6 @@ public class CardBuilderView
             venue = string.Empty,
             city = string.Empty,
             attendance = 0,
-            rating = 0f,
             matches = new List<MatchData>(),
             segments = new List<SegmentData>(),
             entryOrder = new List<string>()
@@ -388,7 +390,17 @@ public class CardBuilderView
             showCityField.value = c;
         }
         showAttendanceField.value = workingShow.attendance;
-        showRatingField.value = workingShow.rating;
+        float tvRating = workingShow?.tvRating ?? 0f;
+#pragma warning disable 618
+        if (tvRating <= 0f && workingShow != null && workingShow.rating > 0f)
+        {
+            tvRating = workingShow.rating;
+            workingShow.tvRating = tvRating;
+            workingShow.rating = 0f;
+        }
+#pragma warning restore 618
+        if (showTvRatingField != null) showTvRatingField.value = tvRating;
+        if (showPpvBuysField != null) showPpvBuysField.value = workingShow?.ppvBuys ?? 0;
         if (showTypeDropdown != null)
         {
             var t = workingShow.showType ?? string.Empty;
@@ -853,7 +865,13 @@ public class CardBuilderView
         workingShow.venue = showVenueField.value?.Trim();
         workingShow.city = showCityField.value?.Trim();
         workingShow.attendance = showAttendanceField.value;
-        workingShow.rating = showRatingField.value;
+        if (showTvRatingField != null)
+            workingShow.tvRating = showTvRatingField.value;
+#pragma warning disable 618
+        workingShow.rating = 0f;
+#pragma warning restore 618
+        if (showPpvBuysField != null)
+            workingShow.ppvBuys = showPpvBuysField.value;
         if (showTypeDropdown != null)
             workingShow.showType = string.IsNullOrWhiteSpace(showTypeDropdown.value) ? null : showTypeDropdown.value.Trim();
         if (showBrandDropdown != null)

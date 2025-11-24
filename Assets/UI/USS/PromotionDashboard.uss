@@ -241,13 +241,14 @@ button:active {
 .nav-buttons > * { margin-bottom: 8px; }
 
 /* ===== TEXT FIELDS ===== */
-TextField, FloatField {
+TextField, FloatField, IntegerField {
     width: 300px;
     margin-bottom: 5px;
 }
 
 TextField > .unity-text-field__input,
-FloatField > .unity-float-field__input {
+FloatField > .unity-float-field__input,
+IntegerField > .unity-integer-field__input {
     background-color: #202020;
     color: #E5E5E5;
     border-radius: 4px;

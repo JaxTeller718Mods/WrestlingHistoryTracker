@@ -11,7 +11,10 @@ public class ShowData
     public string venue;      // arena or building
     public string city;       // city, state/province
     public int attendance;    // number of attendees
-    public float rating;      // buyrate/TV rating
+    [Obsolete("Use tvRating or ppvBuys instead.")]
+    public float rating;      // legacy combined metric
+    public float tvRating;    // TV rating for broadcast shows
+    public int ppvBuys;       // PPV buy count for premium shows
     public string showType;   // TV, PPV, House, etc.
     public string brand;      // optional brand label (e.g., Raw, SmackDown)
     public List<MatchData> matches = new();
@@ -25,5 +28,7 @@ public class ShowData
         id = Guid.NewGuid().ToString("N");
         showName = name;
         this.date = date;
+        tvRating = 0f;
+        ppvBuys = 0;
     }
 }

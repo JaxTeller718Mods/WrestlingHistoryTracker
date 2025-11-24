@@ -101,12 +101,12 @@ public class PromotionDashboard : MonoBehaviour
     private ScrollView rivalryListScroll, rivalryEventsList;
     private ListView rivalryListView;
     private TextField rivalryNameField, rivalryNotesField;
-    private Label rivalryParticipantsLabel, rivalryHeatLabel;
+    private Label rivalryParticipantsLabel, rivalryHeatLabel, rivalryStatusLabel;
     private DropdownField rivalryTypeDropdown, rivalryParticipantADropdown, rivalryParticipantBDropdown;
     private TextField rivalryEventDateField, rivalryEventNotesField;
     private DropdownField rivalryEventTypeDropdown, rivalryEventOutcomeDropdown, rivalryEventShowDropdown, rivalryEventEntryDropdown;
     private FloatField rivalryEventRatingField;
-    private Button addRivalryButton, saveRivalriesButton, saveRivalryButton, deleteRivalryButton, cancelRivalryButton, addRivalryEventButton, openLinkedShowButton;
+    private Button addRivalryButton, saveRivalriesButton, saveRivalryButton, deleteRivalryButton, endRivalryButton, cancelRivalryButton, addRivalryEventButton, openLinkedShowButton;
     private RivalryCollection rivalryCollection;
     private int selectedRivalryIndex = -1;
     private Dictionary<string, string> rivalryEntryMap = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
@@ -157,7 +157,7 @@ public class PromotionDashboard : MonoBehaviour
 
     // Promotion info widgets
     private Label nameLabel, locationLabel, foundedLabel, descriptionLabel;
-    private Label statWrestlersLabel, statTeamsLabel, statTitlesLabel, statShowsLabel, statMatchesLabel, statRivalriesLabel, statBrandsLabel, statTitleChangesLabel, statHighestAttendanceLabel, statHighestRatingLabel;
+    private Label statWrestlersLabel, statTeamsLabel, statTitlesLabel, statShowsLabel, statMatchesLabel, statRivalriesLabel, statBrandsLabel, statTitleChangesLabel, statHighestAttendanceLabel, statHighestTvRatingLabel, statMostPpvBuysLabel;
     private Button editPromotionButton, savePromotionButton, cancelPromotionButton;
     private TextField nameField, locationField, foundedField, descriptionField;
     private VisualElement editPanel;
@@ -174,7 +174,8 @@ public class PromotionDashboard : MonoBehaviour
     private TextField newVenueField, newCityField;
     private Button addVenueButton, addCityButton;
     private IntegerField showAttendanceField, newShowAttendanceField;
-    private FloatField showRatingField, newShowRatingField;
+    private FloatField showTvRatingField, newShowTvRatingField;
+    private IntegerField showPpvBuysField, newShowPpvBuysField;
     private DropdownField showTypeDropdown, newShowTypeDropdown, showBrandDropdown, newShowBrandDropdown, historyBrandDropdown, rankingsBrandDropdown, calendarBrandDropdown, calendarGenerationBrandDropdown, showsBrandFilterDropdown;
     private Button addShowButton, saveShowsButton, saveShowButton, deleteShowButton, cancelShowButton, viewMatchesButton;
     private Button addMatchButton, addSegmentButton, saveMatchButton, cancelMatchButton, saveSegmentButton, cancelSegmentButton;
@@ -306,6 +307,7 @@ public class PromotionDashboard : MonoBehaviour
         rivalryNotesField = root.Q<TextField>("rivalryNotesField");
         rivalryParticipantsLabel = root.Q<Label>("rivalryParticipantsLabel");
         rivalryHeatLabel = root.Q<Label>("rivalryHeatLabel");
+        rivalryStatusLabel = root.Q<Label>("rivalryStatusLabel");
         rivalryTypeDropdown = root.Q<DropdownField>("rivalryTypeDropdown");
         rivalryParticipantADropdown = root.Q<DropdownField>("rivalryParticipantADropdown");
         rivalryParticipantBDropdown = root.Q<DropdownField>("rivalryParticipantBDropdown");
@@ -320,6 +322,7 @@ public class PromotionDashboard : MonoBehaviour
         saveRivalriesButton = root.Q<Button>("saveRivalriesButton");
         saveRivalryButton = root.Q<Button>("saveRivalryButton");
         deleteRivalryButton = root.Q<Button>("deleteRivalryButton");
+        endRivalryButton = root.Q<Button>("endRivalryButton");
         cancelRivalryButton = root.Q<Button>("cancelRivalryButton");
         addRivalryEventButton = root.Q<Button>("addRivalryEventButton");
         openLinkedShowButton = root.Q<Button>("openLinkedShowButton");
@@ -488,7 +491,8 @@ public class PromotionDashboard : MonoBehaviour
         newShowTypeDropdown = root.Q<DropdownField>("newShowTypeDropdown");
         newShowBrandDropdown = root.Q<DropdownField>("newShowBrandDropdown");
         newShowAttendanceField = root.Q<IntegerField>("newShowAttendanceField");
-        newShowRatingField = root.Q<FloatField>("newShowRatingField");
+        newShowTvRatingField = root.Q<FloatField>("newShowTvRatingField");
+        newShowPpvBuysField = root.Q<IntegerField>("newShowPpvBuysField");
         addShowButton = root.Q<Button>("addShowButton");
         saveShowsButton = root.Q<Button>("saveShowsButton");
         // Show details and editors
@@ -501,7 +505,8 @@ public class PromotionDashboard : MonoBehaviour
         showTypeDropdown = root.Q<DropdownField>("showTypeDropdown");
         showBrandDropdown = root.Q<DropdownField>("showBrandDropdown");
         showAttendanceField = root.Q<IntegerField>("showAttendanceField");
-        showRatingField = root.Q<FloatField>("showRatingField");
+        showTvRatingField = root.Q<FloatField>("showTvRatingField");
+        showPpvBuysField = root.Q<IntegerField>("showPpvBuysField");
         saveShowButton = root.Q<Button>("saveShowButton");
         deleteShowButton = root.Q<Button>("deleteShowButton");
         cancelShowButton = root.Q<Button>("cancelShowButton");
@@ -586,7 +591,8 @@ public class PromotionDashboard : MonoBehaviour
         statBrandsLabel = root.Q<Label>("statBrandsLabel");
         statTitleChangesLabel = root.Q<Label>("statTitleChangesLabel");
         statHighestAttendanceLabel = root.Q<Label>("statHighestAttendanceLabel");
-        statHighestRatingLabel = root.Q<Label>("statHighestRatingLabel");
+        statHighestTvRatingLabel = root.Q<Label>("statHighestTvRatingLabel");
+        statMostPpvBuysLabel = root.Q<Label>("statMostPpvBuysLabel");
         editPromotionButton = root.Q<Button>("editPromotionButton");
         savePromotionButton = root.Q<Button>("savePromotionButton");
         cancelPromotionButton = root.Q<Button>("cancelPromotionButton");
@@ -664,6 +670,7 @@ public class PromotionDashboard : MonoBehaviour
         if (saveRivalriesButton != null) saveRivalriesButton.clicked += OnSaveRivalries;
         if (saveRivalryButton != null) saveRivalryButton.clicked += OnSaveSelectedRivalry;
         if (deleteRivalryButton != null) deleteRivalryButton.clicked += OnDeleteSelectedRivalry;
+        if (endRivalryButton != null) endRivalryButton.clicked += OnEndRivalry;
         if (cancelRivalryButton != null) cancelRivalryButton.clicked += OnCancelEditRivalry;
         if (addRivalryEventButton != null) addRivalryEventButton.clicked += OnAddRivalryEvent;
         if (openLinkedShowButton != null) openLinkedShowButton.clicked += OnOpenLinkedShow;
@@ -1194,7 +1201,8 @@ public class PromotionDashboard : MonoBehaviour
             SetStat(statBrandsLabel, "--");
             SetStat(statTitleChangesLabel, "--");
             SetStat(statHighestAttendanceLabel, "--");
-            SetStat(statHighestRatingLabel, "--");
+            SetStat(statHighestTvRatingLabel, "--");
+            SetStat(statMostPpvBuysLabel, "--");
             return;
         }
 
@@ -1240,7 +1248,8 @@ public class PromotionDashboard : MonoBehaviour
         int rivalryCount = rivalryCollection?.rivalries?.Count(r => r != null) ?? 0;
         int brandCount = currentPromotion.brands?.Count(b => !string.IsNullOrWhiteSpace(b)) ?? 0;
         int highestAttendance = currentPromotion.shows?.Where(s => s != null).Select(s => s.attendance).DefaultIfEmpty(0).Max() ?? 0;
-        float highestRating = currentPromotion.shows?.Where(s => s != null).Select(s => s.rating).DefaultIfEmpty(0f).Max() ?? 0f;
+        float highestTvRating = currentPromotion.shows?.Where(s => s != null).Select(GetShowTvRating).DefaultIfEmpty(0f).Max() ?? 0f;
+        int mostPpvBuys = currentPromotion.shows?.Where(s => s != null).Select(GetShowPpvBuys).DefaultIfEmpty(0).Max() ?? 0;
 
         SetStat(statWrestlersLabel, wrestlerCount.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statTeamsLabel, tagTeamCount.ToString("N0", CultureInfo.InvariantCulture));
@@ -1251,8 +1260,38 @@ public class PromotionDashboard : MonoBehaviour
         SetStat(statBrandsLabel, brandCount.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statTitleChangesLabel, titleReigns.ToString("N0", CultureInfo.InvariantCulture));
         SetStat(statHighestAttendanceLabel, highestAttendance > 0 ? highestAttendance.ToString("N0", CultureInfo.InvariantCulture) : "--");
-        SetStat(statHighestRatingLabel, highestRating > 0f ? highestRating.ToString("0.00", CultureInfo.InvariantCulture) : "--");
+        SetStat(statHighestTvRatingLabel, highestTvRating > 0f ? highestTvRating.ToString("0.00", CultureInfo.InvariantCulture) : "--");
+        SetStat(statMostPpvBuysLabel, mostPpvBuys > 0 ? mostPpvBuys.ToString("N0", CultureInfo.InvariantCulture) : "--");
     }
+
+    private float GetShowTvRating(ShowData show)
+    {
+        if (show == null) return 0f;
+        if (show.tvRating > 0f) return show.tvRating;
+#pragma warning disable 618
+        if (show.rating > 0f)
+        {
+            show.tvRating = show.rating;
+            show.rating = 0f;
+            return show.tvRating;
+        }
+#pragma warning restore 618
+        return Mathf.Max(0f, show.tvRating);
+    }
+
+    private int GetShowPpvBuys(ShowData show)
+    {
+        if (show == null) return 0;
+        return Mathf.Max(0, show.ppvBuys);
+    }
+
+#pragma warning disable 618
+    private void ClearLegacyRating(ShowData show)
+    {
+        if (show == null) return;
+        show.rating = 0f;
+    }
+#pragma warning restore 618
 
     private void ShowPromotionEditPanel()
     {
@@ -1424,9 +1463,12 @@ public class PromotionDashboard : MonoBehaviour
                 var r = list[i];
                 var type = string.IsNullOrEmpty(r.type) ? "Singles" : r.type;
                 var heat = r.feudScore;
-                b.text = heat > 0f
-                    ? $"{r.title} [{type}] • Heat: {heat:F1}"
-                    : $"{r.title} [{type}]";
+                var status = string.IsNullOrEmpty(r.status) ? "Active" : r.status;
+                var parts = new List<string> { $"{r.title} [{type}]" };
+                if (heat > 0f)
+                    parts.Add($"Heat {heat:F1}");
+                parts.Add(status);
+                b.text = string.Join(" ? ", parts);
                 b.userData = i;
             }
             else { b.text = string.Empty; b.userData = -1; }
@@ -1846,10 +1888,28 @@ public class PromotionDashboard : MonoBehaviour
 
     private void UpdateRivalrySummaryUI(RivalryData r)
     {
+        if (rivalryStatusLabel != null)
+        {
+            if (r == null)
+            {
+                rivalryStatusLabel.text = string.Empty;
+            }
+            else
+            {
+                var status = string.IsNullOrEmpty(r.status) ? "Active" : r.status;
+                var spanParts = new List<string>();
+                if (!string.IsNullOrEmpty(r.startDate)) spanParts.Add($"Start: {r.startDate}");
+                if (!string.IsNullOrEmpty(r.endDate)) spanParts.Add($"End: {r.endDate}");
+                var span = spanParts.Count > 0 ? $" ({string.Join(" · ", spanParts)})" : string.Empty;
+                rivalryStatusLabel.text = $"Status: {status}{span}";
+            }
+        }
+
         if (r == null)
         {
             if (rivalryParticipantsLabel != null) rivalryParticipantsLabel.text = string.Empty;
             if (rivalryHeatLabel != null) rivalryHeatLabel.text = string.Empty;
+            UpdateRivalryEditingState(null);
             return;
         }
 
@@ -1869,7 +1929,7 @@ public class PromotionDashboard : MonoBehaviour
         {
             var parts = new List<string>();
             parts.Add($"Heat: {r.feudScore:F1}");
-            parts.Add($"Record A–B–D: {r.winsA}-{r.winsB}-{r.draws}");
+            parts.Add($"Record A-B-D: {r.winsA}-{r.winsB}-{r.draws}");
             if (!string.IsNullOrEmpty(r.startDate) || !string.IsNullOrEmpty(r.lastInteractionDate))
             {
                 string span;
@@ -1882,6 +1942,50 @@ public class PromotionDashboard : MonoBehaviour
             rivalryHeatLabel.text = string.Join("  |  ", parts);
         }
         UpdateMatchParticipantInputs();
+    }
+
+    private void UpdateRivalryEditingState(RivalryData rivalry)
+    {
+        bool concluded = IsRivalryConcluded(rivalry);
+        void Toggle(VisualElement element, bool enabled)
+        {
+            if (element == null) return;
+            element.SetEnabled(enabled);
+        }
+
+        bool enable = !concluded;
+        Toggle(rivalryNameField, enable);
+        Toggle(rivalryTypeDropdown, enable);
+        Toggle(rivalryParticipantADropdown, enable);
+        Toggle(rivalryParticipantBDropdown, enable);
+
+        Toggle(rivalryEventDateField, enable);
+        Toggle(rivalryEventTypeDropdown, enable);
+        Toggle(rivalryEventOutcomeDropdown, enable);
+        Toggle(rivalryEventShowDropdown, enable);
+        Toggle(rivalryEventEntryDropdown, enable);
+        Toggle(rivalryEventRatingField, enable);
+        Toggle(rivalryEventNotesField, enable);
+        if (addRivalryEventButton != null) addRivalryEventButton.SetEnabled(enable);
+
+        if (endRivalryButton != null)
+        {
+            if (rivalry == null)
+            {
+                endRivalryButton.text = "End Rivalry";
+                endRivalryButton.SetEnabled(false);
+            }
+            else if (concluded)
+            {
+                endRivalryButton.text = "Rivalry Ended";
+                endRivalryButton.SetEnabled(false);
+            }
+            else
+            {
+                endRivalryButton.text = "End Rivalry";
+                endRivalryButton.SetEnabled(true);
+            }
+        }
     }
 
     private void UpdateMatchParticipantInputs()
@@ -1904,6 +2008,9 @@ public class PromotionDashboard : MonoBehaviour
         if (disable)
             UpdateWinnerChoices();
     }
+
+    private bool IsRivalryConcluded(RivalryData rivalry)
+        => rivalry != null && StringEquals(rivalry.status, "Concluded");
     private void ShowAwardsPanel()
     {
         SetActivePanel(awardsPanel);
@@ -1971,7 +2078,7 @@ public class PromotionDashboard : MonoBehaviour
         var bId = ResolveTypedId(type, bName);
         if (string.IsNullOrEmpty(aId) || string.IsNullOrEmpty(bId) || string.Equals(aId, bId, StringComparison.OrdinalIgnoreCase)) { statusLabel.text = "Invalid participants."; return; }
         if (rivalryCollection.rivalries.Any(r => string.Equals(r.title, title, StringComparison.OrdinalIgnoreCase))) { statusLabel.text = "Rivalry title exists."; return; }
-        var rNew = new RivalryData { title = title, type = type, status = "Active", startDate = DateTime.UtcNow.ToString("yyyy-MM-dd"), notes = rivalryNotesField?.value };
+        var rNew = new RivalryData { id = Guid.NewGuid().ToString("N"), title = title, type = type, status = "Active", startDate = DateTime.UtcNow.ToString("yyyy-MM-dd"), notes = rivalryNotesField?.value };
         rNew.participants.Add(aId); rNew.participants.Add(bId);
         rivalryCollection.rivalries.Add(rNew);
         DataManager.SaveRivalries(rivalryCollection);
@@ -2018,6 +2125,7 @@ public class PromotionDashboard : MonoBehaviour
         RefreshRivalryList();
         statusLabel.text = "Rivalry deleted.";
         ShowToast("Rivalry deleted.", false);
+        UpdateRivalrySummaryUI(null);
     }
 
     private void OnCancelEditRivalry()
@@ -2026,12 +2134,39 @@ public class PromotionDashboard : MonoBehaviour
         if (rivalryNameField != null) rivalryNameField.value = string.Empty;
         if (rivalryNotesField != null) rivalryNotesField.value = string.Empty;
         SetActivePanel(rivalriesPanel);
+        UpdateRivalrySummaryUI(null);
+    }
+
+    private void OnEndRivalry()
+    {
+        if (rivalryCollection?.rivalries == null || selectedRivalryIndex < 0 || selectedRivalryIndex >= rivalryCollection.rivalries.Count)
+        {
+            if (statusLabel != null) statusLabel.text = "Select a rivalry first.";
+            return;
+        }
+        var r = rivalryCollection.rivalries[selectedRivalryIndex];
+        if (IsRivalryConcluded(r))
+        {
+            if (statusLabel != null) statusLabel.text = "Rivalry already concluded.";
+            return;
+        }
+        r.status = "Concluded";
+        if (string.IsNullOrEmpty(r.startDate))
+            r.startDate = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        r.endDate = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        RecomputeRivalryMetrics(r);
+        DataManager.SaveRivalries(rivalryCollection);
+        UpdateRivalrySummaryUI(r);
+        RefreshRivalryList();
+        if (statusLabel != null) statusLabel.text = "Rivalry concluded.";
+        ShowToast("Rivalry concluded.", false);
     }
 
     private void OnAddRivalryEvent()
     {
         if (rivalryCollection?.rivalries == null || selectedRivalryIndex < 0 || selectedRivalryIndex >= rivalryCollection.rivalries.Count) { statusLabel.text = "Select a rivalry first."; return; }
         var r = rivalryCollection.rivalries[selectedRivalryIndex];
+        if (IsRivalryConcluded(r)) { statusLabel.text = "This rivalry has already been concluded."; return; }
         EnsureRivalryEventChoices();
         // Gather inputs
         var sDate = (rivalryEventDateField?.value ?? string.Empty).Trim();
@@ -2817,7 +2952,7 @@ public class PromotionDashboard : MonoBehaviour
 
                 var show = shows.FirstOrDefault(s => string.Equals(s?.showName, r.showName, StringComparison.OrdinalIgnoreCase) &&
                                                      string.Equals(s?.date, r.date, StringComparison.OrdinalIgnoreCase));
-                float baseRating = show?.rating ?? 0f;
+                float baseRating = show != null ? GetShowTvRating(show) : 0f;
                 float score = baseRating;
                 if (r.isTitleMatch) score += 1.0f;
 
@@ -5454,7 +5589,9 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowVenueField != null) show.venue = (newShowVenueField.value ?? string.Empty).Trim();
         if (newShowCityField != null) show.city = (newShowCityField.value ?? string.Empty).Trim();
         if (newShowAttendanceField != null) show.attendance = newShowAttendanceField.value;
-        if (newShowRatingField != null) show.rating = newShowRatingField.value;
+        if (newShowTvRatingField != null) show.tvRating = newShowTvRatingField.value;
+        ClearLegacyRating(show);
+        if (newShowPpvBuysField != null) show.ppvBuys = newShowPpvBuysField.value;
         if (newShowTypeDropdown != null)
         {
             var t = (newShowTypeDropdown.value ?? string.Empty).Trim();
@@ -5481,7 +5618,8 @@ public class PromotionDashboard : MonoBehaviour
         if (newShowCityField != null) newShowCityField.value = string.Empty;
         if (newShowBrandDropdown != null) newShowBrandDropdown.value = "";
         if (newShowAttendanceField != null) newShowAttendanceField.value = 0;
-        if (newShowRatingField != null) newShowRatingField.value = 0f;
+        if (newShowTvRatingField != null) newShowTvRatingField.value = 0f;
+        if (newShowPpvBuysField != null) newShowPpvBuysField.value = 0;
         string msg = string.IsNullOrEmpty(validation) ? "Show added." : validation;
         if (statusLabel != null) statusLabel.text = msg;
         ShowToast(msg, false);
@@ -5510,7 +5648,8 @@ public class PromotionDashboard : MonoBehaviour
         if (showCityField != null) showCityField.value = s.city;
         if (showBrandDropdown != null) showBrandDropdown.value = s.brand ?? string.Empty;
         if (showAttendanceField != null) showAttendanceField.value = s.attendance;
-        if (showRatingField != null) showRatingField.value = s.rating;
+        if (showTvRatingField != null) showTvRatingField.value = GetShowTvRating(s);
+        if (showPpvBuysField != null) showPpvBuysField.value = GetShowPpvBuys(s);
         if (showTypeDropdown != null)
         {
             if (showTypeDropdown.choices == null || showTypeDropdown.choices.Count == 0)
@@ -5539,7 +5678,9 @@ public class PromotionDashboard : MonoBehaviour
         if (showVenueField != null) s.venue = (showVenueField.value ?? string.Empty).Trim();
         if (showCityField != null) s.city = (showCityField.value ?? string.Empty).Trim();
         if (showAttendanceField != null) s.attendance = showAttendanceField.value;
-        if (showRatingField != null) s.rating = showRatingField.value;
+        if (showTvRatingField != null) s.tvRating = showTvRatingField.value;
+        ClearLegacyRating(s);
+        if (showPpvBuysField != null) s.ppvBuys = showPpvBuysField.value;
         if (showBrandDropdown != null)
         {
             var b = (showBrandDropdown.value ?? string.Empty).Trim();
