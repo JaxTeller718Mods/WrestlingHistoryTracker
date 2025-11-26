@@ -26,6 +26,11 @@ public static class SegmentTypeCatalog
         "Face Turn",
         "Team Breakup",
         "Teammate Walk Out",
-        "Betrayal"
+        "Betrayal",
+        "Handshake",
+        "Show of Respect",
+        "Post Match Debut Attack",
+        "Disrespect",
+        "Stage Confrontation"
     };
 }
